@@ -1,1 +1,3 @@
-dong_twit_data: ../twitter_dong
+dong_twit_train_data: ../twitter_dong/train.txt
+dong_twit_test_data: ../twitter_dong/train.txt
+unit_test_dong_data: ./tests/data/dong_sent.txt
