@@ -22,7 +22,7 @@ class TestHelper(TestCase):
         '''
 
         self.assertEqual(read_config('unit_test_dong_data'),
-                         './tests/data/dong_sent.txt')
+                         './tests/test_data/dong_test_data.txt')
         with self.assertRaises(ValueError,
                                msg='nothing here should not be in the config.yaml'):
             read_config('nothing here')
