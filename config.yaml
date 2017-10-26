@@ -1,4 +1,7 @@
 dong_twit_train_data: ../twitter_dong/train.txt
 dong_twit_test_data: ../twitter_dong/train.txt
 
+# Dong sentiment data testing paths
 unit_test_dong_data: ./tests/test_data/dong_test_data.txt
+unit_test_dong_bad_sent_data: ./tests/test_data/dong_test_bad_sent_data.txt
+unit_test_dong_bad_multiple_data: ./tests/test_data/dong_test_multiple_offsets_data.txt
