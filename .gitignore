@@ -1,2 +1,4 @@
 .envrc
 __pycache__
+.cache/**
+

@@ -8,15 +8,13 @@ import os
 
 from ruamel.yaml import YAML
 
-import tdparse
-
 def package_dir():
     '''
     :returns: The path to the directory of the package
     :rtype: String
     '''
 
-    return tdparse.__path__._path[0]
+    return os.path.abspath(os.path.join(__file__, os.pardir, os.pardir))
 
 
 
