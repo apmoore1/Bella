@@ -10,6 +10,8 @@ from ruamel.yaml import YAML
 
 def package_dir():
     '''
+    Returns the directory of the git repository.
+
     :returns: The path to the directory of the package
     :rtype: String
     '''
@@ -20,12 +22,17 @@ def package_dir():
 
 def read_config(config_key, config_file_name='config.yaml'):
     '''
+    Returns a value within the configuarion file given the key.
+
     :param config_key: key to a value stored in the config.yaml file
     :param config_file_name: Name of the config file within the package directory
     :type config_key: String
     :type config_file_name: String Default `config.yaml`
     :returns: Value stored at the keys location
     :rtype: Python type of the value e.g. if 5 it will be int
+
+    :Example:
+    >> read_config('dong_twit_train_data')
     '''
 
     config_file_path = os.path.join(package_dir(), config_file_name)
