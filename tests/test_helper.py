@@ -1,5 +1,5 @@
 '''
-Unit tests for the :py:mod:`tdparse.helper` module.
+Unit test suite for :py:mod:`tdparse.helper` module.
 '''
 import os
 
