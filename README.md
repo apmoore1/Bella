@@ -1,4 +1,6 @@
-# TDParse
+# TDParse 
+[![Build Status](https://travis-ci.org/{ORG-or-USERNAME}/{REPO-NAME}.png?branch=master)](https://travis-ci.org/{ORG-or-USERNAME}/{REPO-NAME})
+
 Implementation of [TDParse](https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046)
 
 
