@@ -1,4 +1,8 @@
 .envrc
 __pycache__
 .cache/**
-
+docs/_static
+docs/_build
+docs/_templates
+docs/source/**
+.DS_Store
