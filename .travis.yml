@@ -9,6 +9,8 @@ script:
   - cd docs
   - make html
   - ls
+  - cd -
+  - ls
 deploy:
   provider: pages
   skip_cleanup: true
