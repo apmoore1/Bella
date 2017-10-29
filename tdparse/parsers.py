@@ -9,6 +9,9 @@ import re
 
 def dong(file_path):
     '''
+    Given file path to the `Li Dong <http://goo.gl/5Enpu7>`_ sentiment data it
+    will parse the data and return it as a list of dictionaries.
+
     :param file_path: File Path to the annotated data
     :type file_path: String
     :returns: A list of dictionaries
