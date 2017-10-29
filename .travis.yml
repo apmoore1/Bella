@@ -5,9 +5,10 @@ install:
   - pip install -r requirements.txt
 script:
   - python -m pytest
+  - sphinx-apidoc -o docs/source/ tdparse
   - cd docs
-  - sphinx-apidoc -o source/ ../tdparse
   - make html
+  - ls
 deploy:
   provider: pages
   skip_cleanup: true
