@@ -31,10 +31,6 @@ def read_config(config_key, config_file_name='config.yaml'):
     :type config_file_name: String Default "config.yaml"
     :returns: Value stored at the keys location
     :rtype: Python type of the value e.g. if 5 it will be int
-
-    :Example:
-    >>>read_config("dong_twit_train_data")
-
     '''
 
     config_file_path = os.path.join(package_dir(), config_file_name)
