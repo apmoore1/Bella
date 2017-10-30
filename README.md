@@ -1,7 +1,9 @@
 # TDParse 
 [![Build Status](https://travis-ci.org/apmoore1/tdparse.png?branch=master)](https://travis-ci.org/apmoore1/tdparse)
 
-Implementation of [TDParse](https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046)
+Implementation of [TDParse](https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046).
+
+[Read the Docs styled documentation](https://apmoore1.github.io/tdparse/)
 
 
 ### Testing
