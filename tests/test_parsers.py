@@ -85,12 +85,12 @@ class TestParsers(TestCase):
         multi_expected = [{'id':0,
                            'sentiment':-1,
                            'text':'This is a fake news article that is to represent a '\
-                           'Tweet!!!! and it was an awful news article I think.',
+                           'Tweet!!!! and it was an awful News Article I think.',
                            'target':'news article',
                            'spans':[[15, 27], [81, 93]]},
                           {'id':1,
                            'sentiment':1,
-                           'text':'I had a great day however I did not get much '\
+                           'text':'I had a great Day however I did not get much '\
                            'work done in the day',
                            'target':'day',
                            'spans':[[14, 17], [62, 65]]}]
