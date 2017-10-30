@@ -12,8 +12,8 @@ from tdparse.helper import package_dir
 class TestHelper(TestCase):
     '''
     Contains the following functions:
-    :py:func:`tdparse.helper.test_read_config`
-    :py:func:`tdparse.helper.test_package_dir`
+    1. :py:func:`tdparse.helper.test_read_config`
+    2. :py:func:`tdparse.helper.test_package_dir`
     '''
 
     def test_read_config(self):

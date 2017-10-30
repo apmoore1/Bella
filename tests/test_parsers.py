@@ -10,7 +10,7 @@ from tdparse.helper import read_config
 class TestParsers(TestCase):
     '''
     Contains the following functions:
-    :py:func:`tdparse.parsers.test_dong`
+    1. :py:func:`tdparse.parsers.test_dong`
     '''
 
     def test_dong(self):
