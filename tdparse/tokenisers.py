@@ -3,6 +3,7 @@ Functions that tokenise text and Returns the list of tokens all of which are
 Strings.
 
 1. Whitespace - :py:func:`tdparse.tokenisers.whitespace`
+2. Twitter tokeniser - :py:func:`tdparse.tokenisers.ark_twokenize`
 '''
 
 import twokenize
