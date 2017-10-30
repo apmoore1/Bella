@@ -16,6 +16,7 @@ ruamel.yaml==0.15.34
 six==1.11.0
 snowballstemmer==1.2.1
 Sphinx==1.6.5
+sphinx-rtd-theme==0.2.4
 sphinxcontrib-websupport==1.0.1
 -e git+https://github.com/Sentimentron/ark-twokenize-py@f0a92c07998ed73d98274f174069d102cd698779#egg=twokenize
 urllib3==1.22
