@@ -84,3 +84,13 @@ class GensimVectors:
                 return np.zeros(self.vector_size)
         raise ValueError('The word parameter must be of type str not {}'\
                          .format(type(word)))
+    def index2word(self):
+        index_word = {}
+        for index, word in enumerate(self.model.index2word):
+            index_word[index] = word
+        return index_word
+    def index2vector(self):
+        index_vector = {}
+        for index, word in self.index2word().items():
+            index_vector[index] = self.model.lookup_vector(word)
+        return index_vector
