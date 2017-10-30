@@ -9,8 +9,9 @@ import re
 
 def dong(file_path):
     '''
-    Given file path to the `Li Dong <http://goo.gl/5Enpu7>`_ sentiment data it
-    will parse the data and return it as a list of dictionaries.
+    Given file path to the
+    `Li Dong <https://github.com/bluemonk482/tdparse/tree/master/data/lidong>`_
+    sentiment data it will parse the data and return it as a list of dictionaries.
 
     :param file_path: File Path to the annotated data
     :type file_path: String
@@ -40,21 +41,11 @@ def dong(file_path):
                     raise ValueError('The sentiment has to be one of the following '\
                                      'values {} not {}'.format(sentiment_range, sentiment))
                 sent_dict['sentiment'] = int(line)
-                text = sent_dict['text']
-                target = sent_dict['target']
-                # Getting offsets
-                offsets = []
-                while True:
-                    match = re.search(r'\$T\$', text)
-                    if match is None:
-                        break
-                    start_offset = match.span()[0]
-                    end_offset = start_offset + len(sent_dict['target'])
-                    offsets.append([start_offset, end_offset])
-                    text = re.sub(r'\$T\$', target, text, count=1)
-                sent_dict['text'] = text
-                sent_dict['id'] = len(sentiment_data)
+                text = sent_dict['text'].lower()
+                target = sent_dict['target'].lower()
+                offsets = [list(match.span()) for match in re.finditer(target, text)]
                 sent_dict['spans'] = offsets
+                sent_dict['id'] = len(sentiment_data)
                 sentiment_data.append(sent_dict)
                 sent_dict = {}
             else:
