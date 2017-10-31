@@ -7,7 +7,9 @@ dong_twit_test_data: ../aspect datasets/dong/dong_test.txt
 word_vector_folder: ./data/word_vectors
 # word2vec files
 word2vec_files:
-  vo_zhang: ./data/word_vectors/word2vec/vo_zhang
+  vo_zhang: ./data/word_vectors/vo_zhang/word2vec
+sswe_files:
+  vo_zhang: ./data/word_vectors/vo_zhang/sswe.tsv
 
 
 test_data:
