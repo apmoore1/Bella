@@ -8,13 +8,14 @@ and `FastText <https://arxiv.org/abs/1607.04606>`_ vectors.
 '''
 
 import os
+import types
 
 import numpy as np
 
 from gensim.models import word2vec
 from gensim.models.wrappers import FastText
 
-class GensimVectors:
+class GensimVectors(object):
     '''
     Class that can create one of the following word vector models:
 
@@ -47,23 +48,34 @@ class GensimVectors:
             raise ValueError('model parameter has to be one of the following {} '\
                              'not {}'.format(allowed_models.keys(), model))
         model = allowed_models[model]
+        failed_to_load = True
 
-        file_path = os.path.abspath(file_path)
+        if isinstance(file_path, str):
+            file_path = os.path.abspath(file_path)
 
-        if os.path.isfile(file_path):
-            self.model = model.load(file_path)
-        elif hasattr(train_data, '__iter__'):
+        if isinstance(file_path, str):
+            if os.path.isfile(file_path):
+                try:
+                    self.model = model.load(file_path)
+                    failed_to_load = False
+                except EOFError:
+                    failed_to_load = True
+
+        if hasattr(train_data, '__iter__') and failed_to_load:
+            # Generators throws an error in Gensim
+            if isinstance(train_data, types.GeneratorType):
+                train_data = map(lambda x: x, train_data)
             self.model = model(train_data, **kwargs)
             if isinstance(file_path, str):
                 self.model.save(file_path)
                 print('{} model has been saved to {}'.format(model.__name__,
                                                              file_path))
-        else:
+        elif failed_to_load:
             raise Exception('Cannot create model as there is no path to extract '\
                             'a model from {} or any data to train on which has '\
                             'to have the __iter__ function {}'\
                             .format(file_path, train_data))
-        self.vector_size = self.model.wv[self.model.index2word[0]].shape[0]
+        self.vector_size = self.model.wv[self.index2word[0]].shape[0]
 
     def lookup_vector(self, word):
         '''
@@ -84,13 +96,40 @@ class GensimVectors:
                 return np.zeros(self.vector_size)
         raise ValueError('The word parameter must be of type str not {}'\
                          .format(type(word)))
+
+    @property
     def index2word(self):
+        '''
+        :returns: A dictionary matching word indexs to there corresponding words.
+        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.word2index`
+        :rtype: dict
+        '''
+
         index_word = {}
-        for index, word in enumerate(self.model.index2word):
+        for index, word in enumerate(self.model.wv.index2word):
             index_word[index] = word
         return index_word
+
+    @property
+    def word2index(self):
+        '''
+        :returns: A dictionary matching words to there corresponding index.
+        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.index2word`
+        :rtype: dict
+        '''
+
+        return {word : index for index, word in self.index2word.items()}
+
+    @property
     def index2vector(self):
+        '''
+        :returns: A dictionary of word index to corresponding word vector. Same
+        as :py:func:`tdparse.word_vectors.GensimVectors.lookup_vector` but
+        instead of words that are looked up it is the words index.
+        :rtype: dict
+        '''
+
         index_vector = {}
-        for index, word in self.index2word().items():
-            index_vector[index] = self.model.lookup_vector(word)
+        for index, word in self.index2word.items():
+            index_vector[index] = self.lookup_vector(word)
         return index_vector
