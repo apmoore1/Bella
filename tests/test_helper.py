@@ -21,7 +21,11 @@ class TestHelper(TestCase):
         Tests :py:func:`tdparse.helper.read_config`
         '''
 
-        self.assertEqual(read_config('unit_test_dong_data'),
+        # Check if it can handle nested values - which should be converted to
+        # a dictionary
+        self.assertIsInstance(read_config('word2vec_files'), dict)
+
+        self.assertEqual(read_config('test_data')['dong_data'],
                          './tests/test_data/dong_test_data.txt')
         with self.assertRaises(ValueError,
                                msg='nothing here should not be in the config.yaml'):
@@ -30,7 +34,9 @@ class TestHelper(TestCase):
         with self.assertRaises(FileNotFoundError,
                                msg='there should be no file named {}'\
                                    .format(test_config_name)):
-            read_config('unit_test_dong_data', config_file_name=test_config_name)
+            read_config('test_data', config_file_name=test_config_name)
+
+
 
     def test_package_dir(self):
         '''

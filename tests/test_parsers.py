@@ -74,13 +74,13 @@ class TestParsers(TestCase):
                              'spans':[[2, 8]]}]
         check_results(expected_results, dong(test_file_path))
 
-        bad_sent_path = read_config('unit_test_dong_bad_sent_data')
+        bad_sent_path = read_config('test_data')['dong_bad_sent_data']
         with self.assertRaises(ValueError, msg='It should not accept sentiment '\
                                'values that are not 1, 0, or -1'):
             dong(bad_sent_path)
 
         # Ensure that it can handle the same target with multiple spans
-        test_multiple_path = read_config('unit_test_dong_multiple_offsets_data')
+        test_multiple_path = read_config('test_data')['dong_multiple_offsets_data']
 
         multi_expected = [{'id':0,
                            'sentiment':-1,

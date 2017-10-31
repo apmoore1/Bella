@@ -1,7 +1,19 @@
 dong_twit_train_data: ../aspect datasets/dong/dong_train.txt
 dong_twit_test_data: ../aspect datasets/dong/dong_test.txt
 
-# Dong sentiment data testing paths
-unit_test_dong_data: ./tests/test_data/dong_test_data.txt
-unit_test_dong_bad_sent_data: ./tests/test_data/dong_test_bad_sent_data.txt
-unit_test_dong_multiple_offsets_data: ./tests/test_data/dong_test_multiple_offsets_data.txt
+#
+# Word vector paths
+#
+word_vector_folder: ./data/word_vectors
+# word2vec files
+word2vec_files:
+  vo_zhang: ./data/word_vectors/word2vec/vo_zhang
+
+
+test_data:
+  # Dong sentiment data testing paths
+  dong_data: ./tests/test_data/dong_test_data.txt
+  dong_bad_sent_data: ./tests/test_data/dong_test_bad_sent_data.txt
+  dong_multiple_offsets_data: ./tests/test_data/dong_test_multiple_offsets_data.txt
+
+  sherlock_holmes: ./tests/test_data/sherlock_holmes.txt
