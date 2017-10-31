@@ -15,7 +15,17 @@ from gensim.models import word2vec
 from gensim.models.wrappers import FastText
 
 class WordVectors(object):
+    '''
+    Base class for all WordVector classes. Contains the following instance
+    attributes:
+    1. vector_size - Size of the word vectors e.g. 100
+    2. index2word - Mapping between index number and associated word
+    3. index2vector - mapping between index and vector
+    4. word2index - Mapping between word and associated index
 
+    Following methods:
+    1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
+    '''
     def __init__(self, word2vector, word_list):
         if not isinstance(word_list, list):
             raise TypeError('word_list should be of type list not {}'\
