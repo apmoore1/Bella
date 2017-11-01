@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from tdparse.contexts import right_context
 from tdparse.contexts import left_context
+from tdparse.contexts import _context
 
 class TestContexts(TestCase):
     '''
@@ -28,6 +29,14 @@ class TestContexts(TestCase):
                        'work done in the day',
                        'target':'day',
                        'spans':[[14, 17], [62, 65]]}]
+    def test_context(self):
+        '''
+        Tests :py:func:`tdparse.contexts._context`
+        '''
+        with self.assertRaises(ValueError, msg='Should only accept left and right '\
+                               'context words for parameters'):
+            _context(self.single_context[0], 'itself')
+
     def test_left_context(self):
         '''
         Tests :py:func:`tdparse.contexts.left_context`
