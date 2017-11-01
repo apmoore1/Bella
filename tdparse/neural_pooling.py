@@ -85,7 +85,7 @@ def matrix_max(matrix):
     '''
     :param matrix: matrix or vector
     :type matrix: np.ndarray
-    :returns: The maximum row values in the matrix. If vector returns the vector
+    :returns: The maximum row values in the matrix. If vector returns the vector \
     as is.
     :rtype: np.ndarray
     '''
@@ -96,7 +96,7 @@ def matrix_avg(matrix):
     '''
     :param matrix: matrix or vector
     :type matrix: np.ndarray
-    :returns: The mean row values in the matrix. If vector returns the vector
+    :returns: The mean row values in the matrix. If vector returns the vector \
     as is.
     :rtype: np.ndarray
     '''
