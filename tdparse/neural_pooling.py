@@ -1,5 +1,6 @@
 '''
 Contains the following neural pooling functions:
+
 1. min
 2. max
 3. avg
@@ -11,17 +12,19 @@ import numpy as np
 def matrix_checking(neural_func):
     '''
     Contains decorator function to check argument compbatbility and the
-    decorated functions return.
+    decorated functions return. The functions decorated are the neural functions
+    which are:
+
+    1. :py:func:`tdparse.neural_pooling.matrix_min`
+    2. :py:func:`tdparse.neural_pooling.matrix_max`
+    3. :py:func:`tdparse.neural_pooling.matrix_avg`
     '''
     @wraps(neural_func)
     def pre_post_check(matrix):
         '''
         Checks the matrix is of the correct type and that the return matrix
         is of the correct size after the neural_func function has been applied to
-        the matrix. The neural_func can be one of the following functions:
-        1. :py:func:`tdparse.neural_pooling.matrix_min`
-        2. :py:func:`tdparse.neural_pooling.matrix_max`
-        3. :py:func:`tdparse.neural_pooling.matrix_avg`
+        the matrix.
 
         It also return the matrix without applying the neural_func function is the
         matrix is a vector as none of the pooling functions will affect the values
@@ -33,10 +36,9 @@ def matrix_checking(neural_func):
         :rtype: np.ndarray
         '''
         # Pre check
-        matrix_type = type(matrix)
-        if not isinstance(matrix_type, np.ndarray):
+        if not isinstance(matrix, np.ndarray):
             raise TypeError('The matrix has to be of type numpy.ndarray and not '\
-                            '{}'.format(matrix_type))
+                            '{}'.format(type(matrix)))
         if len(matrix.shape) == 1:
             return matrix
         m_rows = matrix.shape[0]
@@ -48,7 +50,7 @@ def matrix_checking(neural_func):
         # Post check
         rm_rows = reduced_matrix.shape[0]
         rm_dim = len(reduced_matrix.shape)
-        if rm_rows != m_rows and rm_dim != 1:
+        if rm_rows != m_rows or rm_dim != 1:
             raise ValueError('The returned matrix should be a vector and have '\
                              'a dimension of 1 it is: {} and should have the same'\
                              'number of rows as the original {} but has {}'\
@@ -60,7 +62,7 @@ def matrix_min(matrix):
     '''
     :param matrix: matrix or vector
     :type matrix: np.ndarray
-    :returns: The minimum row values in the matrix. If vector returns the vector
+    :returns: The minimum row values in the matrix. If vector returns the vector \
     as is.
     :rtype: np.ndarray
     '''
