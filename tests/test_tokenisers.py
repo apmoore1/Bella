@@ -13,7 +13,8 @@ class TestTokenisers(TestCase):
     '''
 
     test_sentences = ['The fox    jumped over the         MOON.',
-                      'lol ly x0x0,:D']
+                      'lol ly x0x0,:D',
+                      '    ']
 
     def test_whitespace(self):
         '''
@@ -24,7 +25,8 @@ class TestTokenisers(TestCase):
             whitespace(['words to be tested'])
 
         expected_results = [['The', 'fox', 'jumped', 'over', 'the', 'MOON.'],
-                            ['lol', 'ly', 'x0x0,:D']]
+                            ['lol', 'ly', 'x0x0,:D'],
+                            []]
         for index, test_sentence in enumerate(self.test_sentences):
             test_result = whitespace(test_sentence)
             expected_result = expected_results[index]
@@ -43,7 +45,8 @@ class TestTokenisers(TestCase):
             ark_twokenize(['words to be tested'])
 
         expected_results = [['The', 'fox', 'jumped', 'over', 'the', 'MOON', '.'],
-                            ['lol', 'ly', 'x0x0', ',', ':D']]
+                            ['lol', 'ly', 'x0x0', ',', ':D'],
+                            []]
         for index, test_sentence in enumerate(self.test_sentences):
             test_result = ark_twokenize(test_sentence)
             expected_result = expected_results[index]
