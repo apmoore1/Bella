@@ -44,12 +44,15 @@ class TestNeuralPooling(TestCase):
     Contains the following functions:
     '''
 
-
+    num_array = np.asarray([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+    minus_num_array = np.asarray([[-1, 2, 3, 4], [5, -6, 7, 8], [9, 10, 11, 12]])
+    float_array = np.asarray([[-1, 0.112], [0.000005, -0.6], [0.009, 0.1]])
 
     def test_check_decorator(self):
         '''
         Tests the decorator :py:func:`tdparse.neural_pooling.matrix_checking`
         used by the following functions:
+
         1. :py:func:`tdparse.neural_pooling.matrix_min`
         2. :py:func:`tdparse.neural_pooling.matrix_max`
         3. :py:func:`tdparse.neural_pooling.matrix_avg`
@@ -79,3 +82,70 @@ class TestNeuralPooling(TestCase):
         self.assertEqual(True, np.array_equal(vector_1d, matrix_error(vector_2d)),
                          msg='matrix_checking should never apply the matrix_error '\
                          'function')
+
+    def test_matrix_min(self):
+        '''
+        Tests :py:func:`tdparse.neural_pooling.matrix_min`
+        '''
+
+        num_cor = np.asarray([1, 5, 9])
+        minus_cor = np.asarray([-1, -6, 9])
+        float_cor = np.asarray([-1, -0.6, 0.009])
+
+        num_out = matrix_min(self.num_array)
+        minus_out = matrix_min(self.minus_num_array)
+        float_out = matrix_min(self.float_array)
+
+        self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
+                         'basic numbers: real out {} correct values {}'\
+                         .format(num_out, num_cor))
+        self.assertEqual(True, np.array_equal(minus_cor, minus_out), msg='Cannot '\
+                         'handle negatives')
+        self.assertEqual(True, np.array_equal(float_cor, float_out), msg='Cannot '\
+                         'handle float values')
+
+    def test_matrix_max(self):
+        '''
+        Tests :py:func:`tdparse.neural_pooling.matrix_max`
+        '''
+
+        num_cor = np.asarray([4, 8, 12])
+        minus_cor = np.asarray([4, 8, 12])
+        float_cor = np.asarray([0.112, 0.000005, 0.1])
+
+        num_out = matrix_max(self.num_array)
+        minus_out = matrix_max(self.minus_num_array)
+        float_out = matrix_max(self.float_array)
+
+        self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
+                         'basic numbers: real out {} correct values {}'\
+                         .format(num_out, num_cor))
+        self.assertEqual(True, np.array_equal(minus_cor, minus_out), msg='Cannot '\
+                         'handle negatives: real out {} correct values {}'\
+                         .format(minus_out, minus_cor))
+        self.assertEqual(True, np.array_equal(float_cor, float_out), msg='Cannot '\
+                         'handle float values: real out {} correct values {}'\
+                         .format(float_out, float_cor))
+
+    def test_matrix_avg(self):
+        '''
+        Tests :py:func:`tdparse.neural_pooling.matrix_mean`
+        '''
+
+        num_cor = np.asarray([2.5, 6.5, 10.5])
+        minus_cor = np.asarray([2, 3.5, 10.5])
+        float_cor = np.asarray([-0.444, -0.2999975, 0.0545])
+
+        num_out = matrix_avg(self.num_array)
+        minus_out = matrix_avg(self.minus_num_array)
+        float_out = matrix_avg(self.float_array)
+
+        self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
+                         'basic numbers: real out {} correct values {}'\
+                         .format(num_out, num_cor))
+        self.assertEqual(True, np.array_equal(minus_cor, minus_out), msg='Cannot '\
+                         'handle negatives: real out {} correct values {}'\
+                         .format(minus_out, minus_cor))
+        self.assertEqual(True, np.array_equal(float_cor, float_out), msg='Cannot '\
+                         'handle float values: real out {} correct values {}'\
+                         .format(float_out, float_cor))

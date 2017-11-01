@@ -4,6 +4,17 @@ Contains the following neural pooling functions:
 1. min
 2. max
 3. avg
+
+Which are from
+`Tang et al <https://aclanthology.coli.uni-saarland.de/papers/P14-1146/p14-1146>`_.
+
+and the following pooling functions:
+
+4. pro
+5. std
+
+Which are from
+`Vo and Zhang <https://www.ijcai.org/Proceedings/15/Papers/194.pdf>`_.
 '''
 from functools import wraps
 
@@ -55,6 +66,7 @@ def matrix_checking(neural_func):
                              'a dimension of 1 it is: {} and should have the same'\
                              'number of rows as the original {} but has {}'\
                              .format(rm_dim, m_rows, rm_rows))
+        return reduced_matrix
     return pre_post_check
 
 @matrix_checking
