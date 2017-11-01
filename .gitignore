@@ -6,3 +6,10 @@ docs/_build
 docs/_templates
 docs/source/**
 .DS_Store
+
+tools/TweeboParser/pretrained_models.tar.gz
+tools/TweeboParser/pretrained_models/
+tools/TweeboParser/sample_input.txt
+tools/TweeboParser/sample_input.txt.predict
+tools/TweeboParser/working_dir/
+
