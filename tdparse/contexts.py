@@ -1,3 +1,14 @@
+'''
+Contains functions that get different contexts from a text based on where the
+target of the sentiment is within the text.
+
+
+Functions:
+
+1. right_context
+2. left_context
+'''
+
 def _context(target_dict, context, inc_target=False):
     '''
     Returns a list of Strings which are the left and right context of the target
