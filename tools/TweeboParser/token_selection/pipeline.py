@@ -42,7 +42,7 @@ def main(testfile, featsfile):
     postagseqs = []
     vecs1 = []
     vecs2 = []
-    
+
     contents = []
 
     sent = []
@@ -108,13 +108,13 @@ def main(testfile, featsfile):
         sent = sents[i]
         postags = postagseqs[i]
         vec1 = vecs1[i]
-        vec2 = vecs2[i] 
+        vec2 = vecs2[i]
         tags, f = viterbi.execute(sent, labelset, postags, vec1, vec2, weights)
         for j in range(len(tags)):
             print_line_withmodification(contents[i][j],tags[j])
             if tags[j] == tagseqs[i][j]:
                 acc += 1
-        print 
+        print
         tot += len(tags)
         #print ' '.join(sent)
         #print ' '.join(tags), '\n', ' '.join(tagseqs[i])
@@ -124,4 +124,3 @@ if __name__ == "__main__":
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
     main(sys.argv[1], sys.argv[2])
-

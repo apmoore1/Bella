@@ -32,6 +32,6 @@ INPUT_FILE=$6
 # Tagging using the pre-trained model -- this model remove the tweets we use as the test
 ${TAGGER_DIR}/runTagger.sh --model ${MODEL_DIR}/tagging_model --output-format conll ${INPUT_FILE} > ${WORKING_DIR}/Tagger_output
 
-python2 ${SCRIPT_DIR}/ConvertFromTaggingResToConll.py ${WORKING_DIR}/Tagger_output > ${WORKING_DIR}/tagger.out
+python2 ${SCRIPT_DIR}/ConvertFromTaggingResToConll.py ${WORKING_DIR}/Tagger_output ${WORKING_DIR}/tagger.out
 
 rm ${WORKING_DIR}/Tagger_output

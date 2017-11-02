@@ -25,6 +25,7 @@ import io
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('inputf', type=str, metavar='', help='')
+parser.add_argument('outputf', type=str, metavar='', help='')
 
 A = parser.parse_args()
 
@@ -47,13 +48,15 @@ def read_corpus(filename):
     return corpus
 
 def print_sentence(sentence, outputf):
+    f = codecs.open(outputf, "w+", "utf-8")
     for line in sentence:
         s = u""                 #unicode for Python2
         for field in line:
             s += field + "\t"   #Python2: unicode + str return unicode
         s = s.strip()           #Python2: Still unicode
-        outputf.write(s+"\n")   #Python2: Still unicode
-    outputf.write("\n")
+        f.write(s+"\n")   #Python2: Still unicode
+    f.write("\n")
+    f.close()
     return
 
 def convert_sentence(sen):
@@ -75,6 +78,7 @@ if __name__ == '__main__':
     conll_format_corpus = []
     for sen in corpus:
         conll_format_corpus.append(convert_sentence(sen))
+    output_file = A.outputf
 
     for sen in conll_format_corpus:
-        print_sentence(sen, sys.stdout)
+        print_sentence(sen, output_file)

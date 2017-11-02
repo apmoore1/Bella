@@ -39,12 +39,14 @@ def usage():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         usage()
         sys.exit(2)
 
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
+    outputf = sys.argv[4].strip()
+    f = codecs.open(outputf, "w+", "utf-8")
 
     brown_dict = dict()
     brown_file = open(sys.argv[1].strip(), "r")
@@ -60,7 +62,7 @@ if __name__ == "__main__":
     for line in codecs.open(inputf, "r", "utf-8"):
         line = line.strip()
         if line == "":
-            sys.stdout.write("\n")
+            f.write("\n")
             continue
         cvlist = line.split("\t")
         if sys.argv[3] == "N":
@@ -76,4 +78,5 @@ if __name__ == "__main__":
         for ele in cvlist:
             tline = tline + ele + "\t"
         tline = tline[:len(tline) - 1]
-        print(tline)
+        f.write(tline)
+    f.close()
