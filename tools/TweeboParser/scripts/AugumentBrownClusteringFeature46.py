@@ -43,10 +43,10 @@ if __name__ == "__main__":
         usage()
         sys.exit(2)
 
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
+    #sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+    #sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
     outputf = sys.argv[4].strip()
-    f = codecs.open(outputf, "w+", "utf-8")
+    f = codecs.open(outputf, "a", "utf-8")
 
     brown_dict = dict()
     brown_file = open(sys.argv[1].strip(), "r")
@@ -77,6 +77,6 @@ if __name__ == "__main__":
         tline = ""
         for ele in cvlist:
             tline = tline + ele + "\t"
-        tline = tline[:len(tline) - 1]
+        tline = tline.strip() + '\n'
         f.write(tline)
     f.close()

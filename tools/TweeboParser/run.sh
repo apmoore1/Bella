@@ -54,9 +54,9 @@ rm ${WORKING_DIR}/tagger.out
 
 # --> Run Token Selection Tool to get the token selections appended on the end of each word.
 python2 ${TOKENSEL_DIR}/pipeline.py ${WORKING_DIR}/tag.br.out ${MODEL_DIR}/tokensel_weights > ${WORKING_DIR}/test
-while IFS='' read -r line || [[ -n "$line" ]]; do
-    echo "Text read from file: $line"
-done < ${WORKING_DIR}/tag.br.out
+#while IFS='' read -r line || [[ -n "$line" ]]; do
+#    echo "Text read from file: $line"
+#done < ${WORKING_DIR}/tag.br.out
 rm ${WORKING_DIR}/tag.br.out
 
 

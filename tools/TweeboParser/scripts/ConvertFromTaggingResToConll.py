@@ -48,7 +48,7 @@ def read_corpus(filename):
     return corpus
 
 def print_sentence(sentence, outputf):
-    f = codecs.open(outputf, "w+", "utf-8")
+    f = codecs.open(outputf, "a", "utf-8")
     for line in sentence:
         s = u""                 #unicode for Python2
         for field in line:
