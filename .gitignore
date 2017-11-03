@@ -12,4 +12,5 @@ tools/TweeboParser/pretrained_models/
 tools/TweeboParser/sample_input.txt
 tools/TweeboParser/sample_input.txt.predict
 tools/TweeboParser/working_dir/
-
+tools/TweeboParser/TBParser/deps/gflags
+tools/TweeboParser/TBParser/deps/glog
