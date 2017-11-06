@@ -1,5 +1,5 @@
-dong_twit_train_data: ../aspect datasets/dong/dong_train.txt
-dong_twit_test_data: ../aspect datasets/dong/dong_test.txt
+dong_twit_train_data: ../aspect datasets/dong_sent/dong_training.txt
+dong_twit_test_data: ../aspect datasets/dong_sent/dong_test.txt
 
 #
 # Word vector paths
@@ -17,6 +17,7 @@ test_data:
   dong_data: ./tests/test_data/dong_test_data.txt
   dong_bad_sent_data: ./tests/test_data/dong_test_bad_sent_data.txt
   dong_multiple_offsets_data: ./tests/test_data/dong_test_multiple_offsets_data.txt
+  dong_mwe_offsets_data: ./tests/test_data/dong_test_mwe_offsets_data.txt
 
   sherlock_holmes: ./tests/test_data/sherlock_holmes.txt
 

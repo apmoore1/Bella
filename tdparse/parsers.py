@@ -44,6 +44,10 @@ def dong(file_path):
                 text = sent_dict['text'].lower()
                 target = sent_dict['target'].lower()
                 offsets = [list(match.span()) for match in re.finditer(target, text)]
+                if len(target.split()) > 1:
+                    joined_target = ''.join(target.split())
+                    offsets.extend([list(match.span())
+                                    for match in re.finditer(joined_target, text)])
                 sent_dict['spans'] = offsets
                 sent_dict['id'] = len(sentiment_data)
                 sentiment_data.append(sent_dict)

@@ -95,3 +95,14 @@ class TestParsers(TestCase):
                            'target':'day',
                            'spans':[[14, 17], [62, 65]]}]
         check_results(multi_expected, dong(test_multiple_path))
+
+        # Test that multi word targets that should have a space between them
+        # are still detected
+        test_mwe_path = read_config('test_data')['dong_mwe_offsets_data']
+        mwe_expected = [{'id':0,
+                         'sentiment':-1,
+                         'text':'This is a fake news article that is to represent a '\
+                         'Tweet!!!! and it was an awful NewsArticle I think.',
+                         'target':'news article',
+                         'spans':[[15, 27], [81, 92]]}]
+        check_results(mwe_expected, dong(test_mwe_path))
