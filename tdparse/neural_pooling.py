@@ -102,3 +102,15 @@ def matrix_avg(matrix):
     '''
 
     return matrix.mean(axis=1)
+
+@matrix_checking
+def matrix_median(matrix):
+    '''
+    :param matrix: matrix or vector
+    :type matrix: np.ndarray
+    :returns: The median row values in the matrix. If vector returns the vector \
+    as is.
+    :rtype: np.ndarray
+    '''
+
+    return np.median(matrix, axis=1)

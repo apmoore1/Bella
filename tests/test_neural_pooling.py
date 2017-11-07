@@ -8,6 +8,7 @@ import numpy as np
 from tdparse.neural_pooling import matrix_min
 from tdparse.neural_pooling import matrix_max
 from tdparse.neural_pooling import matrix_avg
+from tdparse.neural_pooling import matrix_median
 from tdparse.neural_pooling import matrix_checking
 
 @matrix_checking
@@ -47,6 +48,8 @@ class TestNeuralPooling(TestCase):
     num_array = np.asarray([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
     minus_num_array = np.asarray([[-1, 2, 3, 4], [5, -6, 7, 8], [9, 10, 11, 12]])
     float_array = np.asarray([[-1, 0.112], [0.000005, -0.6], [0.009, 0.1]])
+    float_med_array = np.asarray([[-1, 0.112, 1], [0.000005, -0.6, 0.5],
+                                  [0.009, 0.1, 0.3]])
 
     def test_check_decorator(self):
         '''
@@ -149,3 +152,26 @@ class TestNeuralPooling(TestCase):
         self.assertEqual(True, np.array_equal(float_cor, float_out), msg='Cannot '\
                          'handle float values: real out {} correct values {}'\
                          .format(float_out, float_cor))
+
+    def test_matrix_median(self):
+        '''
+        Tests :py:func:`tdparse.neural_pooling.matrix_median`
+        '''
+
+        num_cor = np.asarray([2.5, 6.5, 10.5])
+        minus_cor = np.asarray([2.5, 6, 10.5])
+        float_med_cor = np.asarray([0.112, 0.000005, 0.1])
+
+        num_out = matrix_median(self.num_array)
+        minus_out = matrix_median(self.minus_num_array)
+        float_out = matrix_median(self.float_med_array)
+
+        self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
+                         'basic numbers: real out {} correct values {}'\
+                         .format(num_out, num_cor))
+        self.assertEqual(True, np.array_equal(minus_cor, minus_out), msg='Cannot '\
+                         'handle negatives: real out {} correct values {}'\
+                         .format(minus_out, minus_cor))
+        self.assertEqual(True, np.array_equal(float_med_cor, float_out), msg='Cannot '\
+                         'handle float or odd number values: real out {} correct '\
+                         'values {}'.format(float_out, float_med_cor))
