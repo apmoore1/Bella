@@ -7,6 +7,7 @@ from unittest import TestCase
 from tdparse.contexts import right_context
 from tdparse.contexts import left_context
 from tdparse.contexts import target_context
+from tdparse.contexts import full_context
 from tdparse.contexts import _context
 
 class TestContexts(TestCase):
@@ -168,6 +169,36 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             correct_targets = multi_targets[index]
             target_strings = target_context(test_context)
+            msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
+                  .format(test_text, target_strings, correct_targets)
+            self.assertEqual(correct_targets, target_strings, msg=msg)
+
+    def test_full_context(self):
+        '''
+        Tests :py:func:`tdparse.contexts.full_context`
+        '''
+        single_targets = [['This is a fake news article that is to represent a Tweet!!!!'],
+                          ['I had a great day however I did not get much work done'],
+                          ['I cycled in today and it was ok as it was not raining.']]
+        multi_targets = [['This is a fake news article that is to represent a '\
+                          'Tweet!!!! and it was an awful News Article I think.',
+                          'This is a fake news article that is to represent a '\
+                          'Tweet!!!! and it was an awful News Article I think.'],
+                         ['I had a great Day however I did not get much '\
+                          'work done in the day',
+                          'I had a great Day however I did not get much '\
+                          'work done in the day']]
+        for index, test_context in enumerate(self.single_context):
+            test_text = test_context['text']
+            correct_target = single_targets[index]
+            target_string = full_context(test_context)
+            msg = 'Cannot get the target for text {}, target found {} correct {}'\
+                  .format(test_text, target_string, correct_target)
+            self.assertEqual(correct_target, target_string, msg=msg)
+        for index, test_context in enumerate(self.multi_contexts):
+            test_text = test_context['text']
+            correct_targets = multi_targets[index]
+            target_strings = full_context(test_context)
             msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
                   .format(test_text, target_strings, correct_targets)
             self.assertEqual(correct_targets, target_strings, msg=msg)
