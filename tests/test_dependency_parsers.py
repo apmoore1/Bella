@@ -15,7 +15,7 @@ class TestDependencyParsers(TestCase):
     Contains the following functions:
     '''
 
-    #@pytest.mark.skip(reason="Takes a long time to test only add on large tests")
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo_install(self):
         '''
         Test for :py:func:`tdparse.dependency_parsers.tweebo_install`. Tests that
@@ -50,5 +50,5 @@ class TestDependencyParsers(TestCase):
         self.assertEqual(10, install_and_add(8, 2), msg='The tweebo install '\
                          'function does not wrap function properly')
 
-    def test_tweebo(self):
-        pass
+    #def test_tweebo(self):
+    #    pass
