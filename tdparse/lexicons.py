@@ -18,16 +18,114 @@ two containg:
 2. String: Value associated to that word e.g. 'positive'
 '''
 import csv
+from functools import wraps
 import os
 import re
 
 from tdparse.helper import read_config
 
-def hu_liu():
+def combine_lexicons(lexicon1, lexicon2):
+    '''
+    Combines two lexicons and removes words that have opposite sentiment. e.g.
+    one lexicon a word is positive and in the other negative. Returns a list
+    of tuples (word, value) e.g. ('great', 'positive')
+
+    NOTE: Requires that both lexicons have the same values for positive and
+    negative values.
+
+    :param lexicon1: list of tuples containing (word, value)
+    :param lexicon2: list of tuples containing (word, value)
+    :type lexicon1: list
+    :type lexicon2: list
+    :returns: A list of tuples containing (word, value)
+    :rtype: list
+    '''
+    def compare_lexicons(lex1, lex2):
+        '''
+        Given the two lexicons as dictionaries will add (word, value) tuples to
+        a combined lexicon list and return that list.
+
+        :param lex1: dictionary of word : value
+        :param lex2: dictionary of word : value
+        :type lex1: dict
+        :type lex2: dict
+        :returns: A list of tuples (word, value) where the values are not \
+        contradictory between the two lexicons.
+        :rtype: list
+        '''
+
+        combined_words = set(list(lex1.keys()) + list(lex2.keys()))
+        combined_lexicons = []
+        for word in combined_words:
+
+            if word in lex1 and word in lex2:
+                if lex1[word] != lex2[word]:
+                    continue
+                combined_lexicons.append((word, lex1[word]))
+            elif word in lex1:
+                combined_lexicons.append((word, lex1[word]))
+            elif word in lex2:
+                combined_lexicons.append((word, lex2[word]))
+            else:
+                raise KeyError('The word {} has to be in one of the lexicons'\
+                               .format(word))
+        return combined_lexicons
+
+
+    if not isinstance(lexicon1, list) or not isinstance(lexicon2, list):
+        raise TypeError('Both parameters require to be lists not {}, {}'\
+                        .format(type(lexicon1), type(lexicon2)))
+    word_value1 = {word : value for word, value in lexicon1}
+    word_value2 = {word : value for word, value in lexicon2}
+
+    values1 = set(word_value1.values())
+    values2 = set(word_value2.values())
+    if values1 != values2:
+        raise ValueError('These two lexicons cannot be combined as they have '\
+                         'different and non-comparable values: values1: {} '\
+                         'values2: {}'.format(values1, values2))
+    return compare_lexicons(word_value1, word_value2)
+
+
+
+
+def parameter_check(lexicon_function):
+    '''
+    Decorator that checks the type values of parameters within the module.
+
+    :param lexicon_function: One of the functions in this module.
+    :type lexicon_function: function
+    :returns: The lexicon function wrapped around a type check function
+    :rtype: function
+    '''
+    @wraps(lexicon_function)
+    def subset_check(subset_values=None):
+        '''
+        Function that checks that the parameters are of the correct type and then
+        returns the wrapped function.
+
+        :param subset_values: categories of words that you want to return e.g. \
+        `positive`
+        :type subset_values: set Default is None
+        :returns: The wrapped function
+        :rtype: function
+        '''
+        if subset_values is not None:
+            if not isinstance(subset_values, set):
+                raise TypeError('subset_values parameter has to be of type set '\
+                                'and not {}'.format(type(subset_values)))
+        return lexicon_function(subset_values)
+    return subset_check
+
+@parameter_check
+def hu_liu(subset_values=None):
     '''
     Reads the path of the folder containing the Positive and Negative words from
     the config file under `lexicons.hu_liu`.
 
+    :param subset_values: Categories of words that you want to return e.g. \
+    `positive` for `positive` words only. If None then no words are subsetted.
+    :type subset_values: set Default None
     :returns: Returns the lexicon as a list of tuples (word, value). Where the \
     value is either `positive` or `negative`.
     :rtype: list
@@ -35,6 +133,8 @@ def hu_liu():
 
     sentiment_folder = os.path.abspath(read_config('lexicons')['hu_liu'])
     values = ['positive', 'negative']
+    if subset_values is not None:
+        values = subset_values
     word_value = []
     for value in values:
         file_path = os.path.join(sentiment_folder, '{}-words.txt'.format(value))
@@ -45,7 +145,8 @@ def hu_liu():
                 word_value.append((line.strip(), value))
     return word_value
 
-def nrc_emotion():
+@parameter_check
+def nrc_emotion(subset_values=None):
     '''
     Reads the path of the file containing the emotion words from
     the config file under `lexicons.nrc_emotion`.
@@ -53,6 +154,9 @@ def nrc_emotion():
     Emotion categories: 1. anger, 2. fear, 3. anticipation, 4. trust, 5. surprise,
     6. sadness, 7. joy, 8. disgust, 9. positive, and 10. negative.
 
+    :param subset_values: Categories of words that you want to return e.g. \
+    `positive` for `positive` words only. If None then no words are subsetted.
+    :type subset_values: set Default None
     :returns: Returns the lexicon as a list of tuples (word, value). Where the \
     value is either one of the emotion categories.
     :rtype: list
@@ -69,16 +173,23 @@ def nrc_emotion():
                 category = row[1]
                 association = int(row[2])
                 if association:
-                    word_value.append((word, category))
+                    if subset_values is None:
+                        word_value.append((word, category))
+                    elif category in subset_values:
+                        word_value.append((word, category))
     return word_value
 
-def mpqa():
+@parameter_check
+def mpqa(subset_values=None):
     '''
     Reads the path of the file containing the polarity of words from
     the config file under `lexicons.mpqa`.
 
     polarity labels = 1. positive, 2. negative, 3. both, 4. neutral
 
+    :param subset_values: Categories of words that you want to return e.g. \
+    `positive` for `positive` words only. If None then no words are subsetted.
+    :type subset_values: set Default None
     :returns: Returns the lexicon as a list of tuples (word, value). Where the \
     value is either one of the polarity labels.
     :rtype: list
@@ -99,5 +210,9 @@ def mpqa():
                 value = key_values['priorpolarity']
                 if value == 'weakneg':
                     value = key_values['polarity']
-                word_value.append((word, value))
+                if subset_values is None:
+                    word_value.append((word, value))
+                elif value in subset_values:
+                    word_value.append((word, value))
+    word_value = list(set(word_value))
     return word_value
