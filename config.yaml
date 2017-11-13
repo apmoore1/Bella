@@ -11,6 +11,13 @@ word2vec_files:
 sswe_files:
   vo_zhang: ./data/word_vectors/vo_zhang/sswe.tsv
 
+#
+# Lexicon paths
+#
+lexicons:
+  hu_liu: ./data/lexicons/hu_liu/
+  nrc_emotion: ./data/lexicons/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
+  mpqa: ./data/lexicons/subjclueslen1-HLTEMNLP05.tff
 
 test_data:
   # Dong sentiment data testing paths
