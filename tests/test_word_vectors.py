@@ -158,3 +158,10 @@ class TestWordVectors(TestCase):
         sswe_vec_size = sswe_model.vector_size
         self.assertEqual(sswe_vec_size, 50, msg='Vector size should be 50 not '\
                          '{}'.format(sswe_vec_size))
+        unknown_word = '$$$ZERO_TOKEN$$$'
+        unknown_vector = sswe_model.lookup_vector(unknown_word)
+        zero_vector = np.zeros(sswe_vec_size)
+
+        # Test the unknown vector value
+        self.assertEqual(False, np.array_equal(zero_vector, unknown_vector),
+                         msg='The unknown vector should not be zeros')

@@ -1,9 +1,17 @@
 '''
-Contains classes that train and/or load semantic vectors.
+Contains classes that train and/or load semantic vectors. All classes are sub
+classes of WordVectors
 
 Classes:
-1. GensimVectors - Creates `Word2Vec <https://arxiv.org/pdf/1301.3781.pdf>`_
+
+1. WordVectors - Base class of all classes within this module. Ensures
+consistent API for all word vectors classes.
+2. GensimVectors - Creates `Word2Vec <https://arxiv.org/pdf/1301.3781.pdf>`_
 and `FastText <https://arxiv.org/abs/1607.04606>`_ vectors.
+3. PreTrained - Creates a Wordembedding for those that are stored in TSV files
+where the first item in the line is the word and the rest of the tab sep values
+are its vector representation. Currently loads the Tang et al. vectors
+`from <https://github.com/bluemonk482/tdparse/tree/master/resources/wordemb/sswe>`_
 '''
 
 import os
@@ -18,12 +26,14 @@ class WordVectors(object):
     '''
     Base class for all WordVector classes. Contains the following instance
     attributes:
+
     1. vector_size - Size of the word vectors e.g. 100
     2. index2word - Mapping between index number and associated word
     3. index2vector - mapping between index and vector
     4. word2index - Mapping between word and associated index
 
     Following methods:
+
     1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
     '''
     def __init__(self, word2vector, word_list):
@@ -108,6 +118,7 @@ class GensimVectors(WordVectors):
     2. `Fasttext <https://radimrehurek.com/gensim/models/wrappers/fasttext.html>`_
 
     private attributes:
+
     1. self._model = Gensim instance of the chosen model e.g. if word2vec
     was chosen then it would be `gensim.models.word2vec.Word2Vec`
     '''
@@ -167,6 +178,7 @@ class PreTrained(WordVectors):
     Class that loads word vectors that have been pre-trained.
 
     All pre-trained word vectors have to follow the following conditions:
+
     1. New word vector on each line
     2. Each line is tab seperated
     3. The first tab sperated value on the line is the word
@@ -197,3 +209,27 @@ class PreTrained(WordVectors):
                 else:
                     word2vector[word] = word_vector
         super().__init__(word2vector, word_list)
+
+    def lookup_vector(self, word):
+        '''
+        Given a word returns the vector representation of that word. If the model
+        does not have a representation for that word returns the vector representation
+        of `<unk>`
+
+        Overridden without calling super as we want to change the return of the
+        unknown word.
+
+        :param word: A word
+        :type word: String
+        :returns: The word vector for that word. If no word vector can be found
+        returns the vector of `<unk>`
+        :rtype: numpy.ndarray
+        '''
+
+        if isinstance(word, str):
+            try:
+                return self._word2vector[word]
+            except KeyError:
+                return self._word2vector['<unk>']
+        raise ValueError('The word parameter must be of type str not {}'\
+                         .format(type(word)))
