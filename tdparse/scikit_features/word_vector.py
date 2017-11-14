@@ -6,8 +6,9 @@ from tdparse.word_vectors import WordVectors
 
 class ContextWordVectors(BaseEstimator, TransformerMixin):
 
-    def __init__(self, word_vector):
-        self.word_vector = word_vector
+    def __init__(self, word_vectors, zero_token='$$$ZERO_TOKEN$$$'):
+        self.word_vectors = word_vectors
+        self.zero_token = zero_token
 
     def fit(self, context_tokens, y=None):
         '''Kept for consistnecy with the TransformerMixin'''
@@ -38,14 +39,23 @@ class ContextWordVectors(BaseEstimator, TransformerMixin):
         of tokens which are Strings
         :rtype: list
         '''
-        word_vector_size = self.word_vector.vector_size
+        word_vector_size = 0
+        for word_vector in self.word_vectors:
+            word_vector_size += word_vector.vector_size
         context_word_vectors = []
         for context_tokens in contexts_tokens:
             all_contexts = []
             for context in context_tokens:
                 context_word_vector = []
                 for token in context:
-                    context_word_vector.append(self.word_vector.lookup_vector(token))
+                    if token == self.zero_token:
+                        # If the token is the zero token then zero word vector
+                        context_word_vector.append(np.zeros(word_vector_size))
+                    else:
+                        token_vector = []
+                        for word_vector in self.word_vectors:
+                            token_vector.append(word_vector.lookup_vector(token))
+                        context_word_vector.append(np.hstack(token_vector))
                 # Padding
                 if len(context_word_vector) == 0:
                     context_word_vector.append(np.zeros(word_vector_size))

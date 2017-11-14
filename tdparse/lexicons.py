@@ -99,14 +99,16 @@ def parameter_check(lexicon_function):
     :rtype: function
     '''
     @wraps(lexicon_function)
-    def subset_check(subset_values=None):
+    def check(subset_values=None, lower=False):
         '''
         Function that checks that the parameters are of the correct type and then
         returns the wrapped function.
 
         :param subset_values: categories of words that you want to return e.g. \
         `positive`
+        :param lower: wether to lower case the sentiment lexicon
         :type subset_values: set Default is None
+        :type lower: bool Default False
         :returns: The wrapped function
         :rtype: function
         '''
@@ -114,11 +116,15 @@ def parameter_check(lexicon_function):
             if not isinstance(subset_values, set):
                 raise TypeError('subset_values parameter has to be of type set '\
                                 'and not {}'.format(type(subset_values)))
-        return lexicon_function(subset_values)
-    return subset_check
+        if lower != False:
+            if not isinstance(lower, bool):
+                raise TypeError('lower parameter has to be of type bool not {}'\
+                                .format(type(lower)))
+        return lexicon_function(subset_values=subset_values, lower=lower)
+    return check
 
 @parameter_check
-def hu_liu(subset_values=None):
+def hu_liu(subset_values=None, lower=False):
     '''
     Reads the path of the folder containing the Positive and Negative words from
     the config file under `lexicons.hu_liu`.
@@ -135,18 +141,21 @@ def hu_liu(subset_values=None):
     values = ['positive', 'negative']
     if subset_values is not None:
         values = subset_values
-    word_value = []
+    word_value = set()
     for value in values:
         file_path = os.path.join(sentiment_folder, '{}-words.txt'.format(value))
         with open(file_path, 'r', encoding='cp1252') as senti_file:
             for line in senti_file:
                 if re.search('^;', line) or re.search(r'^\W+', line):
                     continue
-                word_value.append((line.strip(), value))
-    return word_value
+                line = line.strip()
+                if lower:
+                    line = line.lower()
+                word_value.add((line.strip(), value))
+    return list(word_value)
 
 @parameter_check
-def nrc_emotion(subset_values=None):
+def nrc_emotion(subset_values=None, lower=False):
     '''
     Reads the path of the file containing the emotion words from
     the config file under `lexicons.nrc_emotion`.
@@ -163,7 +172,7 @@ def nrc_emotion(subset_values=None):
     '''
 
     emotion_file_path = os.path.abspath(read_config('lexicons')['nrc_emotion'])
-    word_value = []
+    word_value = set()
 
     with open(emotion_file_path, 'r', newline='') as emotion_file:
         tsv_reader = csv.reader(emotion_file, delimiter='\t')
@@ -172,15 +181,17 @@ def nrc_emotion(subset_values=None):
                 word = row[0]
                 category = row[1]
                 association = int(row[2])
+                if lower:
+                    word = word.lower()
                 if association:
                     if subset_values is None:
-                        word_value.append((word, category))
+                        word_value.add((word, category))
                     elif category in subset_values:
-                        word_value.append((word, category))
-    return word_value
+                        word_value.add((word, category))
+    return list(word_value)
 
 @parameter_check
-def mpqa(subset_values=None):
+def mpqa(subset_values=None, lower=False):
     '''
     Reads the path of the file containing the polarity of words from
     the config file under `lexicons.mpqa`.
@@ -196,7 +207,7 @@ def mpqa(subset_values=None):
     '''
 
     mpqa_file_path = read_config('lexicons')['mpqa']
-    word_value = []
+    word_value = set()
     with open(mpqa_file_path, 'r') as mpqa_file:
         for line in mpqa_file:
             line = line.strip()
@@ -208,11 +219,13 @@ def mpqa(subset_values=None):
                         key_values[key] = value
                 word = key_values['word1']
                 value = key_values['priorpolarity']
+                if lower:
+                    word = word.lower()
                 if value == 'weakneg':
                     value = key_values['polarity']
                 if subset_values is None:
-                    word_value.append((word, value))
+                    word_value.add((word, value))
                 elif value in subset_values:
-                    word_value.append((word, value))
-    word_value = list(set(word_value))
-    return word_value
+                    word_value.add((word, value))
+
+    return list(word_value)

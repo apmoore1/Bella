@@ -61,35 +61,49 @@ class TestLexicons(TestCase):
                                'the `subset_values` parameter type found only set'):
             hu_liu(['positive'])
 
+        with self.assertRaises(TypeError, msg='Should not allow 1 as a substitute'\
+                               ' for True boolean'):
+            hu_liu({'positive'}, 1)
+
+        # Ensure the lower cases works
+        mpqa_upper = set(mpqa(lower=False))
+        normal_mpqa = set(mpqa())
+        mpqa_lower = set(mpqa(lower=True))
+        false_value = mpqa_lower == mpqa_upper
+        self.assertEqual(False, false_value, msg='The upper case version of mpqa '\
+                         'should not equal the lower case')
+        self.assertEqual(normal_mpqa, mpqa_upper, msg='Default values of lower '\
+                         'should be False')
+
         valid_subset_size = 2006
-        subset_size = len(hu_liu({'positive'}))
+        subset_size = len(hu_liu({'positive'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'positive hu and liu lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
         valid_subset_size = 4783
-        subset_size = len(hu_liu({'negative'}))
+        subset_size = len(hu_liu({'negative'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'negative hu and liu lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
 
         valid_subset_size = 2312
-        subset_size = len(nrc_emotion({'positive'}))
+        subset_size = len(nrc_emotion({'positive'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'positive nrc emotion lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
         valid_subset_size = 3324
-        subset_size = len(nrc_emotion({'negative'}))
+        subset_size = len(nrc_emotion({'negative'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'negative nrc emotion lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
 
         valid_subset_size = 2304
-        subset_size = len(mpqa({'positive'}))
+        subset_size = len(mpqa({'positive'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'positive mpqa lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
         valid_subset_size = 4154
-        subset_size = len(mpqa({'negative'}))
+        subset_size = len(mpqa({'negative'}, True))
         self.assertEqual(valid_subset_size, subset_size, msg='The size of the '\
                          'negative mpqa lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
