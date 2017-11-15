@@ -124,7 +124,7 @@ class TestWordVectors(TestCase):
             data = map(tokenisers.whitespace, data)
             with tempfile.NamedTemporaryFile() as temp_file:
                 data_vector = GensimVectors(temp_file.name, data, model='word2vec',
-                                            size=200)
+                                            size=200, name='sherlock')
                 d_vec_size = data_vector.vector_size
                 self.assertEqual(d_vec_size, 200, msg='Vector size should be 200 not'\
                                  ' {}'.format(d_vec_size))
@@ -140,6 +140,10 @@ class TestWordVectors(TestCase):
                                                  saved_vector.lookup_vector('sherlock'))
                 self.assertEqual(True, equal_sherlocks, msg='The saved model and '\
                                  'the trained model should have the same vectors')
+                # Ensure the name attributes works
+                self.assertEqual('sherlock', data_vector.name, msg='The name '\
+                                 'of the instance should be sherlock and not {}'\
+                                 .format(data_vector.name))
     def test_pre_trained(self):
         '''
         Tests the :py:class:`tdparse.word_vectors.PreTrained`
@@ -154,7 +158,7 @@ class TestWordVectors(TestCase):
             PreTrained('file.txt')
         # Test if model loads correctly
         sswe_path = read_config('sswe_files')['vo_zhang']
-        sswe_model = PreTrained(sswe_path)
+        sswe_model = PreTrained(sswe_path, name='sswe')
         sswe_vec_size = sswe_model.vector_size
         self.assertEqual(sswe_vec_size, 50, msg='Vector size should be 50 not '\
                          '{}'.format(sswe_vec_size))
@@ -165,3 +169,6 @@ class TestWordVectors(TestCase):
         # Test the unknown vector value
         self.assertEqual(False, np.array_equal(zero_vector, unknown_vector),
                          msg='The unknown vector should not be zeros')
+        # Ensure the name attributes works
+        self.assertEqual('sswe', sswe_model.name, msg='The name of the instance '\
+                         'should be sswe and not {}'.format(sswe_model.name))

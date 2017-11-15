@@ -31,12 +31,14 @@ class WordVectors(object):
     2. index2word - Mapping between index number and associated word
     3. index2vector - mapping between index and vector
     4. word2index - Mapping between word and associated index
+    5. name - This is used to identify the model when reading cross validation \
+    results from models, used mainly for debugging. Default is None. Used
 
     Following methods:
 
     1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
     '''
-    def __init__(self, word2vector, word_list):
+    def __init__(self, word2vector, word_list, name=None):
         if not isinstance(word_list, list):
             raise TypeError('word_list should be of type list not {}'\
                             .format(type(word_list)))
@@ -51,6 +53,7 @@ class WordVectors(object):
         self._word2vector = word2vector
         self._word_list = word_list
         self.vector_size = word2vector[word_list[0]].shape[0]
+        self.name = '{}'.format(name)
 
     def lookup_vector(self, word):
         '''
@@ -123,7 +126,7 @@ class GensimVectors(WordVectors):
     was chosen then it would be `gensim.models.word2vec.Word2Vec`
     '''
 
-    def __init__(self, file_path, train_data, model=None, **kwargs):
+    def __init__(self, file_path, train_data, name=None, model=None, **kwargs):
         '''
         Trains or loads the model specified.
 
@@ -133,9 +136,15 @@ class GensimVectors(WordVectors):
         tokenised text, to train the model e.g. [['hello', 'how'], ['another']].
         Not required if `file_path` contains a trained model.
         :param model: The name of the model
+        :param name: The name of given to the instance.
+        :param kwargs: The keyword arguments to give to the Gensim Model that is \
+        being used i.e. keyword argument to `Word2Vec <https://radimrehurek.com/\
+        gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec>`_
         :type file_path: String
         :type train_data: iterable object e.g. list
         :type model: String
+        :type name: String Default None
+        :type kwargs: dict
         '''
 
         allowed_models = {'word2vec' : word2vec.Word2Vec,
@@ -171,7 +180,7 @@ class GensimVectors(WordVectors):
                             'a model from {} or any data to train on which has '\
                             'to have the __iter__ function {}'\
                             .format(file_path, train_data))
-        super().__init__(self._model.wv, self._model.wv.index2word)
+        super().__init__(self._model.wv, self._model.wv.index2word, name=name)
 
 class PreTrained(WordVectors):
     '''
@@ -186,7 +195,13 @@ class PreTrained(WordVectors):
     for the associtaed word.
     '''
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, name=None):
+        '''
+        :param file_path: The file path to lad the word vectors from
+        :param name: The name given to the instance.
+        :type file_path: String
+        :type name: String Default None
+        '''
         if not isinstance(file_path, str):
             raise TypeError('The type of the file path should be str not {}'\
                             .format(type(file_path)))
@@ -208,7 +223,7 @@ class PreTrained(WordVectors):
                                    'dict'.format(word))
                 else:
                     word2vector[word] = word_vector
-        super().__init__(word2vector, word_list)
+        super().__init__(word2vector, word_list, name=name)
 
     def lookup_vector(self, word):
         '''
