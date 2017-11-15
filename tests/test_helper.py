@@ -8,6 +8,7 @@ from unittest import TestCase
 
 from tdparse.helper import read_config
 from tdparse.helper import package_dir
+from tdparse.helper import full_path
 
 class TestHelper(TestCase):
     '''
@@ -46,3 +47,22 @@ class TestHelper(TestCase):
         self.assertIsInstance(package_dir(), str, msg='The return should be a String')
         self.assertEqual(package_dir().split(os.sep)[-1], 'tdparse',
                          msg='The last folder should be tdparse')
+
+    def test_full_path(self):
+        '''
+        Tests :py:func:`tdparse.helper.full_path`
+        '''
+
+        path = '../aspect datasets'
+        example = full_path(path)
+        self.assertIsInstance(example, str, msg='The return should always be a '\
+                              'String')
+        example_folders = example.split(os.sep)
+        self.assertEqual('aspect datasets', example_folders[-1],
+                         msg='The last directory should be `aspect datasets` '\
+                         'and not {}'.format(example_folders[-1]))
+        all_dirs = os.path.abspath(__file__).split(os.sep)
+        parent_example = all_dirs[-4]
+        self.assertEqual(parent_example, example_folders[-2], msg='Parent of '\
+                         'the example path should be {} not {}'\
+                         .format(parent_example, example_folders[-2]))

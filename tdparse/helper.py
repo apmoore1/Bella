@@ -45,3 +45,17 @@ def read_config(config_key, config_file_name='config.yaml'):
         else:
             raise ValueError('This key {} does not exist in the config file {}'\
                              .format(config_key, config_file_path))
+
+def full_path(relative_path):
+    '''
+    Given a relative path that is relative to the package directory it returns
+    the full absolute path.
+
+    :param relative_path: Path that is relative to the package directory
+    :type relative_path: String
+    :returns: Absolute path of the relative path
+    :rtype: String
+    '''
+
+    package_path = package_dir()
+    return os.path.abspath(os.path.join(package_path, relative_path))
