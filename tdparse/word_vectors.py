@@ -112,6 +112,9 @@ class WordVectors(object):
             index_vector[index] = self.lookup_vector(word)
         return index_vector
 
+    def __str__(self):
+        return self.name
+
 
 class GensimVectors(WordVectors):
     '''

@@ -180,6 +180,9 @@ class Lexicon():
                              'categories1: {} categories2: {}'\
                              .format(cat1, cat2))
         return compare_lexicons(word_cat1, word_cat2, combined_lex_name)
+
+    def __str__(self):
+        return self.name
 class Mpqa(Lexicon):
     '''
     MPQA lexicon `Wilson, Wiebe and Hoffman \
