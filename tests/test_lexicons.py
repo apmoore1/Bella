@@ -5,10 +5,6 @@ from unittest import TestCase
 
 import pytest
 
-from tdparse.lexicons import combine_lexicons
-from tdparse.lexicons import hu_liu
-from tdparse.lexicons import nrc_emotion
-from tdparse.lexicons import mpqa
 from tdparse.lexicons import Mpqa
 from tdparse.lexicons import HuLiu
 from tdparse.lexicons import NRC
