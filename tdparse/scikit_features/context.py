@@ -1,3 +1,6 @@
+'''
+Module contains a Class that is a scikit learn Transformer.
+'''
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 

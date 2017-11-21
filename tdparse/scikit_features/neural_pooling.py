@@ -1,14 +1,12 @@
-import inspect
-
 import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse import neural_pooling
+from tdparse.neural_pooling import matrix_max
 
 class NeuralPooling(BaseEstimator, TransformerMixin):
 
-    def __init__(self, pool_func=neural_pooling.matrix_max):
+    def __init__(self, pool_func=matrix_max):
         self.pool_func = pool_func
 
     def fit(self, context_word_matrixs, y=None):

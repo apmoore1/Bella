@@ -1,5 +1,3 @@
-import inspect
-
 import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
@@ -11,15 +9,15 @@ class JoinContextVectors(BaseEstimator, TransformerMixin):
     def __init__(self, pool_func=neural_pooling.matrix_median):
         self.pool_func = pool_func
 
-    def fit(self, context_word_matrixs, y=None):
+    def fit(self, context_pool_vectors, y=None):
         '''Kept for consistnecy with the TransformerMixin'''
 
         return self
 
-    def fit_transform(self, context_word_matrixs, y=None):
+    def fit_transform(self, context_pool_vectors, y=None):
         '''see self.transform'''
 
-        return self.transform(context_word_matrixs)
+        return self.transform(context_pool_vectors)
 
     def transform(self, context_pool_vectors):
         '''
