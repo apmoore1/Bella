@@ -76,6 +76,8 @@ class TestLexicons(TestCase):
         self.assertEqual(valid_words, valid_lexicon.words, msg='These should be '\
                          'equal {} {}'.format(valid_words, valid_lexicon.words))
 
+    @pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
+                      "not own the lexicons therefore cannot release them.")
     def test_subset_values_class(self):
         '''
         Tests that :py:func:`tdparse.lexicons.Lexicon._process_lexicon` function
@@ -134,9 +136,9 @@ class TestLexicons(TestCase):
                          'negative mpqa lexicon should be {} not {}'\
                          .format(valid_subset_size, subset_size))
 
-    #@pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
-    #                  "not own the lexicons therefore cannot release them.")
-    def test_NRC(self):
+    @pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
+                      "not own the lexicons therefore cannot release them.")
+    def test_nrc(self):
         '''
         Tests the :py:class:`tdparse.lexicons.NRC`
         '''
@@ -155,9 +157,9 @@ class TestLexicons(TestCase):
                          ' to the words in the lexicons should be only {}'\
                          ' and not {}'.format(valid_value_types, value_types))
 
-    #@pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
-    #                  "not own the lexicons therefore cannot release them.")
-    def test_HuLiu(self):
+    @pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
+                      "not own the lexicons therefore cannot release them.")
+    def test_huliu(self):
         '''
         Tests the :py:class:`tdparse.lexicons.HuLiu`
         '''
@@ -181,9 +183,9 @@ class TestLexicons(TestCase):
                          'words in the lexicon should be {} and not {}'\
                          .format(valid_lexicon_length, lexicon_length))
 
-    #@pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
-    #                  "not own the lexicons therefore cannot release them.")
-    def test_Mpqa(self):
+    @pytest.mark.skip(reason="Requires the files to be downloaded and we do "\
+                      "not own the lexicons therefore cannot release them.")
+    def test_mpqa(self):
         '''
         Tests the :py:class:`tdparse.lexicons.Mpqa`
         '''
