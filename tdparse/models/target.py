@@ -7,6 +7,7 @@ Classes:
 1. :py:class:`tdparse.models.target.TargetInd` - Target indepdent model
 '''
 from collections import defaultdict
+import copy
 
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
@@ -16,13 +17,13 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import MaxAbsScaler
 
 from tdparse.tokenisers import ark_twokenize
-from tdparse.word_vectors import WordVectors
 from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
 
 from tdparse.scikit_features.context import Context
 from tdparse.scikit_features.tokeniser import ContextTokeniser
 from tdparse.scikit_features.word_vector import ContextWordVectors
+from tdparse.scikit_features.lexicon_filter import LexiconFilter
 from tdparse.scikit_features.neural_pooling import NeuralPooling
 from tdparse.scikit_features.join_context_vectors import JoinContextVectors
 
@@ -70,57 +71,213 @@ class TargetInd():
         :rtype: list
         '''
 
-        return ['word_vectors__vector']
+        return ['word_vectors__vectors']
 
-    def get_params_dict(self, word_vectors):
+    @staticmethod
+    def _get_tokeniser_names():
         '''
-        Paramter setting:
-        Given a list of :py:class:`tdparse.word_vectors.WordVectors` instances
-        where if more than one instances is given indicates to concatenate the
-        word vectors it will return a dict which is input to the param attribute
-        for the `fit` function.
+        Method to be overidden by subclasses as each pipeline will be different
+        and will have different parameter names for where the tokenisers are
+        set.
 
-        Grid Search:
-        Given a list of a list of :py:class:`tdparse.word_vectors.WordVectors`
-        instances it will return a list of dicts of which this list can be
-        given as the param attribute to the `grid_search` function.
-
-        This function is expect to be overidden when the pipeline is changed.
-
-        :param word_vector: The word vectors you want to use in the model.
-        :type word_vector: :list of :py:class:`tdparse.word_vectors.WordVectors` \
-        instances
-        :returns: Returns a dict or a list of parameters to be given to either \
-        `fit` or `grid_search` params attribute.
-        :rtype: dict or list
+        :returns: A list of of parameter names where the tokenisers are set in \
+        the pipeline.
+        :rtype: list
         '''
 
-        if not isinstance(word_vectors, list):
-            raise TypeError('word vectors has to be a list of `tdparse.word_'\
-                            'vectors.WordVectors` instances or a list of a list of '\
-                            '`tdparse.word_vectors.WordVectors` for grid searching')
+        return ['tokens']
 
-        if isinstance(word_vectors[0], list):
-            params_dict = []
-            for word_vector in word_vectors:
-                for vector in word_vector:
-                    if not isinstance(vector, WordVectors):
-                        raise TypeError('each list in the grid search should contain'\
-                                        ' instances of {} and {}'\
-                                        .format(type(WordVectors), type(vector)))
-                param_dict = defaultdict(list)
-                for word_vec_name in self._get_word_vector_names():
-                    param_dict[word_vec_name].append(word_vector)
-                params_dict.append(param_dict)
-            return params_dict
-        for word_vector in word_vectors:
-            if not isinstance(word_vector, WordVectors):
-                raise TypeError('The list should contain instances of {} and not {}'\
-                                .format(type(WordVectors), type(word_vector)))
-        param_dict = {}
-        for word_vec_name in self._get_word_vector_names():
-            param_dict[word_vec_name] = word_vectors
-        return param_dict
+    @staticmethod
+    def _add_to_params_dict(params_dict, keys, value):
+        '''
+        Given a dictionary it adds the value to each key in the list of keys
+        into the dictionary. Returns the updated dictionary.
+
+        :param params_dict: Dictionary to be updated
+        :param keys: list of keys
+        :param value: value to be added to each key in the list of keys.
+        :type params_dict: dict
+        :type keys: list
+        :type value: Python object
+        :returns: The dictionary updated
+        :rtype: dict
+        '''
+        for key in keys:
+            params_dict[key] = value
+        return params_dict
+
+    def get_params(self, word_vector, tokeniser=None, lower=None, C=None,
+                   random_state=None, scale=True):
+        '''
+        This method is to be overidden when more values than those listed in the
+        attributes are required for the model. E.g. a lexicon.
+
+        If values are not required e.g. lower then the model has a defualt value
+        for it which will be used when the user does not set a value here.
+
+        :param word_vector: A list of `tdparse.word_vectors.WordVectors` \
+        instances e.g. [WordVectors(), AnotherWordVector()]
+        :param tokeniser: A tokeniser method from `tdparse.tokenisers` \
+        or a method that conforms to the same output as `tdparse.tokenisers`
+        :param lower: A bool which indicate wether to lower case the input words.
+        :param C: A float which indicates the C value of the SVM classifier.
+        :param random_state: A int which defines the random number to generate \
+        to shuffle the data. Used to ensure reproducability.
+        :param scale: bool indicating to use scaling or not. Default is to scale.
+        :type word_vector: list
+        :type tokeniser: function
+        :type lower: bool
+        :type C: float
+        :type random_state: int
+        :type scale: bool Default True
+        :return: A parameter dict which indicates the parameters the model should \
+        use. The return of this function can be used as the params attribute in \
+        the `fit` method.
+        :rtype: dict
+        '''
+        params_dict = {}
+        params_dict = self._add_to_params_dict(params_dict,
+                                               self._get_word_vector_names(),
+                                               word_vector)
+        if tokeniser is not None:
+            tokenisers_names = [param_name + '__tokeniser'
+                                for param_name in self._get_tokeniser_names()]
+            params_dict = self._add_to_params_dict(params_dict, tokenisers_names,
+                                                   tokeniser)
+        if lower is not None:
+            lower_names = [param_name + '__lower'
+                           for param_name in self._get_tokeniser_names()]
+            params_dict = self._add_to_params_dict(params_dict, lower_names, lower)
+        if C is not None:
+            params_dict = self._add_to_params_dict(params_dict, 'svm__C', C)
+        if random_state is not None:
+            params_dict = self._add_to_params_dict(params_dict,
+                                                   'svm__random_state', random_state)
+        if scale:
+            params_dict = self._add_to_params_dict(params_dict, 'scale',
+                                                   MaxAbsScaler())
+        else:
+            params_dict = self._add_to_params_dict(params_dict, 'scale', None)
+        return params_dict
+
+    @staticmethod
+    def _add_to_params(params_list, to_add, to_add_names):
+        '''
+        Used to add parameters that are stated multiple times in the same
+        pipeline that must have the same value therefore to add them you
+        have to copy the current parameter list N amount of times where N is
+        the length of the to_add list. Returns the updated parameter list.
+        Method to add parameters that are set in multiple parts of the pipeline
+        but should contain the same value.
+
+        :params_list: A list of dicts where each dict contains parameters and \
+        corresponding values that are to be searched for. All dict are part of \
+        the search space.
+        :param to_add: List of values that are to be added to the search space.
+        :param to_add_names: List of names that are associated to the values.
+        :type params_list: list
+        :type to_add: list
+        :type to_add_names: list
+        :returns: The updated params_list
+        :rtype: list
+        '''
+        num_params = len(params_list)
+        num_to_add = len(to_add)
+        new_param_list = []
+        # Catch the case that params_list was originally empty
+        if num_params == 0:
+            for _ in range(num_to_add):
+                new_param_list.append([defaultdict(list)])
+        else:
+            for _ in range(num_to_add):
+                new_param_list.append(copy.deepcopy(params_list))
+
+        for index, param in enumerate(to_add):
+            for param_name in to_add_names:
+                for sub_list in new_param_list[index]:
+                    sub_list[param_name].append(param)
+        params_list = [param_dict for sub_list in new_param_list
+                       for param_dict in sub_list]
+        return params_list
+
+    @staticmethod
+    def _add_to_all_params(params_list, param_name, param_value):
+        '''
+        Used to add param_name and its values to each dictionary of parameters
+        in the params_list. Returns the updated params_list.
+
+        :param params_list: A list of dicts where each dict contains parameters and \
+        corresponding values that are to be searched for. All dict are part of \
+        the search space.
+        :param param_name: The name associated to the parameter value to be added \
+        to the params_list.
+        :param param_value: The list of values associated to the param_name that are \
+        added to the params_list linked to the associated name.
+        :type param_list: list
+        :type param_name: String
+        :type param_value: list
+        :returns: The updated params_list
+        :rtype: list
+        '''
+        for param_dict in params_list:
+            param_dict[param_name] = param_value
+        return params_list
+
+
+    def get_cv_params(self, word_vectors, tokenisers=None, lowers=None, C=None,
+                      scale=None, random_state=None):
+        '''
+        Each attribute has to be a list which contains parameters that are to be
+        tunned.
+
+        This method is to be overidden when more values than those listed in the
+        attributes are required for the model. E.g. a lexicon.
+
+        :param word_vectors: A list of a list of `tdparse.word_vectors.WordVectors` \
+        instances e.g. [[WordVectors()], [WordVectors(), AnotherWordVector()]]
+        :param tokenisers: A list of tokenisers methods from `tdparse.tokenisers` \
+        or a list of methods that conform to the same output as `tdparse.tokenisers`
+        :param lowers: A list of bool values which indicate wether to lower case \
+        the input words.
+        :param C: A list of floats which indicate the C value on the SVM classifier.
+        :param random_state: A int which defines the random number to generate \
+        to shuffle the data. Used to ensure reproducability.
+        :param scale: A list of one value which has to be None to indicate whether \
+        to test scaling and not scaling.
+        :type word_vectors: list
+        :type tokenisers: list
+        :type lowers: list
+        :type C: list
+        :type random_state: int
+        :type scale: list
+        :return: A list of dicts where each dict represents a different \
+        parameter space to search. Used as the params attribute to grid_search \
+        function.
+        :rtype: list
+        '''
+
+        params_list = []
+        params_list = self._add_to_params(params_list, word_vectors,
+                                          self._get_word_vector_names())
+        if tokenisers is not None:
+            tokenisers_names = [param_name + '__tokeniser'
+                                for param_name in self._get_tokeniser_names()]
+            params_list = self._add_to_params(params_list, tokenisers,
+                                              tokenisers_names)
+        if lowers is not None:
+            lower_names = [param_name + '__lower'
+                           for param_name in self._get_tokeniser_names()]
+            params_list = self._add_to_params(params_list, lowers, lower_names)
+        if C is not None:
+            params_list = self._add_to_all_params(params_list, 'svm__C', C)
+        if random_state is not None:
+            random_state = [random_state]
+            params_list = self._add_to_all_params(params_list, 'svm__random_state',
+                                                  random_state)
+        if scale is not None:
+            scale.append(MaxAbsScaler())
+            params_list = self._add_to_all_params(params_list, 'scale', scale)
+        return params_list
 
     def fit(self, train_data, train_y, params=None):
         if params is None:
@@ -149,7 +306,6 @@ class TargetInd():
 class TargetDepC(TargetInd):
     def __init__(self):
         super().__init__()
-        print(type(self.model))
         self.pipeline = Pipeline([
             ('union', FeatureUnion([
                 ('left', Pipeline([
@@ -235,6 +391,148 @@ class TargetDepC(TargetInd):
                 ]))
             ])),
             ('scale', MaxAbsScaler()),
+            ('svm', LinearSVC(C=0.025))
+        ])
+
+    @staticmethod
+    def _get_word_vector_names():
+        '''
+        :returns: A list of of parameter names where the word vectors are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__word_vectors__vectors',
+                'union__right__word_vectors__vectors',
+                'union__target__word_vectors__vectors']
+    @staticmethod
+    def _get_tokeniser_names():
+        '''
+        :returns: A list of of parameter names where the tokenisers are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__tokens',
+                'union__right__tokens',
+                'union__target__tokens']
+
+
+class TargetDep(TargetInd):
+    def __init__(self):
+        super().__init__()
+        self.pipeline = Pipeline([
+            ('union', FeatureUnion([
+                ('left', Pipeline([
+                    ('contexts', Context({'l'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('right', Pipeline([
+                    ('contexts', Context({'r'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('target', Pipeline([
+                    ('contexts', Context({'t'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('full', Pipeline([
+                    ('contexts', Context({'f'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ]))
+            ])),
+            ('scale', MaxAbsScaler()),
             ('svm', LinearSVC(C=0.01))
         ])
 
@@ -246,6 +544,274 @@ class TargetDepC(TargetInd):
         :rtype: list
         '''
 
-        return ['union__left__word_vectors__vector',
-                'union__right__word_vectors__vector',
-                'union__target__word_vectors__vector']
+        return ['union__left__word_vectors__vectors',
+                'union__right__word_vectors__vectors',
+                'union__target__word_vectors__vectors',
+                'union__full__word_vectors__vectors']
+    @staticmethod
+    def _get_tokeniser_names():
+        '''
+        :returns: A list of of parameter names where the tokenisers are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__tokens',
+                'union__right__tokens',
+                'union__target__tokens',
+                'union__full__tokens']
+
+class TargetDepSent(TargetInd):
+    def __init__(self):
+        super().__init__()
+        self.pipeline = Pipeline([
+            ('union', FeatureUnion([
+                ('left', Pipeline([
+                    ('contexts', Context({'l'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('left_s', Pipeline([
+                    ('contexts', Context({'l'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('filter', LexiconFilter()),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('right', Pipeline([
+                    ('contexts', Context({'r'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('right_s', Pipeline([
+                    ('contexts', Context({'r'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('filter', LexiconFilter()),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('target', Pipeline([
+                    ('contexts', Context({'t'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('full', Pipeline([
+                    ('contexts', Context({'f'})),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ]))
+            ])),
+            ('scale', MaxAbsScaler()),
+            ('svm', LinearSVC(C=0.01))
+        ])
+
+    @staticmethod
+    def _get_word_senti_names():
+        '''
+        :returns: A list of of parameter names where the sentiment lexicons are \
+        set in the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left_s__filter__lexicon',
+                'union__right_s__filter__lexicon']
+
+    @staticmethod
+    def _get_word_vector_names():
+        '''
+        :returns: A list of of parameter names where the word vectors are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__word_vectors__vectors',
+                'union__left_s__word_vectors__vectors',
+                'union__right__word_vectors__vectors',
+                'union__right_s__word_vectors__vectors',
+                'union__target__word_vectors__vectors',
+                'union__full__word_vectors__vectors']
+    @staticmethod
+    def _get_tokeniser_names():
+        '''
+        :returns: A list of of parameter names where the tokenisers are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__tokens',
+                'union__left_s__tokens',
+                'union__right__tokens',
+                'union__right_s__tokens',
+                'union__target__tokens',
+                'union__full__tokens']
+
+    def get_params(self, word_vector, senti_lexicon, tokeniser=None, lower=None,
+                   C=None, scale=True, random_state=None):
+        '''
+        Overrides the base version and adds the lexicons parameter.
+        :param senti_lexicon: Lexicon of words you want to use has to be an instance \
+        of `tdparse.lexicons.Lexicon`.
+        :type senti_lexicon: instance of `tdparse.lexicons.Lexicon`
+        :returns: A parameter dictionary that can be used as the param attribute \
+        in the `fit` function.
+        :rtype: dict
+        '''
+
+        params_dict = super().get_params(word_vector, tokeniser=tokeniser,
+                                         lower=lower, C=C, scale=scale,
+                                         random_state=random_state)
+        params_dict = self._add_to_params_dict(params_dict,
+                                               self._get_word_senti_names(),
+                                               senti_lexicon)
+        return params_dict
+
+    def get_cv_params(self, word_vectors, senti_lexicons, tokenisers=None,
+                      lowers=None, C=None, scale=None, random_state=None):
+        '''
+        Overrides the base version and adds the lexicons parameter.
+
+        :param senti_lexicons: List of instance `tdparse.lexicons.Lexicon` where \
+        each lexicon is used to sub select interested words.
+        :type senti_lexicon: list
+        :returns: A list of dicts where each dict represents a different \
+        parameter space to search. Used as the params attribute to grid_search \
+        function.
+        :rtype: list
+        '''
+
+        params_list = super().get_cv_params(word_vectors, tokenisers=tokenisers,
+                                            lowers=lowers, C=C, scale=scale,
+                                            random_state=random_state)
+        params_list = self._add_to_params(params_list, senti_lexicons,
+                                          self._get_word_senti_names())
+        return params_list
