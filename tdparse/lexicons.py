@@ -18,7 +18,7 @@ import csv
 import os
 import re
 
-from tdparse.helper import read_config
+from tdparse.helper import read_config, full_path
 
 class Lexicon():
     '''
@@ -200,7 +200,7 @@ class Mpqa(Lexicon):
         '''
         Overrides :py:func@`tdparse.lexicons.Lexicon.get_lexicon`
         '''
-        mpqa_file_path = read_config('lexicons')['mpqa']
+        mpqa_file_path = full_path(read_config('lexicons')['mpqa'])
         word_cats = []
         with open(mpqa_file_path, 'r') as mpqa_file:
             for line in mpqa_file:
@@ -236,7 +236,7 @@ class HuLiu(Lexicon):
         Overrides :py:func@`tdparse.lexicons.Lexicon.get_lexicon`
         '''
 
-        sentiment_folder = os.path.abspath(read_config('lexicons')['hu_liu'])
+        sentiment_folder = full_path(read_config('lexicons')['hu_liu'])
         cats = ['positive', 'negative']
         word_cat = []
         for cat in cats:
@@ -266,10 +266,10 @@ class NRC(Lexicon):
 
     def get_lexicon(self):
         '''
-        Overrides :py:func@`tdparse.lexicons.Lexicon.get_lexicon`
+        Overrides :py:func:`tdparse.lexicons.Lexicon.get_lexicon`
         '''
 
-        emotion_file_path = os.path.abspath(read_config('lexicons')['nrc_emotion'])
+        emotion_file_path = full_path(read_config('lexicons')['nrc_emotion'])
         word_cat = []
 
         with open(emotion_file_path, 'r', newline='') as emotion_file:
