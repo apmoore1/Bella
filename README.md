@@ -1,4 +1,4 @@
-# TDParse 
+# TDParse
 [![Build Status](https://travis-ci.org/apmoore1/tdparse.png?branch=master)](https://travis-ci.org/apmoore1/tdparse)
 
 Implementation of [TDParse](https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046).
@@ -19,3 +19,4 @@ We test this method on the following datasets:
 ### Requirements
 1. Python Tested with 3.6 and known to not work with anything less than 3.5.
 2. pip3 install -r requirements.txt
+3. To use the [Tweebo Parser](./tools/TweeboParser) requires *gcc* and *cmake*
