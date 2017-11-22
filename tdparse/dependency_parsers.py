@@ -6,7 +6,7 @@ import os
 import subprocess
 import tempfile
 
-from tdparse.helper import read_config
+from tdparse.helper import read_config, full_path
 
 def tweebo_install(tweebo_func):
     '''
@@ -20,7 +20,7 @@ def tweebo_install(tweebo_func):
     :rtype: function
     '''
 
-    tweebo_dir = os.path.abspath(read_config('depdency_parsers')['tweebo_dir'])
+    tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
     # If the models file exists then Tweebo has been installed or failed to
     # install
     tweebo_models = os.path.join(tweebo_dir, 'pretrained_models.tar.gz')
@@ -108,7 +108,7 @@ def tweebo(text, batch=False):
     with tempfile.TemporaryDirectory() as temp_dir:
         text_file_path = os.path.join(temp_dir, 'text_file.txt')
         result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
-        tweebo_dir = os.path.abspath(read_config('depdency_parsers')['tweebo_dir'])
+        tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
         with open(text_file_path, 'w+') as text_file:
             if batch:
                 for a_text in text:
