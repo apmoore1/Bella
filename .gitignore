@@ -1,4 +1,3 @@
-.envrc
 __pycache__
 .cache/**
 docs/_static
@@ -14,3 +13,5 @@ tools/TweeboParser/sample_input.txt.predict
 tools/TweeboParser/working_dir/
 tools/TweeboParser/TBParser/deps/gflags
 tools/TweeboParser/TBParser/deps/glog
+
+data/lexicons/
