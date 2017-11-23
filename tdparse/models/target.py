@@ -8,6 +8,7 @@ Classes:
 '''
 from collections import defaultdict
 import copy
+import types
 
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
@@ -15,6 +16,7 @@ from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import MaxAbsScaler
+from sklearn.metrics import accuracy_score
 
 from tdparse.tokenisers import ark_twokenize
 from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
@@ -102,6 +104,10 @@ class TargetInd():
         :returns: The dictionary updated
         :rtype: dict
         '''
+
+        if not isinstance(keys, list):
+            raise ValueError('The keys parameter has to be of type list and not {}'\
+                             .format(type(keys)))
         for key in keys:
             params_dict[key] = value
         return params_dict
@@ -149,15 +155,15 @@ class TargetInd():
                            for param_name in self._get_tokeniser_names()]
             params_dict = self._add_to_params_dict(params_dict, lower_names, lower)
         if C is not None:
-            params_dict = self._add_to_params_dict(params_dict, 'svm__C', C)
+            params_dict = self._add_to_params_dict(params_dict, ['svm__C'], C)
         if random_state is not None:
             params_dict = self._add_to_params_dict(params_dict,
-                                                   'svm__random_state', random_state)
+                                                   ['svm__random_state'], random_state)
         if scale:
-            params_dict = self._add_to_params_dict(params_dict, 'scale',
+            params_dict = self._add_to_params_dict(params_dict, ['scale'],
                                                    MaxAbsScaler())
         else:
-            params_dict = self._add_to_params_dict(params_dict, 'scale', None)
+            params_dict = self._add_to_params_dict(params_dict, ['scale'], None)
         return params_dict
 
     @staticmethod
@@ -300,6 +306,37 @@ class TargetInd():
     def predict(self, test_data):
         if self.model is not None:
             return self.model.predict(test_data)
+        else:
+            raise ValueError('self.model is not fitted please fit the model '\
+                             'using the fit function')
+    def score(self, test_data, true_values, scorer=None, *args, **kwargs):
+        '''
+        Performs predicitions on the test_data and then scores the predicitons
+        based on the scorer function using the true values. Returns the output
+        of scorer function.
+
+        :param test_data: Input data into the `predict` function
+        :param true_values: True values associated to the test_data
+        :param scorer: A function that will asses the performs of the predicitons \
+        takes as input (true_values, predictions, *args, **kwargs)
+        :param args: Additional arguments to the scorer function
+        :param kwargs: Additional key word arguments to the scorer function
+        :type test_data: list
+        :type true_values: list, numpy.ndarray
+        :type scorer: function. Default sklearn.metrics.accuracy_score
+        :returns: The output of the scorer function normally a float
+        :rtype: float
+        '''
+
+        if scorer is None:
+            scorer = accuracy_score
+        else:
+            if not isinstance(scorer, types.FunctionType):
+                raise TypeError('scorer must be of type function and not {}'\
+                                .format(type(scorer)))
+        if self.model is not None:
+            predictions = self.model.predict(test_data)
+            return scorer(true_values, predictions, *args, **kwargs)
         else:
             raise ValueError('self.model is not fitted please fit the model '\
                              'using the fit function')
