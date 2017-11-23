@@ -21,8 +21,9 @@ class TestTarget(TestCase):
     @staticmethod
     def _get_name(test_obj, valid_obj):
         '''
-        Given two unknown objects return a name from them. Returns a
-        String.
+        Given two unknown objects returns the name of the objects or the
+        values of the objects if the objects are basic python type (str or int).
+        Returns a tuple of 2 comprabale objects.
 
         :param test_obj: A python object ranging from functions to \
         instances of classes.
@@ -30,8 +31,8 @@ class TestTarget(TestCase):
         instances of classes.
         :type test_obj: Python object
         :type valid_obj: Python object
-        :returns: A tuple of two strings which are names for each python \
-        object.
+        :returns: A tuple of two Python objects that can be compared. e.g. str \
+        or int.
         :rtype: tuple
         '''
         if hasattr(test_obj, '__name__'):
@@ -48,6 +49,13 @@ class TestTarget(TestCase):
                 raise ValueError('test_obj has attr name but valid '\
                                  'does not. Test {} Valid {}'\
                                  .format(test_obj, valid_obj))
+        elif isinstance(test_obj, (int, str)):
+            if isinstance(test_obj, type(valid_obj)):
+                return (test_obj, valid_obj)
+            else:
+                raise ValueError('test_obj is not of the same type as the valid '\
+                                 '{} {}'.format(type(test_obj), type(valid_obj)))
+
         else:
             raise ValueError('Cannot determine the name of value or test'\
                              ' object please insert a rule into `get_name`'\
@@ -335,6 +343,16 @@ class TestTarget(TestCase):
                          'tokens__tokeniser' : whitespace}
         test_example = test_model.get_params(word_vector=[sswe_model, vo_zhang],
                                              tokeniser=whitespace)
+        self._key_value_test(valid_example, test_example, grid_test=False)
+
+        # Testing on arguments that do not call a function to get the arguments
+        # names
+        valid_example = {'word_vectors__vectors' : [sswe_model, vo_zhang],
+                         'tokens__tokeniser' : whitespace,
+                         'svm__random_state' : 42}
+        test_example = test_model.get_params(word_vector=[sswe_model, vo_zhang],
+                                             tokeniser=whitespace,
+                                             random_state=42)
         self._key_value_test(valid_example, test_example, grid_test=False)
 
         # Testing TargetDepC class
