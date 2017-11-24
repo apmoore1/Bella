@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 
 from tdparse.helper import read_config, full_path
+from tdparse.dependency_tokens import DependencyToken
 
 def tweebo_install(tweebo_func):
     '''
@@ -30,7 +31,49 @@ def tweebo_install(tweebo_func):
     return tweebo_func
 
 def get_tweebo_dependencies(token_dep_sentence):
+    '''
+    NOTE:
+    The DependencyToken allows easy access to all the dependency links for that
+    token.
+
+    :param token_dep_sentence: list of tuples that contain (token, linked \
+    index token)
+    :type token_dep_sentence: list
+    :returns: A list of DependencyToken instances one for each tuple/token.
+    :rtype: list
+    '''
+
     def dep_search(dep_index, sentence, dep_info):
+        '''
+        This is a tail recusive function that returns a dictionary denoting
+        which index in the sentence relates to the other tokens in the sentence
+        and at what dependency depth.
+
+        :param dep_index: The index of the token whos dependecies are being \
+        collected
+        :param sentence: List of tuples which contain (token, index of head word)
+        :param dep_info: default dict whose keys are indexs from the sentence \
+        and value is a default dict whose keys are dependency depths and value \
+        is the sentence index related to that dependency depth.
+        :type dep_index: int
+        :type sentence: list
+        :type dep_info: defaultdict
+        :returns: Default dictionary whose keys are sentence indexs, values are \
+        default dictionaries whose keys are dependency depths and value is the \
+        associated sentence index to that depth.
+        :rtype: defaultdict
+
+        :Example:
+        >>> sentence = [('To', -1), ('appear', 0), ('(', -2),
+                        ('EMNLP', 1), ('2014', 3)]
+        >>> dep_info = defaultdict(lambda: dict())
+        >>> print(dep_search(4, sentence, dep_info))
+        >>> {0 : {1 : 1, 2 : 3, 3 : 4},
+             1 : {1 : 3, 2 : 3},
+             3 : {1 : 4},
+             4 : {}}
+        '''
+
         head_index = sentence[dep_index][1]
         if head_index == -1 or head_index == -2:
             return dep_info
@@ -40,6 +83,7 @@ def get_tweebo_dependencies(token_dep_sentence):
         head_deps[1] = dep_index
         dep_info[head_index] = head_deps
         return dep_search(head_index, sentence, dep_info)
+
     dep_results = defaultdict(lambda: defaultdict(set))
     for index, _ in enumerate(token_dep_sentence):
         dep_result = dep_search(index, token_dep_sentence,
@@ -47,10 +91,38 @@ def get_tweebo_dependencies(token_dep_sentence):
         for token_index, dependencies in dep_result.items():
             for dep_level, dependent in dependencies.items():
                 dep_results[token_index][dep_level].add(dependent)
-    return dep_results
+    # Convert each of the tokens in the sentence into a dependent token
+    # using the results from searching through the dependencies
+    dep_tokens = []
+    for token_index, token_dep in enumerate(token_dep_sentence):
+        token, _ = token_dep
+        depth_related = dep_results[token_index]
+        token_relations = defaultdict(list)
+        # Get the tokens relations
+        for depth, related_tokens_index in depth_related.items():
+            for related_token_index in related_tokens_index:
+                related_token = token_dep_sentence[related_token_index][0]
+                token_relations[depth].append(related_token)
+        dep_tokens.append(DependencyToken(token, token_relations))
+    return dep_tokens
 
 
 def tweebo_post_process(processed_text):
+    '''
+    Given the text processed by Tweebo as a String that has a token and its
+    meta data on each new line and a sentence represented by a newline. It
+    finds all of the tokens related to a single sentence and returns all
+    sentences as a list of DependencyToken instances produced by the
+    :py:func:`get_tweebo_dependencies`.
+
+    :param processed_text: The string ouput of Tweebo parser
+    :type processed_text: String
+    :returns: A list of a list of DependencyToken instances, where each list \
+    represents a String instance in the texts given to the :py:func:`tweebo` \
+    function.
+    :rtype: list
+    '''
+
     tokens = processed_text.split('\n')
     sentences = []
     last_token = None
@@ -60,32 +132,43 @@ def tweebo_post_process(processed_text):
         if last_token == '' and token == '':
             continue
         elif token == '':
-            sentences.append(sentence)
+            #import code
+            #code.interact(local=locals())
+            if sentence == ['$$$EMPTY$$$']:
+                sentences.append([])
+            else:
+                sentences.append(get_tweebo_dependencies(sentence))
             sentence = []
         else:
-            token = token.split('\t')
-            token_dep_index = int(token[6]) - 1
-            token_text = token[1]
-            sentence.append([token_text, token_dep_index])
+            if token == '$$$EMPTY$$$':
+                sentence.append(token)
+            else:
+                token = token.split('\t')
+                token_dep_index = int(token[6]) - 1
+                token_text = token[1]
+                sentence.append((token_text, token_dep_index))
         last_token = token
+    print(type(sentences))
     return sentences
 
 @tweebo_install
-def tweebo(text, batch=False):
+def tweebo(texts):
     '''
-    Given a String will tokenise, pos tag and then dependecy parse the text using
-    `Tweebo <https://github.com/ikekonglp/TweeboParser>`_ a Tweet specific parser.
+    Given a list of Strings will tokenise, pos tag and then dependecy parse
+    the text using `Tweebo <https://github.com/ikekonglp/TweeboParser>`_
+    a Tweet specific parser.
 
     The Tweebo parser cannot handle no strings therefore a special empty string
     symbol is required.
 
-    :param text: The text that is to be parsed
-    :param batch: If too process the text in batch mode. If so the text has to be
-    a list of Strings.
-    :type text: String if batch==False else list
-    :type batch: Boolean Default False
-    :returns: Dependency parsed text
-    :rtype: String
+    If one of the texts is an empty String then an empty list will be returned
+    for that index of the returned list.
+
+    :param texts: The texts that are to be parsed
+    :type text: list
+    :returns: A list of of a list of DependencyToken instances. A list per text \
+    in the texts argument.
+    :rtype: list
     '''
 
     def no_text(text):
@@ -110,18 +193,14 @@ def tweebo(text, batch=False):
         result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
         tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
         with open(text_file_path, 'w+') as text_file:
-            if batch:
-                for a_text in text:
-                    a_text = no_text(a_text)
-                    text_file.write(a_text)
-                    text_file.write('\n')
-            else:
+            for text in texts:
                 text = no_text(text)
                 text_file.write(text)
+                text_file.write('\n')
         run_script = os.path.join(tweebo_dir, 'run.sh')
         if subprocess.run(['bash', run_script, text_file_path]):
             with open(result_file_path, 'r') as result_file:
-                return result_file.read()
+                return tweebo_post_process(result_file.read())
         else:
-            raise SystemError('Could not run the Tweebo run script {} for text {}'\
-                              .format(run_script, text))
+            raise SystemError('Could not run the Tweebo run script {}'\
+                              .format(run_script))
