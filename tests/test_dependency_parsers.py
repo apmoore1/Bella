@@ -5,7 +5,7 @@ import os
 import shutil
 from unittest import TestCase
 
-import pytest
+#import pytest
 
 from tdparse.dependency_tokens import DependencyToken
 from tdparse.dependency_parsers import tweebo_install
@@ -16,7 +16,6 @@ class TestDependencyParsers(TestCase):
     Contains the following functions:
     '''
 
-    #@pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo_install(self):
         '''
         Test for :py:func:`tdparse.dependency_parsers.tweebo_install`. Tests that

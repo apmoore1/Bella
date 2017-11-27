@@ -4,8 +4,6 @@ Unit test suite for the :py:mod:`tdparse.dependency_tokens` module.
 from collections import defaultdict
 from unittest import TestCase
 
-import pytest
-
 from tdparse.dependency_tokens import DependencyToken
 
 class TestDependencyTokens(TestCase):
@@ -92,10 +90,9 @@ class TestDependencyTokens(TestCase):
         # Check normal situation
         dep_token = DependencyToken(token, relations)
 
-        with self.assertRaises(ValueError, msg='Should not accept negative values'):
-            dep_token.get_n_relations((-1, 2))
-        with self.assertRaises(ValueError, msg='Should not accept negative values'):
-            dep_token.get_n_relations((1, -1))
+        with self.assertRaises(ValueError, msg='Should not accept negative values'\
+                               ' where the first value > second value'):
+            dep_token.get_n_relations((-2, -3))
         with self.assertRaises(ValueError, msg='Should not accept zero values'):
             dep_token.get_n_relations((0, 2))
         with self.assertRaises(ValueError, msg='Should not accept zero values'):
@@ -106,9 +103,6 @@ class TestDependencyTokens(TestCase):
             dep_token.get_n_relations(range(1, 2))
         with self.assertRaises(ValueError, msg='The tuple has to of length 2'):
             dep_token.get_n_relations((1, 3, 1))
-        with self.assertRaises(ValueError, msg='The first value has to be less '\
-                               'than the second value'):
-            dep_token.get_n_relations((1, -1))
         with self.assertRaises(ValueError, msg='The first value has to be less '\
                                'than the second value'):
             dep_token.get_n_relations((3, 1))
@@ -123,27 +117,57 @@ class TestDependencyTokens(TestCase):
         test_1 = dep_token.get_n_relations((1, 1))
         self.assertEqual(valid_1, test_1, msg='Should return the first depth of '\
                          'realtions {} and not {}'.format(valid_1, test_1))
-
         valid_2 = ['something', 'another']
         test_2 = dep_token.get_n_relations((2, 2))
         self.assertEqual(valid_2, test_2, msg='Should return the second depth of '\
                          'realtions {} and not {}'.format(valid_2, test_2))
-
         valid_1_2 = ['test', 'anything', 'something', 'another']
         test_1_2 = dep_token.get_n_relations((1, 2))
         self.assertEqual(valid_1_2, test_1_2, msg='Should return the first and '\
                          'second depth of relations {} and not {}'\
                          .format(valid_1_2, test_1_2))
-
         valid_2_4 = ['something', 'another', 'you', 'the', 'last', 'pass']
         test_2_4 = dep_token.get_n_relations((2, 4))
         self.assertEqual(valid_2_4, test_2_4, msg='Should return the second, third'\
                          ' and fourth relations {} and not {}'\
                          .format(valid_2_4, test_2_4))
-
         valid_2_7 = ['something', 'another', 'you', 'the', 'last', 'pass']
         test_2_7 = dep_token.get_n_relations((2, 7))
         self.assertEqual(valid_2_7, test_2_7, msg='Should return the second, third'\
                          ' and fourth relations and no more as the relations dict'\
                          ' has been exhausted valid: {} and not {}'\
                          .format(valid_2_7, test_2_7))
+
+        valid_neg_1 = ['last', 'pass']
+        test_neg_1 = dep_token.get_n_relations((-1, -1))
+        self.assertEqual(valid_neg_1, test_neg_1, msg='Should return the last'\
+                         'realtions {} and not {}'.format(valid_neg_1, test_neg_1))
+        valid_neg_2 = ['you', 'the', 'last', 'pass']
+        test_neg_2 = dep_token.get_n_relations((-2, -1))
+        self.assertEqual(valid_neg_2, test_neg_2, msg='Should return the last 2'\
+                         'realtions {} and not {}'.format(valid_neg_2, test_neg_2))
+        valid_neg_3 = ['something', 'another', 'you', 'the', 'last', 'pass']
+        test_neg_3 = dep_token.get_n_relations((-3, -1))
+        self.assertEqual(valid_neg_3, test_neg_3, msg='Should return the last 3'\
+                         'realtions {} and not {}'.format(valid_neg_3, test_neg_3))
+        valid_neg_4 = ['test', 'anything', 'something', 'another', 'you', 'the']
+        test_neg_4 = dep_token.get_n_relations((-4, -2))
+        self.assertEqual(valid_neg_4, test_neg_4, msg='Should return the first 3'\
+                         'realtions {} and not {}'.format(valid_neg_4, test_neg_4))
+
+        valid_comp_1 = ['something', 'another', 'you', 'the', 'last', 'pass']
+        test_comp_1 = dep_token.get_n_relations((2, -1))
+        self.assertEqual(valid_comp_1, test_comp_1, msg='Should return from the '\
+                         'second to the last realtions {} and not {}'\
+                         .format(valid_comp_1, test_comp_1))
+        valid_comp_2 = ['test', 'anything', 'something', 'another', 'you',
+                        'the', 'last', 'pass']
+        test_comp_2 = dep_token.get_n_relations((1, -1))
+        self.assertEqual(valid_comp_2, test_comp_2, msg='Should return from the '\
+                         'first to the last realtions {} and not {}'\
+                         .format(valid_comp_2, test_comp_2))
+        valid_comp_3 = ['something', 'another', 'you', 'the']
+        test_comp_3 = dep_token.get_n_relations((2, -2))
+        self.assertEqual(valid_comp_3, test_comp_3, msg='Should return from the '\
+                         'second to the second to last realtions {} and not {}'\
+                         .format(valid_comp_3, test_comp_3))

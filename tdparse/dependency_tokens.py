@@ -85,27 +85,67 @@ class DependencyToken():
         >>> relations == ['anything', 'lastly']
         '''
 
+        def negative_range(range_1, range_2):
+            def expand_out(word_lists):
+                return [word for words in word_lists for word in words]
+            i = 1
+            all_words = []
+            while True:
+                related_words = self.relations.get(i, [])
+                if related_words == []:
+                    break
+                i += 1
+                all_words.append(related_words)
+            if range_2 == range_1:
+                if range_2 == -1:
+                    return expand_out(all_words[range_1 :])
+                return expand_out(all_words[range_1 : range_2 + 1])
+            if range_1 > 0:
+                range_1 -= 1
+            if range_2 > 0:
+                range_2 -= 1
+            if range_2 == -1:
+                return expand_out(all_words[range_1 :])
+            elif range_2 < -1:
+                return expand_out(all_words[range_1 : range_2 + 1])
+            return expand_out(all_words[range_1 : range_2])
+
         if not isinstance(relation_range, tuple):
             raise TypeError('The relation_range parameter has to be of type tuple'\
                             ' and not {}'.format(type(relation_range)))
         if len(relation_range) != 2:
             raise ValueError('The relation_range tuple has to be of length 2 '\
                              'and not {}'.format(len(relation_range)))
-        if not (isinstance(relation_range[0], int)
-                and isinstance(relation_range[1], int)):
+        range_1 = relation_range[0]
+        range_2 = relation_range[1]
+        if not (isinstance(range_1, int)
+                and isinstance(range_2, int)):
             raise ValueError('The relation_range tuple can only contain value of '\
                              'type int values {}'.format(relation_range))
-        if relation_range[0] < 1 or relation_range[1] < 1:
-            raise ValueError('The values in the relation range have to be greater'\
-                             ' than one')
-        if not relation_range[0] <= relation_range[1]:
-            raise ValueError('The second value in relation_range has to be greater'\
-                             ' than or equall to the first value. Values {}'\
-                             .format(relation_range))
+        if range_1 == 0 or range_2 == 0:
+            raise ValueError('relation_range values cannot be zero')
         all_related_words = []
-        for i in range(relation_range[0], relation_range[1] + 1):
-            related_words = self.relations.get(i, [])
-            if related_words == []:
-                break
-            all_related_words.extend(related_words)
+        # Check if it is negative indexing
+        if range_1 < 0:
+            if range_2 < range_1:
+                raise ValueError('If the first value in the range is negative it'\
+                                 ' has to be less than the second value in the '\
+                                 'range 1: {} 2: {}'.format(range_1, range_2))
+            all_related_words = negative_range(range_1, range_2)
+        elif range_2 < 0:
+            all_related_words = negative_range(range_1, range_2)
+        else:
+
+            if range_1 < 1 or range_2 < 1:
+                raise ValueError('The values in the relation range have to '\
+                                 'be greater than one')
+            if range_1 > range_2:
+                raise ValueError('The second value in relation_range has to '\
+                                 'be greater than or equall to the first value.'\
+                                 ' Values {}'.format(relation_range))
+            for i in range(range_1, range_2 + 1):
+                related_words = self.relations.get(i, [])
+                if related_words == []:
+                    break
+                all_related_words.extend(related_words)
         return all_related_words
