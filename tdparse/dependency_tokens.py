@@ -14,6 +14,8 @@ class DependencyToken():
     2. self.relations -- The dict that contains words associated to the token \
     at different dependency relation levels e.g. relation of 1 direct dependency \
     of the token, relation 2 dependency relations of the relation 1 words.
+    3. self.connected_words -- A list of all words that are within the same \
+    dependency tree.
 
     Methods:
 
@@ -21,12 +23,16 @@ class DependencyToken():
     words retrived at different relation levels associated to the `n` range.
     '''
 
-    def __init__(self, token, relations):
+    def __init__(self, token, relations, connected_words):
         '''
         :param token: The string that the dependency relations are associated to.
         :param relations: dict of dependency relations
+        :param connected_words: list of all syntactically connected words. This \
+        can be seen as getting all words in the dependecy graph that this token \
+        is within.
         :type token: String
         :type relations: dict
+        :type list:
         :returns: Constructor
         :rtype: None
         '''
@@ -37,6 +43,9 @@ class DependencyToken():
         if not isinstance(relations, dict):
             raise TypeError('relations parameter has to be of type dict not {}'\
                             .format(type(relations)))
+        if not isinstance(connected_words, list):
+            raise TypeError('connected words parameter has to be of type list not'\
+                            ' {}'.format(connected_words))
         all_depths = []
         for depth_index, related_list in relations.items():
             if not isinstance(depth_index, int):
@@ -62,6 +71,7 @@ class DependencyToken():
                                  .format(actual_depth_range, valid_depth_range))
         self.token = token
         self.relations = relations
+        self.connected_words = connected_words
 
     def get_n_relations(self, relation_range=(1, 1)):
         '''

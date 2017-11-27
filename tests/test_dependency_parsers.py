@@ -5,7 +5,7 @@ import os
 import shutil
 from unittest import TestCase
 
-#import pytest
+import pytest
 
 from tdparse.dependency_tokens import DependencyToken
 from tdparse.dependency_parsers import tweebo_install
@@ -15,7 +15,7 @@ class TestDependencyParsers(TestCase):
     '''
     Contains the following functions:
     '''
-
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo_install(self):
         '''
         Test for :py:func:`tdparse.dependency_parsers.tweebo_install`. Tests that
@@ -49,7 +49,7 @@ class TestDependencyParsers(TestCase):
                          .format(model_dir))
         self.assertEqual(10, install_and_add(8, 2), msg='The tweebo install '\
                          'function does not wrap function properly')
-    #@pytest.mark.skip(reason="Takes a long time to test only add on large tests")
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo(self):
         '''
         Tests tweebo function
@@ -78,7 +78,8 @@ class TestDependencyParsers(TestCase):
                 self.assertEqual(valid_words, test_words, msg='The dependecy '\
                                  'words at depth {} should be {} but are {}'\
                                  .format(depth, valid_words, test_words))
-        def check_parser(parse_results, parser, correct_tokens, correct_deps):
+        def check_parser(parse_results, parser, correct_tokens, correct_deps,
+                         correct_con_words):
             '''
             Checks if the dependency parser is performing correctly based on
             token values and dependecy connections.
@@ -88,10 +89,12 @@ class TestDependencyParsers(TestCase):
             :param parser: The name of the parser being tested.
             :param correct_tokens: The correct token values for the dependecy tokens
             :param correct_deps: Correct dependecy links between the dependecy tokens
+            :param correct_con_words: Correct connected words for the dependecy tokens
             :type parse_results: list
             :type parser: String
             :type correct_tokens: list
             :type correct_deps: list
+            :type correct_con_words: list
             :returns: Performs a series of assertion tests but returns None.
             :rtype: None
             '''
@@ -107,6 +110,7 @@ class TestDependencyParsers(TestCase):
                                       'not list of {}'.format(parser, type(result)))
                 rel_correct_tokens = correct_tokens[index]
                 rel_correct_deps = correct_deps[index]
+                rel_correct_con = correct_con_words[index]
                 for token_index, dep_token in enumerate(result):
 
                     self.assertIsInstance(dep_token, DependencyToken, msg='The result '\
@@ -122,6 +126,13 @@ class TestDependencyParsers(TestCase):
                     valid_dep = rel_correct_deps[token_index]
                     test_dep = dep_token.relations
                     check_dependencies(valid_dep, test_dep)
+                    # Check the connected words
+                    valid_con_words = sorted(rel_correct_con[token_index])
+                    test_con_words = sorted(dep_token.connected_words)
+                    self.assertEqual(valid_con_words, test_con_words,
+                                     msg='Connected words are not correct valid {}'\
+                                     ' test {} token {}'\
+                                     .format(valid_con_words, test_con_words, test_token))
 
 
         test_sentences = ['To appear (EMNLP 2014): Detecting Non-compositional '\
@@ -146,11 +157,28 @@ class TestDependencyParsers(TestCase):
                       {}, {}, {1 : 'I'}, {}]
         test_deps = [test_dep_1, test_dep_2]
 
+        test_connected_words_1 = [['appear'], ['To'], [], ['2014'], ['EMNLP'], [],
+                                  ['using', 'Components', 'Wiktionary', 'MWE', 'Non-compositional'],
+                                  ['using', 'Components', 'Wiktionary', 'MWE', 'Detecting'],
+                                  ['using', 'Components', 'Wiktionary', 'Detecting',
+                                   'Non-compositional'],
+                                  ['using', 'MWE', 'Wiktionary', 'Detecting', 'Non-compositional'],
+                                  ['MWE', 'Components', 'Wiktionary', 'Detecting',
+                                   'Non-compositional'],
+                                  ['MWE', 'Components', 'using', 'Detecting', 'Non-compositional'],
+                                  [], [], []]
+
+        test_connected_words_2 = [['ish', 'lookin', 'sentence'],
+                                  ['Norm', 'lookin', 'sentence'],
+                                  ['ish', 'Norm', 'sentence'],
+                                  ['ish', 'lookin', 'Norm'], ['think'], ['I'], []]
+        test_connected_words = [test_connected_words_1, test_connected_words_2]
+
         results = tweebo(test_sentences)
         self.assertIsInstance(results, list, msg='The return of `tweebo` function '\
                               'should be of type list not {}'.format(type(results)))
         # Goes through the results and compares them to the correct results above.
-        check_parser(results, 'twebbo', test_tokens, test_deps)
+        check_parser(results, 'twebbo', test_tokens, test_deps, test_connected_words)
         #
         # Testing when you can include an empty String
         #
@@ -176,8 +204,9 @@ class TestDependencyParsers(TestCase):
         test_dep_2 = [{}, {1 : ['Norm']}, {1 : ['ish', 'sentence'], 2 : ['Norm']},
                       {}, {}, {1 : 'I'}, {}]
         test_deps = [test_dep_1, [], test_dep_2]
+        test_connected_words = [test_connected_words_1, [], test_connected_words_2]
 
         results = tweebo(test_sentences)
         self.assertIsInstance(results, list, msg='The return of `tweebo` function '\
                               'should be of type list not {}'.format(type(results)))
-        check_parser(results, 'twebbo', test_tokens, test_deps)
+        check_parser(results, 'twebbo', test_tokens, test_deps, test_connected_words)

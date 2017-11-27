@@ -41,54 +41,58 @@ class TestDependencyTokens(TestCase):
         # Basic valid test
         relations = {1 : ['something', 'anything'], 2 : ['anything']}
         token = 'another'
-        test_token = DependencyToken(token, relations)
+        connected_words = ['something', 'anything']
+        test_token = DependencyToken(token, relations, connected_words)
         self.assertEqual(test_token.token, token, msg='The token attribute should '\
                          'be `another` and not {}'.format(test_token.token))
         dict_test(relations, test_token.relations)
 
         with self.assertRaises(TypeError, msg='token parameter has to always be '\
                                'of type String'):
-            DependencyToken(('not a string',), relations)
+            DependencyToken(('not a string',), relations, connected_words)
         with self.assertRaises(TypeError, msg='relations parameter has to always '\
                                'be of type dict'):
-            DependencyToken(token, ('not a dict'))
+            DependencyToken(token, ('not a dict'), connected_words)
         with self.assertRaises(TypeError, msg='The keys in the relations parameter'\
                                ' has to be always of type int'):
-            DependencyToken(token, {0.1 : ['something']})
+            DependencyToken(token, {0.1 : ['something']}, connected_words)
         with self.assertRaises(TypeError, msg='The values in the relations '\
                                'parameter has to be of type list'):
-            DependencyToken(token, {1 : {'something'}})
+            DependencyToken(token, {1 : {'something'}}, connected_words)
         with self.assertRaises(ValueError, msg='The keys in relations parameter '\
                                'lowest value has to be 1'):
-            DependencyToken(token, {2 : ['something']})
+            DependencyToken(token, {2 : ['something']}, connected_words)
         with self.assertRaises(ValueError, msg='The keys in relations parameter '\
                                'lowest value has to be 1'):
-            DependencyToken(token, {-2 : ['something'], 1 : ['something']})
+            DependencyToken(token, {-2 : ['something'], 1 : ['something']}, connected_words)
         with self.assertRaises(ValueError, msg='The keys in relations parameter '\
                                'lowest value has to be 1'):
             DependencyToken(token, {0 : ['something'], 1 : ['something'],
-                                    1000 : ['something']})
+                                    1000 : ['something']}, connected_words)
         with self.assertRaises(ValueError, msg='The keys in relations parameter '\
                                'has to have incremental range of 1'):
             DependencyToken(token, {1 : ['something'], 2 : ['another'],
-                                    4 : ['invalid']})
+                                    4 : ['invalid']}, connected_words)
         with self.assertRaises(ValueError, msg='The keys in relations parameter '\
                                'has to have incremental range of 1'):
             DependencyToken(token, {1 : ['something'], 2 : ['another'],
-                                    4 : ['invalid'], 5 : ['wrong']})
+                                    4 : ['invalid'], 5 : ['wrong']}, connected_words)
+        with self.assertRaises(TypeError, msg='connected words has to be of type list'):
+            DependencyToken(token, relations, set(['anything']))
     def test_get_n_relations(self):
         '''
         Tests DependencyToken().get_n_relations function
         '''
 
+        connected_words = ['test']
         relations = {1 : ['test', 'anything'], 2 : ['something', 'another'],
                      3 : ['you', 'the'], 4 : ['last', 'pass']}
         token = 'nothing'
 
         # Check that it works when the token has no dependencies
-        dep_token = DependencyToken(token, defaultdict(list))
+        dep_token = DependencyToken(token, defaultdict(list), connected_words)
         # Check normal situation
-        dep_token = DependencyToken(token, relations)
+        dep_token = DependencyToken(token, relations, connected_words)
 
         with self.assertRaises(ValueError, msg='Should not accept negative values'\
                                ' where the first value > second value'):

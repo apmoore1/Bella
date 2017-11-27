@@ -6,6 +6,9 @@ import os
 import subprocess
 import tempfile
 
+import networkx as nx
+from networkx.algorithms import traversal
+
 from tdparse.helper import read_config, full_path
 from tdparse.dependency_tokens import DependencyToken
 
@@ -91,6 +94,14 @@ def get_tweebo_dependencies(token_dep_sentence):
         for token_index, dependencies in dep_result.items():
             for dep_level, dependent in dependencies.items():
                 dep_results[token_index][dep_level].add(dependent)
+    G = nx.Graph()
+    for index, token_related_index in enumerate(token_dep_sentence):
+        G.add_node(index)
+        token, related_index = token_related_index
+        related_index = related_index
+        if related_index not in {-2, -1}:
+            G.add_edge(index, related_index)
+
     # Convert each of the tokens in the sentence into a dependent token
     # using the results from searching through the dependencies
     dep_tokens = []
@@ -98,12 +109,21 @@ def get_tweebo_dependencies(token_dep_sentence):
         token, _ = token_dep
         depth_related = dep_results[token_index]
         token_relations = defaultdict(list)
+
+        connected_indexs = set()
+        for _, node_relations in nx.bfs_successors(G, token_index):
+            for node_relation in node_relations:
+                connected_indexs.add(node_relation)
+        if token_index in connected_indexs:
+            connected_indexs.remove(token_index)
+        connected_words = [token_dep_sentence[con_index][0]
+                           for con_index in connected_indexs]
         # Get the tokens relations
         for depth, related_tokens_index in depth_related.items():
             for related_token_index in related_tokens_index:
                 related_token = token_dep_sentence[related_token_index][0]
                 token_relations[depth].append(related_token)
-        dep_tokens.append(DependencyToken(token, token_relations))
+        dep_tokens.append(DependencyToken(token, token_relations, connected_words))
     return dep_tokens
 
 
