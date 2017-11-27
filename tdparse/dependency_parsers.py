@@ -132,23 +132,20 @@ def tweebo_post_process(processed_text):
         if last_token == '' and token == '':
             continue
         elif token == '':
-            #import code
-            #code.interact(local=locals())
             if sentence == ['$$$EMPTY$$$']:
                 sentences.append([])
             else:
                 sentences.append(get_tweebo_dependencies(sentence))
             sentence = []
         else:
-            if token == '$$$EMPTY$$$':
-                sentence.append(token)
+            token = token.split('\t')
+            token_dep_index = int(token[6]) - 1
+            token_text = token[1]
+            if token_text == '$$$EMPTY$$$':
+                sentence.append('$$$EMPTY$$$')
             else:
-                token = token.split('\t')
-                token_dep_index = int(token[6]) - 1
-                token_text = token[1]
                 sentence.append((token_text, token_dep_index))
         last_token = token
-    print(type(sentences))
     return sentences
 
 @tweebo_install

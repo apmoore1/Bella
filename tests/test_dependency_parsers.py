@@ -79,6 +79,51 @@ class TestDependencyParsers(TestCase):
                 self.assertEqual(valid_words, test_words, msg='The dependecy '\
                                  'words at depth {} should be {} but are {}'\
                                  .format(depth, valid_words, test_words))
+        def check_parser(parse_results, parser, correct_tokens, correct_deps):
+            '''
+            Checks if the dependency parser is performing correctly based on
+            token values and dependecy connections.
+
+            :param parse_results: List of dependecy tokens that are the output of \
+            a dependecy parser that is being tested.
+            :param parser: The name of the parser being tested.
+            :param correct_tokens: The correct token values for the dependecy tokens
+            :param correct_deps: Correct dependecy links between the dependecy tokens
+            :type parse_results: list
+            :type parser: String
+            :type correct_tokens: list
+            :type correct_deps: list
+            :returns: Performs a series of assertion tests but returns None.
+            :rtype: None
+            '''
+
+            # Goes through the results and compares them to the correct results above.
+            if len(parse_results) != len(correct_tokens):
+                raise ValueError('There should be as many results as there are '\
+                                 'token lists output length error: correct {} '\
+                                 'actual {}'.format(len(parse_results), len(correct_tokens)))
+            for index, result in enumerate(parse_results):
+                self.assertIsInstance(result, list, msg='The return of parser '\
+                                      'function {} should be a list of lists '\
+                                      'not list of {}'.format(parser, type(result)))
+                rel_correct_tokens = correct_tokens[index]
+                rel_correct_deps = correct_deps[index]
+                for token_index, dep_token in enumerate(result):
+
+                    self.assertIsInstance(dep_token, DependencyToken, msg='The result '\
+                                          'list should contain `DependencyToken` '\
+                                          'instances and not {}'.format(type(dep_token)))
+                    # Check that it tokenises correctly
+                    valid_token = rel_correct_tokens[token_index]
+                    test_token = dep_token.token
+                    self.assertEqual(valid_token, test_token, msg='The token '\
+                                     'value should be {} not {}'\
+                                     .format(valid_token, test_token))
+                    # Check that the dependencies are correct
+                    valid_dep = rel_correct_deps[token_index]
+                    test_dep = dep_token.relations
+                    check_dependencies(valid_dep, test_dep)
+
 
         test_sentences = ['To appear (EMNLP 2014): Detecting Non-compositional '\
                           'MWE Components using Wiktionary '\
@@ -106,23 +151,34 @@ class TestDependencyParsers(TestCase):
         self.assertIsInstance(results, list, msg='The return of `tweebo` function '\
                               'should be of type list not {}'.format(type(results)))
         # Goes through the results and compares them to the correct results above.
-        for index, result in enumerate(results):
-            self.assertIsInstance(result, list, msg='The return of `tweebo` function'\
-                                  ' should be a list of lists not list of {}'\
-                                  .format(type(result)))
-            rel_test_tokens = test_tokens[index]
-            rel_test_deps = test_deps[index]
-            for token_index, dep_token in enumerate(result):
-                self.assertIsInstance(dep_token, DependencyToken, msg='The result '\
-                                      'list should contain `DependencyToken` '\
-                                      'instances and not {}'.format(type(dep_token)))
-                # Check that it tokenises correctly
-                valid_token = rel_test_tokens[token_index]
-                test_token = dep_token.token
-                self.assertEqual(valid_token, test_token, msg='The token '\
-                                 'value should be {} not {}'\
-                                 .format(valid_token, test_token))
-                # Check that the dependencies are correct
-                valid_dep = rel_test_deps[token_index]
-                test_dep = dep_token.relations
-                check_dependencies(valid_dep, test_dep)
+        check_parser(results, 'twebbo', test_tokens, test_deps)
+        #
+        # Testing when you can include an empty String
+        #
+        test_sentences = ['To appear (EMNLP 2014): Detecting Non-compositional '\
+                          'MWE Components using Wiktionary '\
+                          'http://people.eng.unimelb.edu.au/tbaldwin/pubs/emn'\
+                          'lp2014-mwe.pdf … #nlproc',
+                          '',
+                          'Norm ish lookin sentence I think :)']
+
+        test_tokens_1 = ['To', 'appear', '(', 'EMNLP', '2014', '):', 'Detecting',
+                         'Non-compositional', 'MWE', 'Components', 'using',
+                         'Wiktionary',
+                         'http://people.eng.unimelb.edu.au/tbaldwin/pubs/emnlp2014-mwe.pdf',
+                         '…', '#nlproc']
+        test_tokens_2 = ['Norm', 'ish', 'lookin', 'sentence', 'I', 'think', ':)']
+        test_tokens = [test_tokens_1, [{}], test_tokens_2]
+
+        test_dep_1 = [{1 : ['appear']}, {}, {}, {1 : ['2014']}, {}, {}, {}, {}, {},
+                      {1 : ['MWE', 'Non-compositional']},
+                      {1 : ['Components', 'Wiktionary', 'Detecting'],
+                       2 : ['MWE', 'Non-compositional']}, {}, {}, {}, {}]
+        test_dep_2 = [{}, {1 : ['Norm']}, {1 : ['ish', 'sentence'], 2 : ['Norm']},
+                      {}, {}, {1 : 'I'}, {}]
+        test_deps = [test_dep_1, [], test_dep_2]
+
+        results = tweebo(test_sentences)
+        self.assertIsInstance(results, list, msg='The return of `tweebo` function '\
+                              'should be of type list not {}'.format(type(results)))
+        check_parser(results, 'twebbo', test_tokens, test_deps)
