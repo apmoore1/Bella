@@ -69,7 +69,9 @@ class DependencyToken():
         return. Returns a list of words.
 
         If the relation range is greater than the depth range then it will return
-        all words up to the last depth and ignore the depths that do not exisit
+        all words up to the last depth and ignore the depths that do not exisit.
+
+        Negative ranges can be used in a similar manner to how list indexs work.
 
         :param relation_range: Tuple to denote the range of the depth of \
         dependency relations to return.
@@ -83,11 +85,34 @@ class DependencyToken():
                                         3 : ['lastly']})
         >>> relations = rel_token.get_n_relations((2,3))
         >>> relations == ['anything', 'lastly']
+        >>> relations = rel_token.get_n_relations((-2,-1))
+        >>> relations == ['anything', 'lastly']
         '''
 
         def negative_range(range_1, range_2):
-            def expand_out(word_lists):
+            '''
+            Given two integers where one or both are negative returns the relations
+            at those range depths.
+
+            :param range_1: start of the range
+            :param range_2: end of the range
+            :type range_1: int
+            :type range_2: int
+            :returns: Given two integers where one or both are negative returns \
+            the relations at those range depths.
+            :rtype: list
+            '''
+
+            def flat_list(word_lists):
+                '''
+                :param word_lists: A list which contains lists of Strings
+                :type word_lists: list
+                :returns: Converts a nested list of lists into a flat list.
+                :rtype: list
+                '''
+
                 return [word for words in word_lists for word in words]
+
             i = 1
             all_words = []
             while True:
@@ -98,17 +123,17 @@ class DependencyToken():
                 all_words.append(related_words)
             if range_2 == range_1:
                 if range_2 == -1:
-                    return expand_out(all_words[range_1 :])
-                return expand_out(all_words[range_1 : range_2 + 1])
+                    return flat_list(all_words[range_1 :])
+                return flat_list(all_words[range_1 : range_2 + 1])
             if range_1 > 0:
                 range_1 -= 1
             if range_2 > 0:
                 range_2 -= 1
             if range_2 == -1:
-                return expand_out(all_words[range_1 :])
+                return flat_list(all_words[range_1 :])
             elif range_2 < -1:
-                return expand_out(all_words[range_1 : range_2 + 1])
-            return expand_out(all_words[range_1 : range_2])
+                return flat_list(all_words[range_1 : range_2 + 1])
+            return flat_list(all_words[range_1 : range_2])
 
         if not isinstance(relation_range, tuple):
             raise TypeError('The relation_range parameter has to be of type tuple'\
