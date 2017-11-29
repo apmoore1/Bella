@@ -23,6 +23,7 @@ from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
 
 from tdparse.scikit_features.context import Context
+#from tdparse.scikit_features.target_context import TargetContext
 from tdparse.scikit_features.tokeniser import ContextTokeniser
 from tdparse.scikit_features.word_vector import ContextWordVectors
 from tdparse.scikit_features.lexicon_filter import LexiconFilter
@@ -33,7 +34,7 @@ class TargetInd():
     def __init__(self):
         self.model = None
         self.pipeline = Pipeline([
-            ('contexts', Context({'f'})),
+            ('contexts', Context('full')),
             ('tokens', ContextTokeniser(ark_twokenize, True)),
             ('word_vectors', ContextWordVectors()),
             ('pool_funcs', FeatureUnion([
@@ -346,7 +347,7 @@ class TargetDepC(TargetInd):
         self.pipeline = Pipeline([
             ('union', FeatureUnion([
                 ('left', Pipeline([
-                    ('contexts', Context({'l'})),
+                    ('contexts', Context('left')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -373,7 +374,7 @@ class TargetDepC(TargetInd):
                     ]))
                 ])),
                 ('right', Pipeline([
-                    ('contexts', Context({'r'})),
+                    ('contexts', Context('right')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -400,7 +401,7 @@ class TargetDepC(TargetInd):
                     ]))
                 ])),
                 ('target', Pipeline([
-                    ('contexts', Context({'t'})),
+                    ('contexts', Context('target')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -461,7 +462,7 @@ class TargetDep(TargetInd):
         self.pipeline = Pipeline([
             ('union', FeatureUnion([
                 ('left', Pipeline([
-                    ('contexts', Context({'l'})),
+                    ('contexts', Context('left')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -488,7 +489,7 @@ class TargetDep(TargetInd):
                     ]))
                 ])),
                 ('right', Pipeline([
-                    ('contexts', Context({'r'})),
+                    ('contexts', Context('right')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -515,7 +516,7 @@ class TargetDep(TargetInd):
                     ]))
                 ])),
                 ('target', Pipeline([
-                    ('contexts', Context({'t'})),
+                    ('contexts', Context('target')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -542,7 +543,7 @@ class TargetDep(TargetInd):
                     ]))
                 ])),
                 ('full', Pipeline([
-                    ('contexts', Context({'f'})),
+                    ('contexts', Context('full')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -604,7 +605,7 @@ class TargetDepSent(TargetInd):
         self.pipeline = Pipeline([
             ('union', FeatureUnion([
                 ('left', Pipeline([
-                    ('contexts', Context({'l'})),
+                    ('contexts', Context('left')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -631,7 +632,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ])),
                 ('left_s', Pipeline([
-                    ('contexts', Context({'l'})),
+                    ('contexts', Context('left')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('filter', LexiconFilter()),
                     ('word_vectors', ContextWordVectors()),
@@ -659,7 +660,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ])),
                 ('right', Pipeline([
-                    ('contexts', Context({'r'})),
+                    ('contexts', Context('right')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -686,7 +687,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ])),
                 ('right_s', Pipeline([
-                    ('contexts', Context({'r'})),
+                    ('contexts', Context('right')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('filter', LexiconFilter()),
                     ('word_vectors', ContextWordVectors()),
@@ -714,7 +715,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ])),
                 ('target', Pipeline([
-                    ('contexts', Context({'t'})),
+                    ('contexts', Context('target')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -741,7 +742,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ])),
                 ('full', Pipeline([
-                    ('contexts', Context({'f'})),
+                    ('contexts', Context('full')),
                     ('tokens', ContextTokeniser(ark_twokenize, True)),
                     ('word_vectors', ContextWordVectors()),
                     ('pool_funcs', FeatureUnion([
@@ -852,3 +853,145 @@ class TargetDepSent(TargetInd):
         params_list = self._add_to_params(params_list, senti_lexicons,
                                           self._get_word_senti_names())
         return params_list
+
+class TDParse(TargetDep):
+    def __init__(self):
+        super().__init__()
+        self.pipeline = Pipeline([
+            ('union', FeatureUnion([
+                ('left', Pipeline([
+                    ('contexts', Context('left')),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('right', Pipeline([
+                    ('contexts', Context('right')),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('target', Pipeline([
+                    ('contexts', Context('target')),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ])),
+                ('target_connected', Pipeline([
+                    ('contexts', Context('left')),
+                    ('tokens', ContextTokeniser(ark_twokenize, True)),
+                    ('word_vectors', ContextWordVectors()),
+                    ('pool_funcs', FeatureUnion([
+                        ('max_pipe', Pipeline([
+                            ('max', NeuralPooling(matrix_max)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('min_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_min)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('avg_pipe', Pipeline([
+                            ('avg', NeuralPooling(matrix_avg)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('prod_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_prod)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ])),
+                        ('std_pipe', Pipeline([
+                            ('min', NeuralPooling(matrix_std)),
+                            ('join', JoinContextVectors(matrix_median))
+                        ]))
+                    ]))
+                ]))
+            ])),
+            ('scale', MaxAbsScaler()),
+            ('svm', LinearSVC(C=0.01))
+        ])
+    @staticmethod
+    def _get_word_vector_names():
+        '''
+        :returns: A list of of parameter names where the word vectors are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__word_vectors__vectors',
+                'union__right__word_vectors__vectors',
+                'union__target__word_vectors__vectors',
+                'union__target_connected__word_vectors__vectors']
+    @staticmethod
+    def _get_tokeniser_names():
+        '''
+        :returns: A list of of parameter names where the tokenisers are set in \
+        the pipeline.
+        :rtype: list
+        '''
+
+        return ['union__left__tokens',
+                'union__right__tokens',
+                'union__target__tokens',
+                'union__target_connected__tokens']

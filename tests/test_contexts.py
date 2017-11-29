@@ -4,11 +4,11 @@ Unit test suite for the :py:mod:`tdparse.contexts` module.
 from unittest import TestCase
 
 
-from tdparse.contexts import right_context
-from tdparse.contexts import left_context
-from tdparse.contexts import target_context
-from tdparse.contexts import full_context
-from tdparse.contexts import _context
+#from tdparse.contexts import right_context
+#from tdparse.contexts import left_context
+#from tdparse.contexts import target_context
+#from tdparse.contexts import full_context
+from tdparse.contexts import context
 
 class TestContexts(TestCase):
     '''
@@ -37,7 +37,7 @@ class TestContexts(TestCase):
         '''
         with self.assertRaises(ValueError, msg='Should only accept left, right '\
                                'or target context words for parameters'):
-            _context(self.single_context[0], 'itself')
+            context(self.single_context[0], 'itself')
 
     def test_left_context(self):
         '''
@@ -49,7 +49,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_left[index]
-            left_string = left_context(test_context, inc_target=False)
+            left_string = context(test_context, 'left', inc_target=False)
             msg = 'Cannot get the left context of target {} text {} which should be {}'\
                   ' and not {}'.format(test_target, test_text, correct_context, left_string)
             self.assertEqual(correct_context, left_string, msg=msg)
@@ -60,7 +60,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_left[index]
-            left_string = left_context(test_context, inc_target=True)
+            left_string = context(test_context, 'left', inc_target=True)
             msg = 'Cannot get the left context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, left_string)
@@ -74,7 +74,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_left[index]
-            left_string = left_context(test_context, inc_target=False)
+            left_string = context(test_context, 'left', inc_target=False)
             msg = 'Cannot get the left context of target {} text {} which should be {}'\
                   ' and not {}'.format(test_target, test_text, correct_context, left_string)
             self.assertEqual(correct_context, left_string, msg=msg)
@@ -87,7 +87,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_left[index]
-            left_string = left_context(test_context, inc_target=True)
+            left_string = context(test_context, 'left', inc_target=True)
             msg = 'Cannot get the left context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, left_string)
@@ -106,7 +106,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_right[index]
-            right_string = right_context(test_context, inc_target=False)
+            right_string = context(test_context, 'right', inc_target=False)
             msg = 'Cannot get the right context of target {} text {} '\
                   'which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -119,7 +119,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_right[index]
-            right_string = right_context(test_context, inc_target=True)
+            right_string = context(test_context, 'right', inc_target=True)
             msg = 'Cannot get the right context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -132,7 +132,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_right[index]
-            right_string = right_context(test_context, inc_target=False)
+            right_string = context(test_context, 'right', inc_target=False)
             msg = 'Cannot get the right context of target {} text {} which should be {}'\
                   ' and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -145,7 +145,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_right[index]
-            right_string = right_context(test_context, inc_target=True)
+            right_string = context(test_context, 'right', inc_target=True)
             msg = 'Cannot get the right context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -159,7 +159,7 @@ class TestContexts(TestCase):
         for index, test_context in enumerate(self.single_context):
             test_text = test_context['text']
             correct_target = single_targets[index]
-            target_string = target_context(test_context)
+            target_string = context(test_context, 'target')
             msg = 'Cannot get the target for text {}, target found {} correct {}'\
                   .format(test_text, target_string, correct_target)
             self.assertEqual(correct_target, target_string, msg=msg)
@@ -168,7 +168,7 @@ class TestContexts(TestCase):
         for index, test_context in enumerate(self.multi_contexts):
             test_text = test_context['text']
             correct_targets = multi_targets[index]
-            target_strings = target_context(test_context)
+            target_strings = context(test_context, 'target')
             msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
                   .format(test_text, target_strings, correct_targets)
             self.assertEqual(correct_targets, target_strings, msg=msg)
@@ -191,14 +191,14 @@ class TestContexts(TestCase):
         for index, test_context in enumerate(self.single_context):
             test_text = test_context['text']
             correct_target = single_targets[index]
-            target_string = full_context(test_context)
+            target_string = context(test_context, 'full')
             msg = 'Cannot get the target for text {}, target found {} correct {}'\
                   .format(test_text, target_string, correct_target)
             self.assertEqual(correct_target, target_string, msg=msg)
         for index, test_context in enumerate(self.multi_contexts):
             test_text = test_context['text']
             correct_targets = multi_targets[index]
-            target_strings = full_context(test_context)
+            target_strings = context(test_context, 'full')
             msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
                   .format(test_text, target_strings, correct_targets)
             self.assertEqual(correct_targets, target_strings, msg=msg)
