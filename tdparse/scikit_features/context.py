@@ -45,13 +45,5 @@ class Context(BaseEstimator, TransformerMixin):
             context_data = []
             context_data.extend(contexts.context(target_dict, self.context,
                                                  self.inc_target))
-            #if 'l' in self.context:
-            #    context_data.extend(contexts.left_context(target_dict))
-            #if 'r' in self.context:
-            #    context_data.extend(contexts.right_context(target_dict))
-            #if 't' in self.context:
-            #    context_data.extend(contexts.target_context(target_dict))
-            #if 'f' in self.context:
-            #    context_data.extend(contexts.full_context(target_dict))
             all_context_data.append(context_data)
         return all_context_data
