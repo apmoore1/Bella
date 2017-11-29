@@ -49,7 +49,7 @@ class TestDependencyParsers(TestCase):
                          .format(model_dir))
         self.assertEqual(10, install_and_add(8, 2), msg='The tweebo install '\
                          'function does not wrap function properly')
-    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
+    #@pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo(self):
         '''
         Tests tweebo function
@@ -127,8 +127,8 @@ class TestDependencyParsers(TestCase):
                     test_dep = dep_token.relations
                     check_dependencies(valid_dep, test_dep)
                     # Check the connected words
-                    valid_con_words = sorted(rel_correct_con[token_index])
-                    test_con_words = sorted(dep_token.connected_words)
+                    valid_con_words = rel_correct_con[token_index]
+                    test_con_words = dep_token.connected_words
                     self.assertEqual(valid_con_words, test_con_words,
                                      msg='Connected words are not correct valid {}'\
                                      ' test {} token {}'\
@@ -157,21 +157,28 @@ class TestDependencyParsers(TestCase):
                       {}, {}, {1 : 'I'}, {}]
         test_deps = [test_dep_1, test_dep_2]
 
-        test_connected_words_1 = [['appear'], ['To'], [], ['2014'], ['EMNLP'], [],
-                                  ['using', 'Components', 'Wiktionary', 'MWE', 'Non-compositional'],
-                                  ['using', 'Components', 'Wiktionary', 'MWE', 'Detecting'],
-                                  ['using', 'Components', 'Wiktionary', 'Detecting',
-                                   'Non-compositional'],
-                                  ['using', 'MWE', 'Wiktionary', 'Detecting', 'Non-compositional'],
-                                  ['MWE', 'Components', 'Wiktionary', 'Detecting',
-                                   'Non-compositional'],
-                                  ['MWE', 'Components', 'using', 'Detecting', 'Non-compositional'],
-                                  [], [], []]
+        test_connected_words_1 = [['To', 'appear'], ['To', 'appear'], ['('],
+                                  ['EMNLP', '2014'], ['EMNLP', '2014'], ['):'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['Detecting', 'Non-compositional', 'MWE',
+                                   'Components', 'using', 'Wiktionary'],
+                                  ['http://people.eng.unimelb.edu.au/tbaldwin/'\
+                                   'pubs/emnlp2014-mwe.pdf'], ['…'], ['#nlproc']]
 
-        test_connected_words_2 = [['ish', 'lookin', 'sentence'],
-                                  ['Norm', 'lookin', 'sentence'],
-                                  ['ish', 'Norm', 'sentence'],
-                                  ['ish', 'lookin', 'Norm'], ['think'], ['I'], []]
+        test_connected_words_2 = [['Norm', 'ish', 'lookin', 'sentence'],
+                                  ['Norm', 'ish', 'lookin', 'sentence'],
+                                  ['Norm', 'ish', 'lookin', 'sentence'],
+                                  ['Norm', 'ish', 'lookin', 'sentence'],
+                                  ['I', 'think'], ['I', 'think'], [':)']]
         test_connected_words = [test_connected_words_1, test_connected_words_2]
 
         results = tweebo(test_sentences)

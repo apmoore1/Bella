@@ -114,8 +114,9 @@ def get_tweebo_dependencies(token_dep_sentence):
         for _, node_relations in nx.bfs_successors(G, token_index):
             for node_relation in node_relations:
                 connected_indexs.add(node_relation)
-        if token_index in connected_indexs:
-            connected_indexs.remove(token_index)
+        if token_index not in connected_indexs:
+            connected_indexs.add(token_index)
+        connected_indexs = sorted(list(connected_indexs))
         connected_words = [token_dep_sentence[con_index][0]
                            for con_index in connected_indexs]
         # Get the tokens relations
@@ -203,21 +204,20 @@ def tweebo(texts):
         if text.strip() == '':
             return empty_token
         return text
-
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        text_file_path = os.path.join(temp_dir, 'text_file.txt')
-        result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
-        tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
-        with open(text_file_path, 'w+') as text_file:
-            for text in texts:
-                text = no_text(text)
-                text_file.write(text)
-                text_file.write('\n')
-        run_script = os.path.join(tweebo_dir, 'run.sh')
-        if subprocess.run(['bash', run_script, text_file_path]):
-            with open(result_file_path, 'r') as result_file:
-                return tweebo_post_process(result_file.read())
-        else:
-            raise SystemError('Could not run the Tweebo run script {}'\
-                              .format(run_script))
+    with tempfile.TemporaryDirectory() as working_dir:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            text_file_path = os.path.join(temp_dir, 'text_file.txt')
+            result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
+            tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
+            with open(text_file_path, 'w+') as text_file:
+                for text in texts:
+                    text = no_text(text)
+                    text_file.write(text)
+                    text_file.write('\n')
+            run_script = os.path.join(tweebo_dir, 'python_run.sh')
+            if subprocess.run(['bash', run_script, text_file_path, working_dir]):
+                with open(result_file_path, 'r') as result_file:
+                    return tweebo_post_process(result_file.read())
+            else:
+                raise SystemError('Could not run the Tweebo run script {}'\
+                                  .format(run_script))

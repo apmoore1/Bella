@@ -15,7 +15,7 @@ class DependencyToken():
     at different dependency relation levels e.g. relation of 1 direct dependency \
     of the token, relation 2 dependency relations of the relation 1 words.
     3. self.connected_words -- A list of all words that are within the same \
-    dependency tree.
+    dependency tree including itself.
 
     Methods:
 
@@ -29,7 +29,8 @@ class DependencyToken():
         :param relations: dict of dependency relations
         :param connected_words: list of all syntactically connected words. This \
         can be seen as getting all words in the dependecy graph that this token \
-        is within.
+        is within. It also includes the token, therefore if there are no \
+        words then it will just return the token in the list.
         :type token: String
         :type relations: dict
         :type list:
