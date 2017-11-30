@@ -41,7 +41,7 @@ class TestDependencyTokens(TestCase):
         # Basic valid test
         relations = {1 : ['something', 'anything'], 2 : ['anything']}
         token = 'another'
-        connected_words = ['something', 'anything']
+        connected_words = [('another', 'CURRENT'), ('anything', 'CONNECTED')]
         test_token = DependencyToken(token, relations, connected_words)
         self.assertEqual(test_token.token, token, msg='The token attribute should '\
                          'be `another` and not {}'.format(test_token.token))
@@ -78,13 +78,32 @@ class TestDependencyTokens(TestCase):
             DependencyToken(token, {1 : ['something'], 2 : ['another'],
                                     4 : ['invalid'], 5 : ['wrong']}, connected_words)
         with self.assertRaises(TypeError, msg='connected words has to be of type list'):
-            DependencyToken(token, relations, set(['anything']))
+            DependencyToken(token, relations, set([('another', 'CURRENT')]))
+        with self.assertRaises(TypeError, msg='connected words has to be a list'\
+                               ' of tuples'):
+            DependencyToken(token, relations, [('another')])
+        with self.assertRaises(ValueError, msg='connected words has to contain '\
+                               ' correct current token'):
+            DependencyToken(token, relations, [('another', 'CONNECTED'),
+                                               ('anything', 'CURRENT')])
+        with self.assertRaises(ValueError, msg='connected words cannot contain '\
+                               'relations other than `CONNECTED` or `CONNECTED`'):
+            DependencyToken(token, relations, [('another', 'CURRENT'),
+                                               ('anything', 'REALTION')])
+        with self.assertRaises(ValueError, msg='connected words cannot contain'\
+                               ' more than one `CURRENT` relation'):
+            DependencyToken(token, relations, [('another', 'CURRENT'),
+                                               ('anything', 'CURRENT')])
+        with self.assertRaises(TypeError, msg='connected words has to be a list'\
+                               ' of tuples where the first value has to be a String'):
+            DependencyToken(token, relations, [(('another',), 'CURRENT')])
+
     def test_get_n_relations(self):
         '''
         Tests DependencyToken().get_n_relations function
         '''
 
-        connected_words = ['test']
+        connected_words = [('nothing', 'CURRENT')]
         relations = {1 : ['test', 'anything'], 2 : ['something', 'another'],
                      3 : ['you', 'the'], 4 : ['last', 'pass']}
         token = 'nothing'
@@ -175,3 +194,61 @@ class TestDependencyTokens(TestCase):
         self.assertEqual(valid_comp_3, test_comp_3, msg='Should return from the '\
                          'second to the second to last realtions {} and not {}'\
                          .format(valid_comp_3, test_comp_3))
+    def test_connected_target_span(self):
+        '''
+        Tests DependencyToken().get_n_relations function
+        '''
+
+        connected_words = [('this', 'CONNECTED'), ('nothing', 'CURRENT'),
+                           ('is', 'CONNECTED'), ('an', 'CONNECTED'),
+                           ('example', 'CONNECTED')]
+        relations = {1 : ['test', 'anything'], 2 : ['something', 'another'],
+                     3 : ['you', 'the'], 4 : ['last', 'pass']}
+        token = 'nothing'
+
+        valid_con_text = 'this nothing is an example'
+        valid_targ_span = [5, 12]
+
+        dep_token = DependencyToken(token, relations, connected_words)
+        test_con_text, test_targ_span = dep_token.connected_target_span()
+        self.assertEqual(valid_con_text, test_con_text, msg='Connected words '\
+                         'should be {} and not {}'.format(valid_con_text,
+                                                          test_con_text))
+        self.assertEqual(valid_targ_span, test_targ_span, msg='target span should'\
+                         ' be {} and not {}'.format(valid_targ_span, test_targ_span))
+
+        connected_words = [('nothing', 'CURRENT'), ('this', 'CONNECTED'),
+                           ('is', 'CONNECTED'), ('an', 'CONNECTED'),
+                           ('example', 'CONNECTED')]
+        valid_con_text = 'nothing this is an example'
+        valid_targ_span = [0, 7]
+        dep_token = DependencyToken(token, relations, connected_words)
+        test_con_text, test_targ_span = dep_token.connected_target_span()
+        self.assertEqual(valid_con_text, test_con_text, msg='Connected words '\
+                         'should be {} and not {}'.format(valid_con_text,
+                                                          test_con_text))
+        self.assertEqual(valid_targ_span, test_targ_span, msg='target span should'\
+                         ' be {} and not {}'.format(valid_targ_span, test_targ_span))
+
+        connected_words = [('example', 'CONNECTED'), ('this', 'CONNECTED'),
+                           ('is', 'CONNECTED'), ('an', 'CONNECTED'),
+                           ('nothing', 'CURRENT')]
+        valid_con_text = 'example this is an nothing'
+        valid_targ_span = [19, 26]
+        dep_token = DependencyToken(token, relations, connected_words)
+        test_con_text, test_targ_span = dep_token.connected_target_span()
+        self.assertEqual(valid_con_text, test_con_text, msg='Connected words '\
+                         'should be {} and not {}'.format(valid_con_text,
+                                                          test_con_text))
+        self.assertEqual(valid_targ_span, test_targ_span, msg='target span should'\
+                         ' be {} and not {}'.format(valid_targ_span, test_targ_span))
+
+        connected_words = [(' example', 'CONNECTED'), ('this', 'CONNECTED'),
+                           ('is', 'CONNECTED'), ('an', 'CONNECTED'),
+                           ('nothing', 'CURRENT')]
+        valid_con_text = 'example this is an nothing'
+        valid_targ_span = [19, 26]
+        dep_token = DependencyToken(token, relations, connected_words)
+        with self.assertRaises(ValueError, msg='As the connected words have '\
+                               'whitespace padding that should not exist'):
+            dep_token.connected_target_span()

@@ -117,8 +117,13 @@ def get_tweebo_dependencies(token_dep_sentence):
         if token_index not in connected_indexs:
             connected_indexs.add(token_index)
         connected_indexs = sorted(list(connected_indexs))
-        connected_words = [token_dep_sentence[con_index][0]
-                           for con_index in connected_indexs]
+        connected_words = []
+        for connected_index in connected_indexs:
+            connected_word = token_dep_sentence[connected_index][0].strip()
+            if connected_index == token_index:
+                connected_words.append((connected_word, 'CURRENT'))
+            else:
+                connected_words.append((connected_word, 'CONNECTED'))
         # Get the tokens relations
         for depth, related_tokens_index in depth_related.items():
             for related_token_index in related_tokens_index:

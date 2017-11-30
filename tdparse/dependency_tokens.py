@@ -14,8 +14,10 @@ class DependencyToken():
     2. self.relations -- The dict that contains words associated to the token \
     at different dependency relation levels e.g. relation of 1 direct dependency \
     of the token, relation 2 dependency relations of the relation 1 words.
-    3. self.connected_words -- A list of all words that are within the same \
-    dependency tree including itself.
+    3. self.connected_words -- A list of tuples (word, relation) where all words \
+    are within the same dependency tree and are listed in the order they appear \
+    in the text that was parsed. relation can take two values `CURRENT` current \
+    token and `CONNECTED` any other token.
 
     Methods:
 
@@ -27,6 +29,12 @@ class DependencyToken():
         '''
         :param token: The string that the dependency relations are associated to.
         :param relations: dict of dependency relations
+        :param connected_words: list of current token and all of its syntactically\
+         connected words where the list is made up of tuples where the first value \
+         is the String of the connected word and the second describes its realtion \
+         either `CONNECTED` for connected words or `CURRENT` stating it is the \
+         current token. All words are ordered by their occurence in the text. \
+         The connected words are all words in the same dependecy tree.
         :param connected_words: list of all syntactically connected words. This \
         can be seen as getting all words in the dependecy graph that this token \
         is within. It also includes the token, therefore if there are no \
@@ -47,6 +55,33 @@ class DependencyToken():
         if not isinstance(connected_words, list):
             raise TypeError('connected words parameter has to be of type list not'\
                             ' {}'.format(connected_words))
+        if len(connected_words) < 1:
+            raise ValueError('connected words has to always contain one word which'\
+                             ' is the current word')
+
+        current_count = 0
+        valid_relations = set(['CONNECTED', 'CURRENT'])
+        for connected_word in connected_words:
+            if not isinstance(connected_word, tuple):
+                raise TypeError('connected_words parameter has to be a list of '\
+                                'tuples not {}'.format(type(connected_word)))
+            word, relation = connected_word
+            if relation not in valid_relations:
+                raise ValueError('connected relations can only be {} and not {}'\
+                                 .format(valid_relations, relation))
+            if not isinstance(word, str):
+                raise TypeError('The word in the connected_word has to be of '\
+                                'type String and not {}'.format(type(word)))
+            if relation == 'CURRENT':
+                current_count += 1
+                if word != token:
+                    raise ValueError('The token that is the CURRENT token {} in '\
+                                     'connected_words should also be equal to '\
+                                     'the token value {}'.format(word, token))
+        if current_count != 1:
+            raise ValueError('There has to be ONLY one CURRENT relation in '\
+                             'the connected words {}'.format(connected_words))
+
         all_depths = []
         for depth_index, related_list in relations.items():
             if not isinstance(depth_index, int):
@@ -185,3 +220,35 @@ class DependencyToken():
                     break
                 all_related_words.extend(related_words)
         return all_related_words
+
+    def connected_target_span(self):
+        '''
+        :returns: It returns connected words as a String and the span of the current \
+        token within that String as a tuple of length 2.
+        :rtype: tuple
+        '''
+
+        connected_words = []
+        word_length = {}
+        target_index = -1
+        for index, word_relation in enumerate(self.connected_words):
+            word, relation = word_relation
+            connected_words.append(word)
+            if relation == 'CURRENT':
+                target_index = index
+            word_length[index] = len(word) + word_length.get(index - 1, 0)
+        if target_index == -1:
+            raise ValueError('target index can never be -1 error in the '\
+                             'connected_words {}'.format(connected_words))
+        connected_text = ' '.join(connected_words).strip()
+        num_previous_chars = word_length.get(target_index - 1, 0)
+        if target_index != 0:
+            num_previous_chars += target_index
+        target_word = self.token
+        target_span = [num_previous_chars, num_previous_chars + len(target_word)]
+        if connected_text[target_span[0] : target_span[1]] != target_word:
+            raise ValueError('Cannot get the target word `{}` within the connected '\
+                             'text `{}` this could be due to the connected words '\
+                             '`{}` spans: `{}`'.format(target_word, connected_text,
+                                                       connected_words, target_span))
+        return connected_text, target_span

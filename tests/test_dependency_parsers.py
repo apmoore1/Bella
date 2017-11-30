@@ -157,28 +157,45 @@ class TestDependencyParsers(TestCase):
                       {}, {}, {1 : 'I'}, {}]
         test_deps = [test_dep_1, test_dep_2]
 
-        test_connected_words_1 = [['To', 'appear'], ['To', 'appear'], ['('],
-                                  ['EMNLP', '2014'], ['EMNLP', '2014'], ['):'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['Detecting', 'Non-compositional', 'MWE',
-                                   'Components', 'using', 'Wiktionary'],
-                                  ['http://people.eng.unimelb.edu.au/tbaldwin/'\
-                                   'pubs/emnlp2014-mwe.pdf'], ['…'], ['#nlproc']]
+        test_connected_words_1 = [[('To', 'CURRENT'), ('appear', 'CONNECTED')],
+                                  [('To', 'CONNECTED'), ('appear', 'CURRENT')],
+                                  [('(', 'CURRENT')],
+                                  [('EMNLP', 'CURRENT'), ('2014', 'CONNECTED')],
+                                  [('EMNLP', 'CONNECTED'), ('2014', 'CURRENT')],
+                                  [('):', 'CURRENT')],
+                                  [('Detecting', 'CURRENT'), ('Non-compositional', 'CONNECTED'),
+                                   ('MWE', 'CONNECTED'), ('Components', 'CONNECTED'),
+                                   ('using', 'CONNECTED'), ('Wiktionary', 'CONNECTED')],
+                                  [('Detecting', 'CONNECTED'), ('Non-compositional', 'CURRENT'),
+                                   ('MWE', 'CONNECTED'), ('Components', 'CONNECTED'),
+                                   ('using', 'CONNECTED'), ('Wiktionary', 'CONNECTED')],
+                                  [('Detecting', 'CONNECTED'), ('Non-compositional', 'CONNECTED'),
+                                   ('MWE', 'CURRENT'), ('Components', 'CONNECTED'),
+                                   ('using', 'CONNECTED'), ('Wiktionary', 'CONNECTED')],
+                                  [('Detecting', 'CONNECTED'), ('Non-compositional', 'CONNECTED'),
+                                   ('MWE', 'CONNECTED'), ('Components', 'CURRENT'),
+                                   ('using', 'CONNECTED'), ('Wiktionary', 'CONNECTED')],
+                                  [('Detecting', 'CONNECTED'), ('Non-compositional', 'CONNECTED'),
+                                   ('MWE', 'CONNECTED'), ('Components', 'CONNECTED'),
+                                   ('using', 'CURRENT'), ('Wiktionary', 'CONNECTED')],
+                                  [('Detecting', 'CONNECTED'), ('Non-compositional', 'CONNECTED'),
+                                   ('MWE', 'CONNECTED'), ('Components', 'CONNECTED'),
+                                   ('using', 'CONNECTED'), ('Wiktionary', 'CURRENT')],
+                                  [('http://people.eng.unimelb.edu.au/tbaldwin/'
+                                    'pubs/emnlp2014-mwe.pdf', 'CURRENT')],
+                                  [('…', 'CURRENT')], [('#nlproc', 'CURRENT')]]
 
-        test_connected_words_2 = [['Norm', 'ish', 'lookin', 'sentence'],
-                                  ['Norm', 'ish', 'lookin', 'sentence'],
-                                  ['Norm', 'ish', 'lookin', 'sentence'],
-                                  ['Norm', 'ish', 'lookin', 'sentence'],
-                                  ['I', 'think'], ['I', 'think'], [':)']]
+        test_connected_words_2 = [[('Norm', 'CURRENT'), ('ish', 'CONNECTED'),
+                                   ('lookin', 'CONNECTED'), ('sentence', 'CONNECTED')],
+                                  [('Norm', 'CONNECTED'), ('ish', 'CURRENT'),
+                                   ('lookin', 'CONNECTED'), ('sentence', 'CONNECTED')],
+                                  [('Norm', 'CONNECTED'), ('ish', 'CONNECTED'),
+                                   ('lookin', 'CURRENT'), ('sentence', 'CONNECTED')],
+                                  [('Norm', 'CONNECTED'), ('ish', 'CONNECTED'),
+                                   ('lookin', 'CONNECTED'), ('sentence', 'CURRENT')],
+                                  [('I', 'CURRENT'), ('think', 'CONNECTED')],
+                                  [('I', 'CONNECTED'), ('think', 'CURRENT')],
+                                  [(':)', 'CURRENT')]]
         test_connected_words = [test_connected_words_1, test_connected_words_2]
 
         results = tweebo(test_sentences)
