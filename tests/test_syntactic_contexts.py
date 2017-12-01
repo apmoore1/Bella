@@ -6,6 +6,7 @@ from unittest import TestCase
 from tdparse.syntactic_contexts import context
 from tdparse.syntactic_contexts import target_normalisation
 from tdparse.syntactic_contexts import dependency_context
+from tdparse.syntactic_contexts import dependency_relation_context
 from tdparse.dependency_parsers import tweebo
 
 class TestTarget(TestCase):
@@ -46,6 +47,66 @@ class TestTarget(TestCase):
             self.assertEqual(valid_result, test_result, msg='Results is '\
                              '{} and should be {}'\
                              .format(valid_result, test_result))
+    def test_dependency_relation_context(self):
+        '''
+        Tests dependency_relation_context
+        '''
+
+        # Test the normalise case
+        test_values = [{'id':0,
+                        'sentiment':-1,
+                        'text':'This is a fake news articledd that is to represent a '\
+                        'Tweet!!!! and it was an awful ssNews Articless I think.',
+                        'target':'news article',
+                        'spans':[[15, 27], [85, 97]]},
+                       {'id':1,
+                        'sentiment':1,
+                        'text':'I had a great ssDay however I did not get much '\
+                        'work done in the days',
+                        'target':'day',
+                        'spans':[[16, 19], [64, 67]]},
+                       {'id':2,
+                        'sentiment':1,
+                        'text':'Ten pop star heartthrobe is all the rage on '\
+                        'social media',
+                        'target':'is',
+                        'spans':[[25, 27]]},
+                       {'id':3,
+                        'sentiment':1,
+                        'text':'Ten pop star heartthrobe is all the rage on '\
+                        'social media',
+                        'target':'ten',
+                        'spans':[[0, 3]]}]
+        valid_results = [['a fake', 'an awful'], ['a great', 'the'],
+                         ['heartthrobe all Ten pop star rage on the media '\
+                          'social'], ['']]
+        test_results = dependency_relation_context(test_values, tweebo,
+                                                   n_relations=(1, -1))
+        for index, valid_result in enumerate(valid_results):
+            test_result = test_results[index]
+            self.assertEqual(valid_result, test_result, msg='Incorrect context'\
+                             ' correct {} test {}'.format(valid_result, test_result))
+
+        # Testing when we only want the first dependency relation
+        valid_results = [['a fake', 'an awful'], ['a great', 'the'],
+                         ['heartthrobe all'], ['']]
+        test_results = dependency_relation_context(test_values, tweebo)
+        for index, valid_result in enumerate(valid_results):
+            test_result = test_results[index]
+            self.assertEqual(valid_result, test_result, msg='Incorrect context'\
+                             ' correct {} test {}'.format(valid_result, test_result))
+
+        # Testing to ensure it will lower case the words before processing
+        valid_results = [['a fake', 'an awful'], ['a great', 'the'],
+                         ['heartthrobe all ten pop star rage on the media '\
+                          'social'], ['']]
+        test_results = dependency_relation_context(test_values, tweebo, True,
+                                                   (1, -1))
+        for index, valid_result in enumerate(valid_results):
+            test_result = test_results[index]
+            self.assertEqual(valid_result, test_result, msg='Incorrect context'\
+                             ' correct {} test {}'.format(valid_result, test_result))
+
     def test_dependency_context(self):
         '''
         Tests dependency_context

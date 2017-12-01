@@ -35,6 +35,91 @@ def target_normalisation(target_dict):
     org_text = ' '.join(org_text.split())
     return org_text, norm_target
 
+def normalise_context(target_dicts, lower):
+    '''
+    Given a list of target dicts and if the text should be lower cased returns
+    all of the text and targets within those target dicts as lists where the
+    text and targets have been normalised to ensure the targets within the
+    text can be identified.
+
+    :param target_dicts: list of dicts
+    :param lower: state if the text within the dicts should be lower cased
+    :type target_dicts: list
+    :type lower: bool
+    :returns: A tuple of length two which contain a list of normalised texts and \
+    targets.
+    :rtype: list
+    '''
+
+    # Normalise the target and text
+    all_text = []
+    all_norm_targets = []
+    for target_dict in target_dicts:
+        norm_text, norm_target = target_normalisation(target_dict)
+        if lower:
+            norm_text = norm_text.lower()
+            norm_target = norm_target.lower()
+        all_text.append(norm_text)
+        all_norm_targets.append(norm_target)
+    return all_text, all_norm_targets
+
+def dependency_relation_context(target_dicts, parser, lower=False,
+                                n_relations=(1, 1)):
+    '''
+    Given a list of target dicts where each target dict has a sentence that
+    contains one or more of the same target. Returns a list of a list of Strings
+    where each String is associated to a target within the target sentence.
+    The String is a concatenation of n_relations depth of dependency relations
+    where each relation is a child of the target. e.g. n_relations = (1, 1)
+    will return a String of the concatenation of the children of the target
+    within the dependency tree. n_relations = (1, 2) will return the children
+    of the target and the children of the children.
+
+    :param target_dicts: list of dictionaries where each dictionary is associated \
+    to a target sentence.
+    :param parser: function that performs dependency parsing
+    :param lower: Whether to lower case the text
+    :param n_relations: The depth of the dependency relation text from the target \
+    to return. Represented as a tuple of two ints the first defining the \
+    starting depth the second end depth e.g. (1, 2) will return depths one and \
+    two of dependency tree.
+    :type target_dicts: list
+    :type parser: String
+    :type lower: bool. Default False.
+    :type n_relations: tuple. Default (1, 1).
+    :returns: A list of a list of Strings where each String represents a specific \
+    target word within a target sentence dependecy related text at n_relations \
+    depth.
+    :rtype: list
+    '''
+
+    # Normalise the target and text
+    all_text, all_norm_targets = normalise_context(target_dicts, lower)
+    # Get contexts
+    all_dependency_tokens = parser(all_text)
+    all_contexts = []
+
+    for index, dependency_tokens in enumerate(all_dependency_tokens):
+        contexts = []
+        norm_target = all_norm_targets[index]
+        for dependency_token in dependency_tokens:
+            if dependency_token.token.lower() == norm_target.lower():
+                all_related_words = dependency_token.get_n_relations(n_relations)
+                related_text = ' '.join(all_related_words)
+                contexts.append(related_text)
+        rel_target = target_dicts[index]
+        valid_num_targets = len(rel_target['spans'])
+        if valid_num_targets != len(contexts):
+            raise ValueError('The number of identified targets `{}` not equal '\
+                             'to the number of targets in the data `{}`'\
+                             .format(contexts, rel_target))
+        # Ensure the returned data type is consistent
+        if contexts == []:
+            raise ValueError('This should not happen as each data type should '\
+                             'have a target {}'.format(rel_target))
+        all_contexts.append(contexts)
+    return all_contexts
+
 def dependency_context(target_dicts, parser, lower=False):
     '''
     Given a list of target dicts it will normalise the target word to ensure
@@ -63,15 +148,7 @@ def dependency_context(target_dicts, parser, lower=False):
     '''
 
     # Normalise the target and text
-    all_text = []
-    all_norm_targets = []
-    for target_dict in target_dicts:
-        norm_text, norm_target = target_normalisation(target_dict)
-        if lower:
-            norm_text = norm_text.lower()
-            norm_target = norm_target.lower()
-        all_text.append(norm_text)
-        all_norm_targets.append(norm_target)
+    all_text, all_norm_targets = normalise_context(target_dicts, lower)
     # Get contexts
     all_dependency_tokens = parser(all_text)
     all_contexts = []
