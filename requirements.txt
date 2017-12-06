@@ -1,6 +1,6 @@
 alabaster==0.7.10
 Babel==2.5.1
-bleach==2.1.1
+bleach==1.5.0
 boto==2.48.0
 bz2file==0.98
 certifi==2017.7.27.1
@@ -8,8 +8,9 @@ chardet==3.0.4
 decorator==4.1.2
 docutils==0.14
 entrypoints==0.2.3
+enum34==1.1.6
 gensim==3.0.1
-html5lib==1.0b10
+html5lib==0.9999999
 idna==2.6
 imagesize==0.7.1
 ipykernel==4.6.1
@@ -23,10 +24,12 @@ jupyter==1.0.0
 jupyter-client==5.1.0
 jupyter-console==5.2.0
 jupyter-core==4.4.0
+Markdown==2.6.9
 MarkupSafe==1.0
 mistune==0.8.1
 nbconvert==5.3.1
 nbformat==4.4.0
+networkx==2.0
 notebook==5.2.1
 numpy==1.13.3
 pandas==0.21.0
@@ -35,6 +38,7 @@ parso==0.1.0
 pexpect==4.3.0
 pickleshare==0.7.4
 prompt-toolkit==1.0.15
+protobuf==3.5.0.post1
 ptyprocess==0.5.2
 py==1.4.34
 Pygments==2.2.0
@@ -54,6 +58,7 @@ snowballstemmer==1.2.1
 Sphinx==1.6.5
 sphinx-rtd-theme==0.2.4
 sphinxcontrib-websupport==1.0.1
+tensorflow-tensorboard==0.4.0rc3
 terminado==0.7
 testpath==0.3.1
 tornado==4.5.2
@@ -62,4 +67,5 @@ traitlets==4.3.2
 urllib3==1.22
 wcwidth==0.1.7
 webencodings==0.5.1
+Werkzeug==0.12.2
 widgetsnbextension==3.0.7
