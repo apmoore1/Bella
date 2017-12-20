@@ -12,9 +12,10 @@ from tdparse.neural_pooling import matrix_median
 from tdparse.neural_pooling import matrix_std
 from tdparse.neural_pooling import matrix_prod
 from tdparse.neural_pooling import matrix_checking
+from tdparse.neural_pooling import inf_nan_check
 
 @matrix_checking
-def matrix_row_error(matrix, transpose=False):
+def matrix_row_error(matrix, transpose=True):
     '''
     Converts the matrix into a column vector from a matrix e.g.
     Input = m, n
@@ -24,7 +25,7 @@ def matrix_row_error(matrix, transpose=False):
     m_columns = matrix.shape[1]
     return np.reshape(matrix, (m_rows * m_columns, ))
 @matrix_checking
-def matrix_dim_error(matrix, transpose=False):
+def matrix_dim_error(matrix, transpose=True):
     '''
     Outputs a matrix instead of a vector.
     '''
@@ -36,21 +37,136 @@ def matrix_dim_error(matrix, transpose=False):
     return matrix
 
 @matrix_checking
-def matrix_error(matrix, transpose=False):
+def matrix_error(matrix, transpose=True):
     '''
     Tests that this function never gets applied.
     '''
     raise Exception('Should never get here')
+
+@inf_nan_check
+def matrix_inf_nan_check(matrix):
+    '''
+    Returns the given matrix after it has been checked for INF and NAN values.
+    '''
+    return matrix
 
 class TestNeuralPooling(TestCase):
     '''
     Contains the following functions:
     '''
 
-    num_array = np.asarray([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
-    minus_num_array = np.asarray([[-1, 2, 3, 4], [5, -6, 7, 8], [9, 10, 11, 12]])
-    float_array = np.asarray([[-1, 0.112], [0.000005, -0.6], [0.009, 0.1]])
-    float_med_array = np.asarray([[-1, 0.112, 1], [0.000005, -0.6, 0.5]])
+    num_array = np.asarray([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+                           dtype=np.float32)
+    minus_num_array = np.asarray([[-1, 2, 3, 4], [5, -6, 7, 8], [9, 10, 11, 12]],
+                                 dtype=np.float32)
+    float_array = np.asarray([[-1, 0.112], [0.000005, -0.6], [0.009, 0.1]],
+                             dtype=np.float32)
+    float_med_array = np.asarray([[-1, 0.112, 1], [0.000005, -0.6, 0.5]],
+                                 dtype=np.float32)
+
+    def test_inf_nan_checker(self):
+        '''
+        Tests the decorator `inf_nan_check`.
+        '''
+        # Ensure that it does nothing when it doesn't require to do anything
+        # e.g. on a zero matrix
+        valid_zero_matrix = np.zeros((3, 3), dtype=np.float32)
+        test_zero_matrix = matrix_inf_nan_check(valid_zero_matrix)
+        the_same = np.array_equal(valid_zero_matrix, test_zero_matrix)
+        self.assertEqual(True, the_same, msg='These two matrices should be the '\
+                         'same {} {}'.format(valid_zero_matrix, test_zero_matrix))
+        # 64 bit version
+        valid_zero_matrix = np.zeros((3, 3), dtype=np.float64)
+        test_zero_matrix = matrix_inf_nan_check(valid_zero_matrix)
+        the_same = np.array_equal(valid_zero_matrix, test_zero_matrix)
+        self.assertEqual(True, the_same, msg='These two matrices should be the '\
+                         'same {} {}'.format(valid_zero_matrix, test_zero_matrix))
+
+        # Check that it does not accept matrixs that are not of numpy float type
+        with self.assertRaises(TypeError, msg='Should not accept any numpy type '\
+                               'that is not float type'):
+            error_zero_matrix = np.zeros((3, 3), dtype=np.int32)
+            matrix_inf_nan_check(error_zero_matrix)
+
+        # Below ensures that it can convert values that are lower or greater
+        # than inf for float 32 is converted to numbers that are within the
+        # correct range. The correct range is 1/2 the max and min value. 1/2
+        # was selected due to calculating the range requires max - min.
+        float_32_info = np.finfo(np.float32)
+
+        # Check that it works with -inf on float 32
+        lower_than_values = np.asarray([-np.inf, 0], dtype=np.float32)
+        valid_values = np.asarray([float_32_info.min / 2, 0], dtype=np.float32)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(lower_than_values))
+        self.assertEqual(True, test_result, msg='Should changed the lower than '\
+                         'inf value to the lowest possible value for 32 bit float')
+
+        # Check that it works with inf on float 32
+        higher_than_values = np.asarray([np.inf, 0], dtype=np.float32)
+        valid_values = np.asarray([float_32_info.max / 2, 0], dtype=np.float32)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(higher_than_values))
+        self.assertEqual(True, test_result, msg='Should changed the higher than '\
+                         'inf value to the highest possible value for 32 bit float')
+
+        # Check that it works for inf and -inf on float 32
+        higher_and_lower = np.asarray([np.inf, -np.inf],
+                                      dtype=np.float32)
+        valid_values = np.asarray([float_32_info.max / 2, float_32_info.min / 2],
+                                  dtype=np.float32)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(higher_and_lower))
+        self.assertEqual(True, test_result, msg='Should be able to handle '\
+                         'both lower and higher than inf for float 32')
+
+        # Below does the same as above but for float 64 instead of float 32
+        float_64_info = np.finfo(np.float64)
+
+        # Check that it works with -inf on float 64
+        lower_than_values = np.asarray([-np.inf, 0], dtype=np.float64)
+        valid_values = np.asarray([float_64_info.min / 2, 0], dtype=np.float64)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(lower_than_values))
+        self.assertEqual(True, test_result, msg='Should changed the lower than '\
+                         'inf value to the lowest possible value for 64 bit float')
+
+        # Check that it works with inf on float 64
+        higher_than_values = np.asarray([np.inf, 0], dtype=np.float64)
+        valid_values = np.asarray([float_64_info.max / 2, 0], dtype=np.float64)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(higher_than_values))
+        self.assertEqual(True, test_result, msg='Should changed the higher than '\
+                         'inf value to the highest possible value for 64 bit float')
+
+        # Check that it works with inf and -inf on float 64
+        higher_and_lower = np.asarray([np.inf, -np.inf],
+                                      dtype=np.float64)
+        valid_values = np.asarray([float_64_info.max / 2, float_64_info.min / 2],
+                                  dtype=np.float64)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(higher_and_lower))
+        self.assertEqual(True, test_result, msg='Should be able to handle '\
+                         'both lower and higher than inf for float 64')
+
+        # Ensures that it converts Nan values to 0 for float 32
+        nan_values = np.asarray([np.inf, -np.inf, 3.0, np.nan], dtype=np.float32)
+        valid_values = np.asarray([float_32_info.max / 2, float_32_info.min / 2,
+                                   3.0, 0], dtype=np.float32)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(valid_values))
+        self.assertEqual(True, test_result, msg='Cannot convert NAN values to 0 '\
+                         'for float 32')
+        # Ensures that it converts Nan values to 0 for float 64
+        nan_values = np.asarray([np.inf, -np.inf, 3.0, np.nan], dtype=np.float64)
+        valid_values = np.asarray([float_64_info.max / 2, float_64_info.min / 2,
+                                   3.0, 0], dtype=np.float64)
+        test_result = np.array_equal(valid_values,
+                                     matrix_inf_nan_check(valid_values))
+        self.assertEqual(True, test_result, msg='Cannot convert NAN values to 0 '\
+                         'for float 64')
+
+
 
     def test_check_decorator(self):
         '''
@@ -74,14 +190,16 @@ class TestNeuralPooling(TestCase):
                                ' from neural functions that have more than one '\
                                'dimension as it should be a vector not a matrix'):
             matrix_dim_error(test_array)
-        vector_max = [[5]]
-        vector_2d = np.asarray([1, 2, 3, 4, 5]).reshape(5, 1)
+        vector_max = np.asarray([[5]], dtype=np.float32)
+        vector_2d = np.asarray([1, 2, 3, 4, 5], dtype=np.float32).reshape(5, 1)
         self.assertEqual(True, np.array_equal(vector_max, matrix_max(vector_2d)),
                          msg='Should be able to handle normal cases')
-        vector_max = [[1], [2], [3], [4], [5]]
-        vector_2d = np.asarray([1, 2, 3, 4, 5]).reshape(1, 5)
-        self.assertEqual(True, np.array_equal(vector_max, matrix_max(vector_2d, True)),
-                         msg='Should be able to handle normal cases with transpose')
+        vector_max = np.asarray([[1], [2], [3], [4], [5]], dtype=np.float32)
+        vector_2d = np.asarray([1, 2, 3, 4, 5], dtype=np.float32).reshape(1, 5)
+        test_vec_max = matrix_max(vector_2d, transpose=True)
+        self.assertEqual(True, np.array_equal(vector_max, test_vec_max),
+                         msg='Should be able to handle normal cases with transpose '\
+                         'returned {} valid {}'.format(test_vec_max, vector_max))
 
 
     def test_matrix_min(self):
@@ -89,9 +207,9 @@ class TestNeuralPooling(TestCase):
         Tests :py:func:`tdparse.neural_pooling.matrix_min`
         '''
 
-        num_cor = np.asarray([1, 2, 3, 4]).reshape(1, 4)
-        minus_cor = np.asarray([-1, -6, 3, 4]).reshape(1, 4)
-        float_cor = np.asarray([-1, -0.6]).reshape(1, 2)
+        num_cor = np.asarray([1, 2, 3, 4], dtype=np.float32).reshape(1, 4)
+        minus_cor = np.asarray([-1, -6, 3, 4], dtype=np.float32).reshape(1, 4)
+        float_cor = np.asarray([-1, -0.6], dtype=np.float32).reshape(1, 2)
 
         num_out = matrix_min(self.num_array)
         minus_out = matrix_min(self.minus_num_array)
@@ -110,9 +228,9 @@ class TestNeuralPooling(TestCase):
         Tests :py:func:`tdparse.neural_pooling.matrix_max`
         '''
 
-        num_cor = np.asarray([9, 10, 11, 12]).reshape(1, 4)
-        minus_cor = np.asarray([9, 10, 11, 12]).reshape(1, 4)
-        float_cor = np.asarray([0.009, 0.112]).reshape(1, 2)
+        num_cor = np.asarray([9, 10, 11, 12], dtype=np.float32).reshape(1, 4)
+        minus_cor = np.asarray([9, 10, 11, 12], dtype=np.float32).reshape(1, 4)
+        float_cor = np.asarray([0.009, 0.112], dtype=np.float32).reshape(1, 2)
 
         num_out = matrix_max(self.num_array)
         minus_out = matrix_max(self.minus_num_array)
@@ -133,10 +251,11 @@ class TestNeuralPooling(TestCase):
         Tests :py:func:`tdparse.neural_pooling.matrix_mean`
         '''
 
-        num_cor = np.asarray([5, 6, 7, 8]).reshape(1, 4)
-        minus_cor = np.asarray([4.333333333333333, 2, 7, 8]).reshape(1, 4)
-        float_cor = np.asarray([-0.33033166666666663, -0.12933333333333333])\
-                    .reshape(1, 2)
+        num_cor = np.asarray([5, 6, 7, 8], dtype=np.float32).reshape(1, 4)
+        minus_cor = np.asarray([4.333333333333333, 2, 7, 8], dtype=np.float32)\
+                    .reshape(1, 4)
+        float_cor = np.asarray([-0.33033166666666663, -0.12933335],
+                               dtype=np.float32).reshape(1, 2)
 
         num_out = matrix_avg(self.num_array)
         minus_out = matrix_avg(self.minus_num_array)
@@ -157,9 +276,10 @@ class TestNeuralPooling(TestCase):
         Tests :py:func:`tdparse.neural_pooling.matrix_median`
         '''
 
-        num_cor = np.asarray([5, 6, 7, 8]).reshape(1, 4)
-        minus_cor = np.asarray([5, 2, 7, 8]).reshape(1, 4)
-        float_med_cor = np.asarray([-0.4999975, -0.244, 0.75]).reshape(1, 3)
+        num_cor = np.asarray([5, 6, 7, 8], dtype=np.float32).reshape(1, 4)
+        minus_cor = np.asarray([5, 2, 7, 8], dtype=np.float32).reshape(1, 4)
+        float_med_cor = np.asarray([-0.4999975, -0.24400002, 0.75],
+                                   dtype=np.float32).reshape(1, 3)
 
         num_out = matrix_median(self.num_array)
         minus_out = matrix_median(self.minus_num_array)
@@ -179,14 +299,15 @@ class TestNeuralPooling(TestCase):
         '''
         Tests :py:func:`tdparse.neural_pooling.matrix_std`
         '''
-        num_array = np.asarray([[1, 2], [5, 6], [9, 10]])
-        std_array = np.asarray([[1, 2, 3, 4]])
+        num_array = np.asarray([[1, 2], [5, 6], [9, 10]], dtype=np.float32)
+        std_array = np.asarray([[1, 2, 3, 4]], dtype=np.float32)
 
         num_out = matrix_std(num_array)
         std_out = matrix_std(std_array)
 
-        num_cor = np.asarray([3.2659863237109041, 3.2659863237109041]).reshape(1, 2)
-        std_corr = np.asarray([0, 0, 0, 0]).reshape(1, 4)
+        num_cor = np.asarray([3.2659863237109041, 3.2659863237109041],
+                             dtype=np.float32).reshape(1, 2)
+        std_corr = np.asarray([0, 0, 0, 0], dtype=np.float32).reshape(1, 4)
 
         self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
                          'basic numbers: real out {} correct values {}'\
@@ -198,17 +319,18 @@ class TestNeuralPooling(TestCase):
         '''
         Tests :py:func:`tdparse.neural_pooling.matrix_std`
         '''
-        num_array = np.asarray([[1, 2], [5, 6], [9, 10]])
-        std_array = np.asarray([[1, 2, 3, 4]])
-        zero_array = np.asarray([[-1, 0], [0.5, -0.6], [0.009, 0.1]])
+        num_array = np.asarray([[1, 2], [5, 6], [9, 10]], dtype=np.float32)
+        std_array = np.asarray([[1, 2, 3, 4]], dtype=np.float32)
+        zero_array = np.asarray([[-1, 0], [0.5, -0.6], [0.009, 0.1]],
+                                dtype=np.float32)
 
         num_out = matrix_prod(num_array)
         std_out = matrix_prod(std_array)
         zero_out = matrix_prod(zero_array)
 
-        num_cor = np.asarray([45, 120]).reshape(1, 2)
-        std_corr = np.asarray([1, 2, 3, 4]).reshape(1, 4)
-        zero_corr = np.asarray([-0.0045, 0]).reshape(1, 2)
+        num_cor = np.asarray([45, 120], dtype=np.float32).reshape(1, 2)
+        std_corr = np.asarray([1, 2, 3, 4], dtype=np.float32).reshape(1, 4)
+        zero_corr = np.asarray([-0.0045, 0], dtype=np.float32).reshape(1, 2)
 
         self.assertEqual(True, np.array_equal(num_cor, num_out), msg='Cannot handle '\
                          'basic numbers: real out {} correct values {}'\
