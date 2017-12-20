@@ -12,6 +12,8 @@ import tdparse.tokenisers as tokenisers
 from tdparse.word_vectors import WordVectors
 from tdparse.word_vectors import GensimVectors
 from tdparse.word_vectors import PreTrained
+from tdparse.word_vectors import GloveTwitterVectors
+from tdparse.word_vectors import GloveCommonCrawl
 
 class TestWordVectors(TestCase):
     '''
@@ -26,18 +28,12 @@ class TestWordVectors(TestCase):
         '''
         Tests the :py:class:`tdparse.word_vectors.WordVectors`
         '''
-        # Testing the constructor
-        with self.assertRaises(TypeError, msg='Should only accept dicts not lists '\
-                               'for word2vector parameter'):
-            WordVectors([1, 2, 3], [0])
-        with self.assertRaises(TypeError, msg='Should only accept lists'):
-            WordVectors({'something' : np.asarray([5, 6])}, 'something')
 
-        hello_vec = np.asarray([0.5, 0.3, 0.4])
+        hello_vec = np.asarray([0.5, 0.3, 0.4], dtype=np.float32)
         another_vec = np.asarray([0.3333, 0.2222, 0.1111])
         test_vectors = {'hello' : hello_vec,
                         'another' : another_vec}
-        word_vector = WordVectors(test_vectors, list(test_vectors.keys()))
+        word_vector = WordVectors(test_vectors)
 
         vec_size = word_vector.vector_size
         self.assertEqual(vec_size, 3, msg='Vector size should be 3 not {}'\
@@ -56,6 +52,7 @@ class TestWordVectors(TestCase):
         index2word = word_vector.index2word
         word2index = word_vector.word2index
         index2vector = word_vector.index2vector
+        embedding_matrix = word_vector.embedding_matrix
 
         another_index = word2index['another']
         self.assertEqual('another', index2word[another_index], msg='index2word '\
@@ -64,6 +61,59 @@ class TestWordVectors(TestCase):
         self.assertEqual(True, index_correct, msg='index2vector does not return '\
                          'the correct vector for `another`')
 
+        # Check that it returns 0 index for unknown words
+        self.assertEqual(0, word2index['nothing'], msg='All unknown words should '\
+                         'be mapped to the zero index')
+        # Check that unknown words are mapped to the <unk> token
+        self.assertEqual('<unk>', index2word[0], msg='All zero index should be '\
+                         'mapped to the <unk> token')
+        # Check that the unkown words map to the unknown vector
+        self.assertEqual(True, np.array_equal(np.zeros(3), index2vector[0]),
+                         msg='Zero index should map to the unknown vector')
+
+        # Test the embedding matrix
+        hello_index = word2index['hello']
+        is_hello_vector = np.array_equal(hello_vec, embedding_matrix[hello_index])
+        self.assertEqual(True, is_hello_vector, msg='The embedding matrix lookup'\
+                         ' is wrong for the `hello` word')
+        unknown_index = word2index['nothing']
+        is_nothing_vector = np.array_equal(zero_vec, embedding_matrix[unknown_index])
+        self.assertEqual(True, is_nothing_vector, msg='The embedding matrix lookup'\
+                         ' is wrong for the unknwon word')
+
+    def test_unit_norm(self):
+        '''
+        Testing the unit_length of WordVectors
+        '''
+
+        hello_vec = np.asarray([0.5, 0.3, 0.4], dtype=np.float32)
+        another_vec = np.asarray([0.3333, 0.2222, 0.1111], dtype=np.float32)
+        test_vectors = {'hello' : hello_vec,
+                        'another' : another_vec}
+        word_vector = WordVectors(test_vectors, unit_length=True)
+        # Tests the normal case
+        unit_hello_vec = np.asarray([0.70710677, 0.4242641,
+                                     0.56568545], dtype=np.float32)
+        unit_is_equal = np.array_equal(unit_hello_vec,
+                                       word_vector.lookup_vector('hello'))
+        self.assertEqual(True, unit_is_equal, msg='Unit vector is not working')
+        # Test the l2 norm of a unit vector is 1
+        test_unit_mag = np.linalg.norm(word_vector.lookup_vector('hello'))
+        self.assertEqual(1.0, test_unit_mag, msg='l2 norm of a unit vector '\
+                         'should be 1 not {}'.format(test_unit_mag))
+
+        # Test that it does not affect zero vectors these should still be zero
+        unknown_vector = word_vector.lookup_vector('nothing')
+        self.assertEqual(True, np.array_equal(np.zeros(3), unknown_vector),
+                         msg='unknown vector should be a zero vector and not {}'\
+                         .format(unknown_vector))
+
+        hello_index = word_vector.word2index['hello']
+        hello_embedding = word_vector.embedding_matrix[hello_index]
+        self.assertEqual(True, np.array_equal(unit_hello_vec, hello_embedding),
+                         msg='The embedding matrix is not applying the unit '\
+                         'normalization {} should be {}'\
+                         .format(hello_embedding, unit_hello_vec))
 
     def test_gensim_word2vec(self):
         '''
@@ -172,3 +222,57 @@ class TestWordVectors(TestCase):
         # Ensure the name attributes works
         self.assertEqual('sswe', sswe_model.name, msg='The name of the instance '\
                          'should be sswe and not {}'.format(sswe_model.name))
+        # Test that the unknown word is mapped to the zero vector
+        self.assertEqual(0, sswe_model.word2index[unknown_word], msg='unknown word '\
+                         'should be mapped to the 0 index')
+        # Test that the unknown index maps the unknown word
+        self.assertEqual('<unk>', sswe_model.index2word[0], msg='unknown index '\
+                         'should map to the <unk> word')
+        # Test that the unknown word maps to the unknown vector
+        is_zero = np.array_equal(sswe_model.index2vector[0], np.zeros(sswe_vec_size))
+        self.assertEqual(False, is_zero, msg='The unknwon vector should not be '\
+                         'zeros')
+    def test_glove_twitter_download(self):
+        '''
+        Tests that the Glove Twitter word vectors are downloaded correctly
+        '''
+        # Creating an instance of the vectors ensures they are downloaded
+        glove_twitter_vectors = GloveTwitterVectors(25, skip_conf=True)
+
+        current_dir = os.path.abspath(os.path.dirname(__file__))
+        glove_twitter_folder = os.path.join(current_dir, os.pardir, 'data',
+                                            'word_vectors', 'glove_twitter')
+        self.assertEqual(True, os.path.isdir(glove_twitter_folder), msg='Glove '\
+                         'Twitter vectors directory should be here {}'\
+                         .format(glove_twitter_folder))
+
+        glove_twitter_files = ['glove.twitter.27B.25d.txt',
+                               'glove.twitter.27B.50d.txt',
+                               'glove.twitter.27B.100d.txt',
+                               'glove.twitter.27B.200d.txt']
+        for glove_twitter_file in glove_twitter_files:
+            glove_file_path = os.path.join(glove_twitter_folder, glove_twitter_file)
+            self.assertEqual(True, os.path.isfile(glove_file_path), msg='Glove '\
+                             'Twitter vector file {} should be here {}'\
+                             .format(glove_twitter_file, glove_file_path))
+
+    def test_glove_common_download(self):
+        '''
+        Tests that the Glove Common Crawl 840B vector are downloaded correctly
+        '''
+
+        glove_common_crawl_vectors = GloveCommonCrawl(skip_conf=True)
+
+        current_dir = os.path.abspath(os.path.dirname(__file__))
+        glove_common_folder = os.path.join(current_dir, os.pardir, 'data',
+                                           'word_vectors', 'glove_common_crawl_840b')
+        self.assertEqual(True, os.path.isdir(glove_common_folder), msg='Glove '\
+                         'Common Crawl vector directory should be here {}'\
+                         .format(glove_common_folder))
+
+        glove_common_file_path = os.path.join(glove_common_folder,
+                                              'glove.840B.300d.txt')
+        self.assertEqual(True, os.path.isfile(glove_common_file_path),
+                         msg='Glove common vector file {} should be here {}'\
+                             .format('glove.840B.300d.txt',
+                                     glove_common_file_path))
