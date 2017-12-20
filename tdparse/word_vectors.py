@@ -449,6 +449,15 @@ class GloveTwitterVectors(PreTrained):
 
 
     def __init__(self, dimension, name=None, unit_length=False, skip_conf=False):
+        '''
+        :param dimension: Dimension size of the word vectors you would like to \
+        use. Choice: 25, 50, 100, 200
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type dimension: int
+        :type skip_conf: bool. Default False
+        '''
+
         dimension_file = self.download(skip_conf)
         if not isinstance(dimension, int):
             raise TypeError('Type of dimension has to be int not {}'\
@@ -529,8 +538,11 @@ class GloveCommonCrawl(PreTrained):
 
     def __init__(self, name=None, unit_length=False, skip_conf=False):
         '''
-
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type skip_conf: bool. Default False
         '''
+
         glove_file = self.download(skip_conf)
         if name is None:
             name = 'glove 300d common crawl'
