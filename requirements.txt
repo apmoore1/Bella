@@ -56,6 +56,7 @@ pylint==1.8.1
 pytest==3.2.3
 python-dateutil==2.6.1
 pytz==2017.2
+PyYAML==3.12
 pyzmq==16.0.3
 qtconsole==4.3.1
 requests==2.18.4
