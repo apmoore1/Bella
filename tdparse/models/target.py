@@ -10,12 +10,13 @@ from collections import defaultdict
 import copy
 import types
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score
 
 from tdparse.tokenisers import ark_twokenize
@@ -23,7 +24,8 @@ from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
 
 from tdparse.scikit_features.context import Context
-#from tdparse.scikit_features.target_context import TargetContext
+from tdparse.scikit_features.debug import Debug
+from tdparse.scikit_features import syntactic_context
 from tdparse.scikit_features.tokeniser import ContextTokeniser
 from tdparse.scikit_features.word_vector import ContextWordVectors
 from tdparse.scikit_features.lexicon_filter import LexiconFilter
@@ -59,9 +61,64 @@ class TargetInd():
                     ('join', JoinContextVectors(matrix_median))
                 ]))
             ])),
-            ('scale', MaxAbsScaler()),
+            ('scale', MinMaxScaler()),
             ('svm', LinearSVC(C=0.01))
         ])
+    def find_best_c(self, train_data, train_y, grid_params, **kwargs):
+        '''
+        :param train_data: Training instances to grid search over
+        :param train_y: Training True values to grid search over
+        :param grid_params: parameters for the model, all parameters can be \
+        found from the `get_cv_params` function. The C value parameter will be \
+        ignored if given.
+        :param kwargs: keywords arguments to give as arguments to the scikit learn \
+        `GridSearchCV <http://scikit-learn.org/stable/modules/generated/sklearn.\
+        model_selection.GridSearchCV.html>`_ object e.g. cv=10.
+        :type train_data: array/list
+        :type train_y: array/list
+        :type grid_params: dict
+        :type kwargs: dict
+        :returns: Searches through two sets of C values a coarse grain values \
+        then a fine grain. Grid searches over these values to return the best \
+        C value without doing a full exhaustive search. This method inspired by \
+        `Hsu et al. SVM guide \
+        <https://www.csie.ntu.edu.tw/~cjlin/papers/guide/guide.pdf>`_
+        :rtype: float
+        '''
+
+        # If C value given in grid_params remove it
+        if 'C' in grid_params:
+            del grid_params['C']
+
+        # Coarse grain search
+        coarse_range = []
+        start = 0.00001
+        stop = 10
+        while True:
+            coarse_range.append(start)
+            start *= 10
+            if start > stop:
+                break
+        grid_params['C'] = coarse_range
+        cv_params = self.get_cv_params(**grid_params)
+        coarse_results = self.grid_search(train_data, train_y,
+                                          params=cv_params, **kwargs)
+        best_coarse_c = self.model.best_params_['svm__C']
+
+        # Fine grain search
+        fine_range = [(best_coarse_c / 10) * 3.5,
+                      (best_coarse_c / 10) * 7, best_coarse_c,
+                      best_coarse_c * 3.5, best_coarse_c * 7]
+        grid_params['C'] = fine_range
+        cv_params = self.get_cv_params(**grid_params)
+
+        fine_results = self.grid_search(train_data, train_y,
+                                        params=cv_params, **kwargs)
+        best_c = self.model.best_params_['svm__C']
+        return best_c
+
+
+
     @staticmethod
     def _get_word_vector_names():
         '''
@@ -162,7 +219,7 @@ class TargetInd():
                                                    ['svm__random_state'], random_state)
         if scale:
             params_dict = self._add_to_params_dict(params_dict, ['scale'],
-                                                   MaxAbsScaler())
+                                                   MinMaxScaler())
         else:
             params_dict = self._add_to_params_dict(params_dict, ['scale'], None)
         return params_dict
@@ -282,7 +339,7 @@ class TargetInd():
             params_list = self._add_to_all_params(params_list, 'svm__random_state',
                                                   random_state)
         if scale is not None:
-            scale.append(MaxAbsScaler())
+            scale.append(MinMaxScaler())
             params_list = self._add_to_all_params(params_list, 'scale', scale)
         return params_list
 
@@ -428,7 +485,7 @@ class TargetDepC(TargetInd):
                     ]))
                 ]))
             ])),
-            ('scale', MaxAbsScaler()),
+            ('scale', MinMaxScaler()),
             ('svm', LinearSVC(C=0.025))
         ])
 
@@ -570,7 +627,7 @@ class TargetDep(TargetInd):
                     ]))
                 ]))
             ])),
-            ('scale', MaxAbsScaler()),
+            ('scale', MinMaxScaler()),
             ('svm', LinearSVC(C=0.01))
         ])
 
@@ -769,7 +826,7 @@ class TargetDepSent(TargetInd):
                     ]))
                 ]))
             ])),
-            ('scale', MaxAbsScaler()),
+            ('scale', MinMaxScaler()),
             ('svm', LinearSVC(C=0.01))
         ])
 
@@ -853,145 +910,3 @@ class TargetDepSent(TargetInd):
         params_list = self._add_to_params(params_list, senti_lexicons,
                                           self._get_word_senti_names())
         return params_list
-
-class TDParse(TargetDep):
-    def __init__(self):
-        super().__init__()
-        self.pipeline = Pipeline([
-            ('union', FeatureUnion([
-                ('left', Pipeline([
-                    ('contexts', Context('left')),
-                    ('tokens', ContextTokeniser(ark_twokenize, True)),
-                    ('word_vectors', ContextWordVectors()),
-                    ('pool_funcs', FeatureUnion([
-                        ('max_pipe', Pipeline([
-                            ('max', NeuralPooling(matrix_max)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('min_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_min)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('avg_pipe', Pipeline([
-                            ('avg', NeuralPooling(matrix_avg)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('prod_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_prod)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('std_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_std)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ]))
-                    ]))
-                ])),
-                ('right', Pipeline([
-                    ('contexts', Context('right')),
-                    ('tokens', ContextTokeniser(ark_twokenize, True)),
-                    ('word_vectors', ContextWordVectors()),
-                    ('pool_funcs', FeatureUnion([
-                        ('max_pipe', Pipeline([
-                            ('max', NeuralPooling(matrix_max)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('min_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_min)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('avg_pipe', Pipeline([
-                            ('avg', NeuralPooling(matrix_avg)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('prod_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_prod)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('std_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_std)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ]))
-                    ]))
-                ])),
-                ('target', Pipeline([
-                    ('contexts', Context('target')),
-                    ('tokens', ContextTokeniser(ark_twokenize, True)),
-                    ('word_vectors', ContextWordVectors()),
-                    ('pool_funcs', FeatureUnion([
-                        ('max_pipe', Pipeline([
-                            ('max', NeuralPooling(matrix_max)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('min_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_min)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('avg_pipe', Pipeline([
-                            ('avg', NeuralPooling(matrix_avg)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('prod_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_prod)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('std_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_std)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ]))
-                    ]))
-                ])),
-                ('target_connected', Pipeline([
-                    ('contexts', Context('left')),
-                    ('tokens', ContextTokeniser(ark_twokenize, True)),
-                    ('word_vectors', ContextWordVectors()),
-                    ('pool_funcs', FeatureUnion([
-                        ('max_pipe', Pipeline([
-                            ('max', NeuralPooling(matrix_max)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('min_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_min)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('avg_pipe', Pipeline([
-                            ('avg', NeuralPooling(matrix_avg)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('prod_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_prod)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ])),
-                        ('std_pipe', Pipeline([
-                            ('min', NeuralPooling(matrix_std)),
-                            ('join', JoinContextVectors(matrix_median))
-                        ]))
-                    ]))
-                ]))
-            ])),
-            ('scale', MaxAbsScaler()),
-            ('svm', LinearSVC(C=0.01))
-        ])
-    @staticmethod
-    def _get_word_vector_names():
-        '''
-        :returns: A list of of parameter names where the word vectors are set in \
-        the pipeline.
-        :rtype: list
-        '''
-
-        return ['union__left__word_vectors__vectors',
-                'union__right__word_vectors__vectors',
-                'union__target__word_vectors__vectors',
-                'union__target_connected__word_vectors__vectors']
-    @staticmethod
-    def _get_tokeniser_names():
-        '''
-        :returns: A list of of parameter names where the tokenisers are set in \
-        the pipeline.
-        :rtype: list
-        '''
-
-        return ['union__left__tokens',
-                'union__right__tokens',
-                'union__target__tokens',
-                'union__target_connected__tokens']
