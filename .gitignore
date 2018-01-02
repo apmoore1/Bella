@@ -5,6 +5,8 @@ docs/_build
 docs/_templates
 docs/source/**
 .DS_Store
+._.DS_Store
+._config.yaml
 
 tools/TweeboParser/pretrained_models.tar.gz
 tools/TweeboParser/pretrained_models/
