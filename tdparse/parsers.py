@@ -40,8 +40,9 @@ def dong(file_path):
             elif divisible % 3 == 0:
                 sentiment = int(line)
                 if sentiment not in sentiment_range:
-                    raise ValueError('The sentiment has to be one of the following '\
-                                     'values {} not {}'.format(sentiment_range, sentiment))
+                    raise ValueError('The sentiment has to be one of the '\
+                                     'following values {} not {}'\
+                                     .format(sentiment_range, sentiment))
                 sent_dict['sentiment'] = int(line)
                 text = sent_dict['text'].lower()
                 target = sent_dict['target'].lower()
