@@ -10,7 +10,6 @@ from collections import defaultdict
 import copy
 import types
 
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import FeatureUnion
@@ -24,8 +23,6 @@ from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
 
 from tdparse.scikit_features.context import Context
-from tdparse.scikit_features.debug import Debug
-from tdparse.scikit_features import syntactic_context
 from tdparse.scikit_features.tokeniser import ContextTokeniser
 from tdparse.scikit_features.word_vector import ContextWordVectors
 from tdparse.scikit_features.lexicon_filter import LexiconFilter
@@ -347,9 +344,10 @@ class TargetInd():
         if params is None:
             raise ValueError('params attribute has to have at least a value for '\
                              'the word vectors used')
-        self.pipeline.set_params(**params)
-        self.pipeline.fit(train_data, train_y)
-        self.model = self.pipeline
+        temp_pipeline = copy.deepcopy(self.pipeline)
+        temp_pipeline.set_params(**params)
+        temp_pipeline.fit(train_data, train_y)
+        self.model = temp_pipeline
 
     def grid_search(self, train_data, train_y, params=None, **kwargs):
         if params is None:
