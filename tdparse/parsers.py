@@ -9,6 +9,8 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
+from tdparse.data_types import Target, TargetCollection
+
 def dong(file_path):
     '''
     Given file path to the
@@ -17,8 +19,8 @@ def dong(file_path):
 
     :param file_path: File Path to the annotated data
     :type file_path: String
-    :returns: A list of dictionaries
-    :rtype: list
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
     '''
 
     file_path = os.path.abspath(file_path)
@@ -27,7 +29,7 @@ def dong(file_path):
 
     sentiment_range = [-1, 0, 1]
 
-    sentiment_data = []
+    sentiment_data = TargetCollection()
     with open(file_path, 'r') as dong_file:
         sent_dict = {}
         for index, line in enumerate(dong_file):
@@ -46,14 +48,15 @@ def dong(file_path):
                 sent_dict['sentiment'] = int(line)
                 text = sent_dict['text'].lower()
                 target = sent_dict['target'].lower()
-                offsets = [list(match.span()) for match in re.finditer(target, text)]
+                offsets = [match.span() for match in re.finditer(target, text)]
                 if len(target.split()) > 1:
                     joined_target = ''.join(target.split())
-                    offsets.extend([list(match.span())
+                    offsets.extend([match.span()
                                     for match in re.finditer(joined_target, text)])
                 sent_dict['spans'] = offsets
-                sent_dict['id'] = len(sentiment_data)
-                sentiment_data.append(sent_dict)
+                sent_dict['target_id'] = str(len(sentiment_data))
+                sent_target = Target(**sent_dict)
+                sentiment_data.add(sent_target)
                 sent_dict = {}
             else:
                 raise Exception('Problem')
@@ -63,9 +66,8 @@ def semeval(file_path):
     '''
     :param file_path: File path to the semeval data
     :type file_path: String
-    :returns: A list of dictionaries containing target, sentiment , span, \
-    and text for training an aspect target sentiment classifier.
-    :rtype: list
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
     '''
 
     # Converts the sentiment tags from Strings to ints
@@ -88,11 +90,11 @@ def semeval(file_path):
             aspect_term_data = {}
             sentiment = sentiment_mapper[aspect_term['polarity']]
             aspect_id = '{}{}'.format(sentence_id, index)
-            aspect_term_data['id'] = aspect_id
+            aspect_term_data['target_id'] = aspect_id
             aspect_term_data['target'] = aspect_term['term']
             aspect_term_data['sentiment'] = sentiment
-            aspect_term_data['spans'] = [[aspect_term['from'],
-                                        aspect_term['to']]]
+            aspect_term_data['spans'] = [(aspect_term['from'],
+                                          aspect_term['to'])]
             aspect_terms_data.append(aspect_term_data)
         return aspect_terms_data
     def add_text(aspect_data, text):
@@ -114,7 +116,7 @@ def semeval(file_path):
 
     tree = ET.parse(file_path)
     sentences = tree.getroot()
-    all_aspect_term_data = []
+    all_aspect_term_data = TargetCollection()
     if sentences.tag != 'sentences':
         raise ValueError('The root of all semeval xml files should '\
                          'be sentences and not {}'\
@@ -136,5 +138,7 @@ def semeval(file_path):
                              .format(file_path, sentence.attrib['id']))
         sentence_text = sentence[text_index].text
         aspect_term_data = add_text(aspect_term_data, sentence_text)
-        all_aspect_term_data.extend(aspect_term_data)
+        for aspect in aspect_term_data:
+            sent_target = Target(**aspect)
+            all_aspect_term_data.add(sent_target)
     return all_aspect_term_data
