@@ -62,18 +62,25 @@ class TestTarget(TestCase):
         with self.assertRaises(TypeError, msg='Sentiment should be a String or '\
                                'Int'):
             Target([(3, 5), (6, 8)], '1', 'Iphone', 'text with Iphone', ('Pos',))
+        # Testing the sentence_id type
+        with self.assertRaises(TypeError, msg='sentence_id should be a String'):
+            Target([(3, 5), (6, 8)], '1', 'Iphone', 'text with Iphone', 'pos',
+                   sentence_id=1)
         # Testing the sentiment type works as an Integer (Normal case)
         span = [(3, 5)]
         target = 'Iphone'
         sentiment = 1
         text = 'text with Iphone'
-        target_id = '1'
-        target_example = Target(span, target_id, target, text, sentiment)
+        target_id = '210#1'
+        predicted = 0
+        sentence_id = '210'
+        target_example = Target(span, target_id, target, text, sentiment, 
+                                predicted, sentence_id)
 
         # Testing that the dictionary mapping is correct
-        self.assertEqual(target_id, target_example['id'],
+        self.assertEqual(target_id, target_example['target_id'],
                          msg='The target ID should {} and not {}'\
-                         .format(target_id, target_example['id']))
+                         .format(target_id, target_example['target_id']))
         self.assertEqual(text, target_example['text'],
                          msg='The text should be {} and not {}'\
                          .format(text, target_example['text']))
@@ -86,6 +93,12 @@ class TestTarget(TestCase):
         self.assertEqual(span, target_example['spans'],
                          msg='The spans should be {} and not {}'\
                          .format(span, target_example['spans']))
+        self.assertEqual(predicted, target_example['predicted'],
+                         msg='The predicted sentiment should be {} and not {}'\
+                         .format(predicted, target_example['predicted']))
+        self.assertEqual(sentence_id, target_example['sentence_id'],
+                         msg='The sentence_id should be {} and not {}'\
+                         .format(sentence_id, target_example['sentence_id']))
 
     def test_target_eq(self):
         '''
@@ -106,7 +119,7 @@ class TestTarget(TestCase):
                          msg='Should be equal as they have the same ID `1`')
         # Targets with the same minimum keys should be True
         target_example_dup1 = copy.deepcopy(target_example_1)
-        del target_example_dup1['id']
+        del target_example_dup1['target_id']
         self.assertEqual(target_example_1, target_example_dup1, msg='Should be'\
                          ' equal as they have the same minimum keys')
         # Normal case
@@ -249,8 +262,8 @@ class TestTarget(TestCase):
                                .format('7', target_example_4)):
             target_col['7'] = target_example_4
         # Should accept Target instance with no `id`
-        del target_example_5['id']
-        if 'id' in target_example_5:
+        del target_example_5['target_id']
+        if 'target_id' in target_example_5:
             raise KeyError('{} should not contain `id` key'\
             .format(target_example_5))
         target_col['8'] = target_example_5
@@ -272,12 +285,12 @@ class TestTarget(TestCase):
                          .format(target_example_0, target_col))
 
         with self.assertRaises(TypeError, msg='Should not be able to add a dict'):
-            target_col.add({'id' : '2'})
+            target_col.add({'target_id' : '2'})
 
         with self.assertRaises(ValueError, msg='Should not be able to add a '\
                                'Target that has no `id`'):
-            del target_example_1['id']
-            if 'id' in target_example_1:
+            del target_example_1['target_id']
+            if 'target_id' in target_example_1:
                 raise KeyError('{} should not contain `id` key'\
                 .format(target_example_1))
             target_col.add(target_example_1)
@@ -419,7 +432,7 @@ class TestTarget(TestCase):
 
     def test_targetcoll_add_preds(self):
         '''
-        Tests the add_pred_sent function of TargetCollection
+        Tests the add_pred_sentiment function of TargetCollection
         '''
         
         target_example_int_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
@@ -442,7 +455,7 @@ class TestTarget(TestCase):
                                            target_example_2])
 
         pred_sents = [2, 5, 4]
-        target_col_int.add_pred_sent(pred_sents)
+        target_col_int.add_pred_sentiment(pred_sents)
         self.assertEqual(5, target_col_int['3']['predicted'], msg='Predicted '\
                          'sentiment not set correctly for `id` 3 should be 5 '\
                          'and not {}'.format(target_col_int))
@@ -452,12 +465,12 @@ class TestTarget(TestCase):
             target_example_int_1['predicted']
 
         pred_sents = ['neg', 'neu', 'pos']
-        target_col_str.add_pred_sent(pred_sents)
+        target_col_str.add_pred_sentiment(pred_sents)
         self.assertEqual('neu', target_col_str['3']['predicted'], msg='Predicted '\
                          'sentiment not set correctly for `id` 3 should be `neu` '\
                          'and not {}'.format(target_col_str))
         pred_sents = [1, 0, -1]
-        target_col_str.add_pred_sent(pred_sents, mapper={1 : 'pos', 0 : 'neu',
+        target_col_str.add_pred_sentiment(pred_sents, mapper={1 : 'pos', 0 : 'neu',
                                                          -1 : 'neg'})
         self.assertEqual('neu', target_col_str['3']['predicted'], msg='Predicted '\
                          'sentiment not set correctly for `id` 3 should be `neu` '\
@@ -470,12 +483,67 @@ class TestTarget(TestCase):
 
         with self.assertRaises(TypeError, msg='Should only accept list type '\
                                'not tuples'):
-            target_col_int.add_pred_sent((2, 5, 4))
+            target_col_int.add_pred_sentiment((2, 5, 4))
         with self.assertRaises(ValueError, msg='Should accept lists that are '\
                                ' the same size as the TargetCollection'):
-            target_col_int.add_pred_sent([1, 2, 3, 4])
+            target_col_int.add_pred_sentiment([1, 2, 3, 4])
         with self.assertRaises(TypeError, msg='When using the mapper should not '\
                                'accept Strings when expecting Integer'):
-            target_col_int.add_pred_sent([1, 1, 0], mapper={1 : 'pos', 0: 'neg'})
+            target_col_int.add_pred_sentiment([1, 1, 0], mapper={1 : 'pos', 0: 'neg'})
+
+    def test_target_coll_subset_by_sent(self):
+        '''
+        Test the subset_by_sentiment function of TargetCollection
+        '''
+
+        target_example_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                  'text with Iphone', 'pos', sentence_id='4')
+        target_example_1 = Target([(1, 5)], '3', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='4')
+        target_example_2 = Target([(1, 2)], '2', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='5')
+        target_example_3 = Target([(1, 2)], '4', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='5')
+        target_example_4 = Target([(1, 2)], '5', 'Iphone',
+                                  'text with Iphone', 'pos', sentence_id='6')
+        target_example_5 = Target([(1, 2)], '6', 'Iphone',
+                                  'text with Iphone', 'neu', sentence_id='6')
+        target_example_6 = Target([(1, 2)], '7', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='6')
+        target_example_7 = Target([(1, 2)], '8', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='7')
+        target_example_8 = Target([(1, 2)], '9', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='8')
+        target_example_9 = Target([(1, 2)], '10', 'Iphone',
+                                  'text with Iphone', 'neg', sentence_id='8')
+        target_example_10 = Target([(1, 2)], '11', 'Iphone',
+                                  'text with Iphone', 'pos', sentence_id='8')
+        all_targets = [target_example_0, target_example_1, target_example_2,
+                       target_example_3, target_example_4, target_example_5,
+                       target_example_6, target_example_7, target_example_8,
+                       target_example_9, target_example_10]
+        target_col = TargetCollection(all_targets)
+
+        # Test for 2 unique sentiments per sentence
+        test_col = target_col.subset_by_sentiment(2)
+        valid_col = TargetCollection([target_example_0, target_example_1, 
+                                      target_example_8, target_example_9, 
+                                      target_example_10])
+        self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
+                         ' but has returned this {}'.format(valid_col, test_col))
+        # Test for 1 unique sentiments per sentence
+        test_col = target_col.subset_by_sentiment(1)
+        valid_col = TargetCollection([target_example_7, target_example_2, 
+                                      target_example_3])
+        self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
+                         ' but has returned this {}'.format(valid_col, test_col))
+        # Test for 3 unique sentiments per sentence
+        test_col = target_col.subset_by_sentiment(3)
+        valid_col = TargetCollection([target_example_4, target_example_5,
+                                      target_example_6])
+        self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
+                         ' but has returned this {}'.format(valid_col, test_col))
+
+
 
 

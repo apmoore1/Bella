@@ -57,17 +57,17 @@ class TestParsers(TestCase):
             dong(test_file_path)
 
         test_file_path = './tests/test_data/dong_test_data.txt'
-        expected_results = [{'id':'0',
+        expected_results = [{'target_id':'0',
                              'sentiment':-1,
                              'text':'This is a fake news article that is to represent a Tweet!!!!',
                              'target':'news article',
                              'spans':[(15, 27)]},
-                            {'id':'1',
+                            {'target_id':'1',
                              'sentiment':1,
                              'text':'I had a great day however I did not get much work done',
                              'target':'day',
                              'spans':[(14, 17)]},
-                            {'id':'2',
+                            {'target_id':'2',
                              'sentiment':0,
                              'text':'I cycled in today and it was ok as it was not raining.',
                              'target':'cycled',
@@ -82,13 +82,13 @@ class TestParsers(TestCase):
         # Ensure that it can handle the same target with multiple spans
         test_multiple_path = read_config('test_data')['dong_multiple_offsets_data']
 
-        multi_expected = [{'id':'0',
+        multi_expected = [{'target_id':'0',
                            'sentiment':-1,
                            'text':'This is a fake news article that is to represent a '\
                            'Tweet!!!! and it was an awful News Article I think.',
                            'target':'news article',
                            'spans':[(15, 27), (81, 93)]},
-                          {'id':'1',
+                          {'target_id':'1',
                            'sentiment':1,
                            'text':'I had a great Day however I did not get much '\
                            'work done in the day',
@@ -99,7 +99,7 @@ class TestParsers(TestCase):
         # Test that multi word targets that should have a space between them
         # are still detected
         test_mwe_path = read_config('test_data')['dong_mwe_offsets_data']
-        mwe_expected = [{'id':'0',
+        mwe_expected = [{'target_id':'0',
                          'sentiment':-1,
                          'text':'This is a fake news article that is to represent a '\
                          'Tweet!!!! and it was an awful NewsArticle I think.',

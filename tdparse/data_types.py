@@ -8,7 +8,7 @@ data store that contains multiple Target instances.
 '''
 
 from collections.abc import MutableMapping
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import copy
 
 import numpy as np
@@ -30,7 +30,7 @@ class Target(MutableMapping):
 
     Functions changed compared to normal:
 
-    1. __delitem__ -- Will only delete the `id` key.
+    1. __delitem__ -- Will only delete the `target_id` key.
     2. __eq__ -- Two Targets are the same if they either have the same `id` or \
     they have the same values to the minimum keys \
     ['spans', 'text', 'target', 'sentiment']
@@ -38,7 +38,8 @@ class Target(MutableMapping):
     represents the predicted sentiment for the Target instance.
     '''
 
-    def __init__(self, spans, target_id, target, text, sentiment, predicted=None):
+    def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
+                 sentence_id=None):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -51,12 +52,15 @@ class Target(MutableMapping):
         mentioned more than once e.g. `The Iphone was great but the iphone is \
         small`. The first Int in the tuple has to be less than the second Int.
         :param predicted: If given adds the predicted sentiment value.
+        :param sentence_id: Unique ID of the sentence that the target is \
+        within. More than one target can have the same sentence.
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
         :type target_id: String
         :type spans: list
-        type predicted: Same type as sentiment. Default None (Optional)
+        :type predicted: Same type as sentiment. Default None (Optional)
+        :type sentence_id: String. Default None (Optional)
         :returns: Nothing. Constructor.
         :rtype: None
         '''
@@ -95,11 +99,18 @@ class Target(MutableMapping):
                         raise ValueError('The first integer in a span must be '\
                                          'less than the second integer {}'\
                                          .format(span))
+        temp_dict = dict(spans=spans, target_id=target_id, target=target,
+                         text=text, sentiment=sentiment)
+        if sentence_id is not None:
+            if not isinstance(sentence_id, str):
+                raise TypeError('`sentence_id` has to be a String and not {}'\
+                                .format(type(sentence_id)))
+            temp_dict['sentence_id'] = sentence_id
 
-        self._storage = dict(spans=spans, id=target_id, target=target,
-                             text=text, sentiment=sentiment)
+        self._storage = temp_dict
         if predicted is not None:
             self['predicted'] = predicted
+
 
     def __getitem__(self, key):
         return self._storage[key]
@@ -116,15 +127,15 @@ class Target(MutableMapping):
         to allow an instance to be used in Target based machine learning. The
         key and associated values that can be deleted are limited to:
 
-        1. id
+        1. target_id
 
         :param key: The key and associated value to delete from the store.
         :returns: Updates the data store by removing key and value.
         :rtype: None
         '''
 
-        accepted_keys = set(['id'])
-        if key != 'id':
+        accepted_keys = set(['target_id'])
+        if key not in accepted_keys:
             raise KeyError('The only keys that can be deleted are the '\
                            'following: {} the key you wish to delete {}'\
                            .format(accepted_keys, key))
@@ -135,7 +146,7 @@ class Target(MutableMapping):
         :param key: key (Only store values for `predicted` key)
         :param value: Predicted sentiment value which has to be the same data \
         type as the `sentiment` value.
-        :type key: hashable object
+        :type key: String (`predicted` is the only key accepted at the moment)
         :type value: Int or String.
         :returns: Nothing. Adds the predicted sentiment of the Target.
         :rtype: None.
@@ -173,7 +184,7 @@ class Target(MutableMapping):
         Two Target instances are equal if they are both Target instances and
         one of the following conditions
 
-        1. They have the same ID (This is preferred)
+        1. They have the same target_id (This is preferred)
         2. The minimum keys that all targets have to have \
         ['spans', 'text', 'target', 'sentiment'] are all equal.
 
@@ -186,8 +197,8 @@ class Target(MutableMapping):
 
         if not isinstance(other, Target):
             return False
-        if 'id' in self and 'id' in other:
-            if self['id'] != other['id']:
+        if 'target_id' in self and 'target_id' in other:
+            if self['target_id'] != other['target_id']:
                 return False
         else:
             minimum_keys = ['spans', 'text', 'target', 'sentiment']
@@ -214,8 +225,10 @@ class TargetCollection(MutableMapping):
     3. stored_sentiments -- Returns a set of unique sentiments stored.
     4. sentiment_data -- Returns the list of all sentiment values stored in \
     the Target instances stored.
-    5. add_pred_sent -- Adds a list of predicted sentiment values to the \
+    5. add_pred_sentiment -- Adds a list of predicted sentiment values to the \
     Target instances stored.
+    6. confusion_matrix -- Returns the confusion matrix between the True and \
+    predicted sentiment values.
     '''
 
     def __init__(self, list_of_target=None):
@@ -258,14 +271,14 @@ class TargetCollection(MutableMapping):
                            .format(key, self._storage[key], value))
         temp_value = copy.deepcopy(value)
         # As the id will be saved as the key no longer needed in the target
-        # instance (value). However if the key does not match the `id` raise
-        # KeyError
-        if 'id' in value:
-            if value['id'] != key:
+        # instance (value). However if the key does not match the `target_id` 
+        # raise KeyError
+        if 'target_id' in value:
+            if value['target_id'] != key:
                 raise KeyError('Cannot add this to the data store as the key {}'\
-                               ' is not the same as the `id` in the Target '\
-                               'instance value {}'.format(key, value))
-            del temp_value['id']
+                               ' is not the same as the `target_id` in the Target'\
+                               ' instance value {}'.format(key, value))
+            del temp_value['target_id']
         self._storage[key] = temp_value
 
     def __delitem__(self, key):
@@ -280,7 +293,7 @@ class TargetCollection(MutableMapping):
     def add(self, value):
         '''
         Adds the Target instance to the data store without having to extract
-        out the id of the target if using __setitem__
+        out the target_id of the target if using __setitem__
 
         :Example:
 
@@ -290,9 +303,9 @@ class TargetCollection(MutableMapping):
         # Add method is simpler to use than __setitem__
         >>> target_col.add(target)
         # Example of the __setitem__ method
-        >>> target_col[target['id']] = target
+        >>> target_col[target['target_id']] = target
 
-        :param value: Target instance with a `id` key
+        :param value: Target instance with a `target_id` key
         :type value: Target
         :returns: Nothing. Adds the target instance to the data store.
         :rtype: None
@@ -301,10 +314,10 @@ class TargetCollection(MutableMapping):
         if not isinstance(value, Target):
             raise TypeError('All values in this store have to be of type '\
                             'Target not {}'.format(type(value)))
-        if 'id' not in value:
-            raise ValueError('The Target instance given {} does not have an ID'\
-                             .format(value))
-        self[value['id']] = value
+        if 'target_id' not in value:
+            raise ValueError('The Target instance given {} does not have a '\
+                             'target_id'.format(value))
+        self[value['target_id']] = value
 
     def data(self):
         '''
@@ -383,7 +396,7 @@ class TargetCollection(MutableMapping):
 
         return [target_data[sentiment_field] for target_data in self.values()]
 
-    def add_pred_sent(self, sent_preds, mapper=None):
+    def add_pred_sentiment(self, sent_preds, mapper=None):
         '''
         :param sent_preds: A list of predicted sentiments for all Target \
         instances stored.
@@ -407,7 +420,7 @@ class TargetCollection(MutableMapping):
             predicted_sent = sent_preds[index]
             if mapper is not None:
                 predicted_sent = mapper[predicted_sent]
-            target_id = target['id']
+            target_id = target['target_id']
             self._storage[target_id]['predicted'] = predicted_sent
 
     def confusion_matrix(self, plot=False, norm=False):
@@ -438,6 +451,58 @@ class TargetCollection(MutableMapping):
             else:
                 ax = sns.heatmap(conf_matrix, annot=True, fmt='d')
         return conf_matrix, ax
+
+    def subset_by_sentiment(self, num_unique_sentiments):
+        '''
+        Creates a subset based on the number of unique sentiment values per
+        sentence. E.g. if num_unique_sentiments = 2 then it will 
+        return all the Target instances where each target intance has at least 
+        two target instances per sentence and those targets can have only one 
+        of two sentiment values. This can be used to test how well a method 
+        can extract exact sentiment information for the associated target.
+
+        NOTE: Requires that all Target instances stored contain a sentence_id.
+
+        :param num_unique_sentiments: Integer specifying the number of unique \
+        sentiments in the target instances per sentence.
+        :type num_unique_sentiments: int
+        :returns: A subset based on the number of unique sentiments per sentence.
+        :rtype: TargetCollection
+        '''
+        
+
+        def group_by_sentence():
+            '''
+            :returns: A dictionary of sentence_id as keys and a list of target \
+            instances that have the same sentence_id as values.
+            :rtype: defaultdict (default is list)
+            '''
+
+            sentence_targets = defaultdict(list)
+            for target in self.data():
+                if 'sentence_id' not in target:
+                    raise ValueError('A Target id instance {} does not have '\
+                                     'a sentence_id which is required.'\
+                                     .format(target))
+                sentence_id = target['sentence_id']
+                sentence_targets[sentence_id].append(target)
+            return sentence_targets
+
+        all_relevent_targets = []
+        for sentence_id, targets in group_by_sentence().items():
+            target_col = TargetCollection(targets)
+            if len(target_col.stored_sentiments()) == num_unique_sentiments:
+                all_relevent_targets.extend(targets)
+        return TargetCollection(all_relevent_targets)
+
+    def __eq__(self, other):
+
+        if len(self) != len(other):
+            return False
+        for key in self:
+            if key not in other:
+                return False
+        return True
 
     def __repr__(self):
         '''
