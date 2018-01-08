@@ -1,38 +1,44 @@
 '''
 Module that contains the various data types:
 
-1. Target -- Non-Mutable data store for a single Target value i.e. one training \
+1. Target -- Mutable data store for a single Target value i.e. one training \
 example.
 2. TargetCollection -- Mutable data store for Target data types.  i.e. A \
 data store that contains multiple Target instances.
 '''
 
-from collections.abc import Mapping
 from collections.abc import MutableMapping
 from collections import OrderedDict
 import copy
 
-class Target(Mapping):
+import numpy as np
+import pandas as pd
+from sklearn import metrics
+import seaborn as sns
+
+class Target(MutableMapping):
     '''
-    Non-Mutable data store for a single Target value. This should be used as the
+    Mutable data store for a single Target value. This should be used as the
     value for Target information where it contains all data required to be
     classified as Target data for Target based sentiment classification.
 
-    Overrides collections.abs.Mapping abstract class.
+    Overrides collections.abs.MutableMapping abstract class.
 
-    Reference on why I picked the Mapping abstract base class:
+    Reference on how I created the class:
     http://www.kr41.net/2016/03-23-dont_inherit_python_builtin_dict_type.html
     https://docs.python.org/3/library/collections.abc.html
 
-    Added functions:
+    Functions changed compared to normal:
 
-    1. __delitem__ -- Deletes a key and its associated value in the data store
+    1. __delitem__ -- Will only delete the `id` key.
     2. __eq__ -- Two Targets are the same if they either have the same `id` or \
     they have the same values to the minimum keys \
     ['spans', 'text', 'target', 'sentiment']
+    3. __setitem__ -- Only allows you to add/modify the `predicted` key which \
+    represents the predicted sentiment for the Target instance.
     '''
 
-    def __init__(self, spans, target_id, target, text, sentiment):
+    def __init__(self, spans, target_id, target, text, sentiment, predicted=None):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -44,11 +50,13 @@ class Target(Mapping):
         context. The reason it is a list if because the Target word can be \
         mentioned more than once e.g. `The Iphone was great but the iphone is \
         small`. The first Int in the tuple has to be less than the second Int.
+        :param predicted: If given adds the predicted sentiment value.
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
         :type target_id: String
         :type spans: list
+        type predicted: Same type as sentiment. Default None (Optional)
         :returns: Nothing. Constructor.
         :rtype: None
         '''
@@ -88,9 +96,10 @@ class Target(Mapping):
                                          'less than the second integer {}'\
                                          .format(span))
 
-
         self._storage = dict(spans=spans, id=target_id, target=target,
                              text=text, sentiment=sentiment)
+        if predicted is not None:
+            self['predicted'] = predicted
 
     def __getitem__(self, key):
         return self._storage[key]
@@ -120,6 +129,35 @@ class Target(Mapping):
                            'following: {} the key you wish to delete {}'\
                            .format(accepted_keys, key))
         del self._storage[key]
+
+    def __setitem__(self, key, value):
+        '''
+        :param key: key (Only store values for `predicted` key)
+        :param value: Predicted sentiment value which has to be the same data \
+        type as the `sentiment` value.
+        :type key: hashable object
+        :type value: Int or String.
+        :returns: Nothing. Adds the predicted sentiment of the Target.
+        :rtype: None.
+        '''
+
+        if key != 'predicted':
+            raise KeyError('The Only key that can be changed is the `predicted`'\
+                           ' key not {}'.format(key))
+        raise_type = False
+        sent_value = self._storage['sentiment']
+        if isinstance(sent_value, int):
+            if not isinstance(value, (int, np.int32, np.int64)):
+                raise_type = True
+        elif not isinstance(value, type(sent_value)):
+            raise_type = True
+        
+        if raise_type:
+            raise TypeError('Value to be stored for the `predicted` sentiment '\
+                            'has to be the same data type as the sentiment '\
+                            'value {} and not {}.'\
+                            .format(sent_value, type(value)))
+        self._storage[key] = value
 
     def __repr__(self):
         '''
@@ -171,6 +209,13 @@ class TargetCollection(MutableMapping):
 
     1. add -- Given a Target instance with an `id` key adds it to the data \
     store.
+    2. data -- Returns all of the Target instances stored as a list of Target \
+    instances.
+    3. stored_sentiments -- Returns a set of unique sentiments stored.
+    4. sentiment_data -- Returns the list of all sentiment values stored in \
+    the Target instances stored.
+    5. add_pred_sent -- Adds a list of predicted sentiment values to the \
+    Target instances stored.
     '''
 
     def __init__(self, list_of_target=None):
@@ -286,12 +331,15 @@ class TargetCollection(MutableMapping):
             unique_sentiments.add(target_data['sentiment'])
         return unique_sentiments
 
-    def sentiment_data(self, mapper=None):
+    def sentiment_data(self, mapper=None, sentiment_field='sentiment'):
         '''
         :param mapper: A dictionary that maps the keys to the values where the \
         keys are the current unique sentiment values of the target instances \
         stored
+        :param sentiment_field: Determines if it should return True sentiment \
+        of the Targets `sentiment` or to return the predicted value `predicted`
         :type mapper: dict
+        :type sentiment_field: String. Default `sentiment` (True values)
         :returns: a list of the sentiment value for each Target instance stored.
         :rtype: list
 
@@ -309,6 +357,12 @@ class TargetCollection(MutableMapping):
         >>> 1, -1
         '''
 
+        allowed_fields = set(['sentiment', 'predicted'])
+        if sentiment_field not in allowed_fields:
+            raise ValueError('The `sentiment_field` has to be one of the '\
+                             'following values {} and not {}'\
+                             .format(allowed_fields, sentiment_field))
+
         if mapper is not None:
             if not isinstance(mapper, dict):
                 raise TypeError('The mapper has to be of type dict and not {}'\
@@ -324,10 +378,66 @@ class TargetCollection(MutableMapping):
                                      'key {} does not exist in the unique '\
                                      'sentiment values in the store {}'\
                                      .format(map_key, allowed_keys))
-            return [mapper[target_data['sentiment']]\
+            return [mapper[target_data[sentiment_field]]\
                     for target_data in self.values()]
 
-        return [target_data['sentiment'] for target_data in self.values()]
+        return [target_data[sentiment_field] for target_data in self.values()]
+
+    def add_pred_sent(self, sent_preds, mapper=None):
+        '''
+        :param sent_preds: A list of predicted sentiments for all Target \
+        instances stored.
+        :param mapper: A dictionary mapping the predicted sentiment to \
+        alternative values e.g. Integer values to String values.
+        :type sent_preds: list
+        :type mapper: dict
+        :returns: Nothing. Adds the predicted sentiments to the Target \
+        instances stored.
+        :rtype: None
+        '''
+        
+        if not isinstance(sent_preds, list):
+            raise TypeError('The predicted sentiments have to be of type list '\
+                            'not {}'.format(type(sent_preds)))
+        if len(sent_preds) != len(self):
+            raise ValueError('The length of the predicted sentiments {} is not '\
+                             'equal to the number Target instances stored {}'\
+                             .format(len(sent_preds), len(self)))
+        for index, target in enumerate(self.data()):
+            predicted_sent = sent_preds[index]
+            if mapper is not None:
+                predicted_sent = mapper[predicted_sent]
+            target_id = target['id']
+            self._storage[target_id]['predicted'] = predicted_sent
+
+    def confusion_matrix(self, plot=False, norm=False):
+        '''
+        :param plot: To return a heatmap of the confusion matrix.
+        :param norm: Normalise the values in the confusion matrix
+        :type plot: bool. Default False
+        :type norm: bool. Default False
+        :returns: A tuple of length two. 1. the confusion matrix \
+        2. The plot of the confusion matrix if plot is True else \
+        None.
+        :rtype: tuple
+        '''
+
+        sentiment_values = sorted(self.stored_sentiments())
+        true_values = self.sentiment_data()
+        pred_values = self.sentiment_data(sentiment_field='predicted')
+        conf_matrix = metrics.confusion_matrix(true_values, pred_values, 
+                                               labels=sentiment_values)
+        if norm:
+            conf_matrix = conf_matrix / conf_matrix.sum()
+        conf_matrix = pd.DataFrame(conf_matrix, columns=sentiment_values,
+                                   index=sentiment_values)
+        ax = None
+        if plot:
+            if norm:
+                ax = sns.heatmap(conf_matrix, annot=True, fmt='.2f')
+            else:
+                ax = sns.heatmap(conf_matrix, annot=True, fmt='d')
+        return conf_matrix, ax
 
     def __repr__(self):
         '''

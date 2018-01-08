@@ -120,6 +120,41 @@ class TestTarget(TestCase):
         self.assertEqual(False, test_equality, msg='Should not accept dicts '\
                          'even with the same minimum_keys')
 
+    def test_target_set(self):
+        '''
+        Tests Target set function
+        '''
+
+        # Test normal cases
+        target_example_int = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                    'text with Iphone', 1)
+        predicted_sentiment = 0
+        target_example_int['predicted'] = 0
+        self.assertEqual(predicted_sentiment, target_example_int['predicted'], 
+                         msg='Predicted sentiment value should be 0 and '\
+                         'not {}'.format(target_example_int['predicted']))
+        
+        target_example_string = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                       'text with Iphone', 'pos')
+        predicted_sentiment = 'neg'
+        target_example_string['predicted'] = 'neg'
+        self.assertEqual(predicted_sentiment, target_example_string['predicted'],
+                         msg='Predicted sentiment value should be `neg` and '\
+                         'not {}'.format(target_example_string['predicted']))
+
+        # Testing the errors
+        with self.assertRaises(KeyError, msg='Should not allow you to set keys '\
+                               'other than `predicted`'):
+            target_example_int['sentiment'] = 0
+        with self.assertRaises(TypeError, msg='Should not allow you to set '\
+                               'predicted sentiment to a data type that is not '\
+                               'the same as the sentiment value data type'):
+            target_example_int['predicted'] = 'pos'
+        with self.assertRaises(TypeError, msg='Should not allow you to set '\
+                               'predicted sentiment to a data type that is not '\
+                               'the same as the sentiment value data type'):
+            target_example_string['predicted'] = 1
+
 
 
 
@@ -329,12 +364,12 @@ class TestTarget(TestCase):
         test_sentiments = target_col_int.sentiment_data()
         valid_sentiments = [1, 1, -1]
         self.assertEqual(valid_sentiments, test_sentiments, msg='The Integer '\
-                         'sentiments returned for should be {} and not {}'\
+                         'sentiments returned should be {} and not {}'\
                          .format(valid_sentiments, test_sentiments))
         test_sentiments = target_col_str.sentiment_data()
         valid_sentiments = ['pos', 'pos', 'neg']
         self.assertEqual(valid_sentiments, test_sentiments, msg='The String '\
-                         'sentiments returned for should be {} and not {}'\
+                         'sentiments returned should be {} and not {}'\
                          .format(valid_sentiments, test_sentiments))
 
         # Testing the mapping function
@@ -365,3 +400,82 @@ class TestTarget(TestCase):
                                'in-correct mappings'):
             target_col_int.sentiment_data(mapper={1 : 'pos', -1 : 'neg',
                                                   0 : 'neu'})
+
+        # Testing the sentiment_field parameter
+        target_example_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                  'text with Iphone', 'pos', 'neg')
+        target_example_1 = Target([(1, 5)], '3', 'Iphone',
+                                  'text with Iphone', 'pos', 'neu')
+        target_example_2 = Target([(1, 2)], '2', 'Iphone',
+                                  'text with Iphone', 'neg', 'pos')
+        target_col = TargetCollection([target_example_0, target_example_1,
+                                       target_example_2])
+        test_sentiments = target_col.sentiment_data(sentiment_field='predicted')
+        valid_sentiments = ['neg', 'neu', 'pos']
+        self.assertEqual(valid_sentiments, test_sentiments, msg='The predicted '\
+                         'sentiments returned should be {} and not {}'\
+                         .format(valid_sentiments, test_sentiments))
+
+
+    def test_targetcoll_add_preds(self):
+        '''
+        Tests the add_pred_sent function of TargetCollection
+        '''
+        
+        target_example_int_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                  'text with Iphone', 1)
+        target_example_int_1 = Target([(1, 5)], '3', 'Iphone',
+                                  'text with Iphone', 1)
+        target_example_int_2 = Target([(1, 2)], '2', 'Iphone',
+                                  'text with Iphone', -1)
+        target_col_int = TargetCollection([target_example_int_0, 
+                                           target_example_int_1,
+                                           target_example_int_2])
+
+        target_example_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
+                                  'text with Iphone', 'pos')
+        target_example_1 = Target([(1, 5)], '3', 'Iphone',
+                                  'text with Iphone', 'pos')
+        target_example_2 = Target([(1, 2)], '2', 'Iphone',
+                                  'text with Iphone', 'neg')
+        target_col_str = TargetCollection([target_example_0, target_example_1,
+                                           target_example_2])
+
+        pred_sents = [2, 5, 4]
+        target_col_int.add_pred_sent(pred_sents)
+        self.assertEqual(5, target_col_int['3']['predicted'], msg='Predicted '\
+                         'sentiment not set correctly for `id` 3 should be 5 '\
+                         'and not {}'.format(target_col_int))
+        with self.assertRaises(KeyError, msg='The original Target instances '\
+                               'predicted sentiment should not be set as the '\
+                               'TargetCollection should have copied them.'):
+            target_example_int_1['predicted']
+
+        pred_sents = ['neg', 'neu', 'pos']
+        target_col_str.add_pred_sent(pred_sents)
+        self.assertEqual('neu', target_col_str['3']['predicted'], msg='Predicted '\
+                         'sentiment not set correctly for `id` 3 should be `neu` '\
+                         'and not {}'.format(target_col_str))
+        pred_sents = [1, 0, -1]
+        target_col_str.add_pred_sent(pred_sents, mapper={1 : 'pos', 0 : 'neu',
+                                                         -1 : 'neg'})
+        self.assertEqual('neu', target_col_str['3']['predicted'], msg='Predicted '\
+                         'sentiment not set correctly for `id` 3 should be `neu` '\
+                         'and not {} using the mapper'.format(target_col_str))
+
+        with self.assertRaises(KeyError, msg='The original Target instances '\
+                               'predicted sentiment should not be set as the '\
+                               'TargetCollection should have copied them.'):
+            target_example_1['predicted']
+
+        with self.assertRaises(TypeError, msg='Should only accept list type '\
+                               'not tuples'):
+            target_col_int.add_pred_sent((2, 5, 4))
+        with self.assertRaises(ValueError, msg='Should accept lists that are '\
+                               ' the same size as the TargetCollection'):
+            target_col_int.add_pred_sent([1, 2, 3, 4])
+        with self.assertRaises(TypeError, msg='When using the mapper should not '\
+                               'accept Strings when expecting Integer'):
+            target_col_int.add_pred_sent([1, 1, 0], mapper={1 : 'pos', 0: 'neg'})
+
+
