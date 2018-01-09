@@ -3,25 +3,26 @@ A set of functions which either produce contexts and related targets based on
 syntactic parsing. Or functions that create
 '''
 
+from tdparse.data_types import Target
+
 def target_normalisation(target_dict):
     '''
-    Given a target dictionary it normalises the target by removing whitespaces
+    Given a target instance it normalises the target by removing whitespaces
     between target words and inserting `_`. Then inserting the normalised word
     into where the target spans appear and adding whitespace around the target
     word incase other words are joined on. Returns the text with the inserted
     normalised words and the normalised target word.
 
-    :param target_dict: Dictionary containing at least `text`, `target` and \
-    `spans` keys with there respected values.
-    :type target_dict: dict
+    :param target_dict: target instance.
+    :type target_dict: Target
     :returns: Tuple of two Strings containing. Text with normalised targets and \
     the normalised target
     :rtype: tuple
     '''
 
-    if not isinstance(target_dict, dict):
-        raise TypeError('target_dict parameter has to be of type dict and not '\
-                        '{}'.format(type(target_dict)))
+    if not isinstance(target_dict, Target):
+        raise TypeError('target_dict parameter has to be of type Target and '\
+                        'not {}'.format(type(target_dict)))
 
     sorted_spans = sorted(target_dict['spans'], key=lambda span: span[0],
                           reverse=True)

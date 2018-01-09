@@ -5,6 +5,7 @@ annotated dataset are the following:
 1. `Li Dong <http://goo.gl/5Enpu7>`_ which links to :py:func:`tdparse.parsers.dong`
 2. Semeval parser
 '''
+import json
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -142,3 +143,136 @@ def semeval(file_path):
             sent_target = Target(**aspect)
             all_aspect_term_data.add(sent_target)
     return all_aspect_term_data
+
+def election(folder_path, include_dnr=False, include_additional=False):
+    '''
+    Data can be downloaded from 
+    `FigShare <https://figshare.com/articles/EACL_2017_-_Multi-target_\
+    UK_election_Twitter_sentiment_corpus/4479563/1>`_
+
+    :param folder_path: Path to the folder containing the data after it has \
+    been unziped and all folders within it have been unziped.
+    :type folder_path: String
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
+    '''
+
+    def get_file_data(folder_dir):
+        '''
+        :param folder_dir: File path to a folder containing JSON data files \
+        where the file names is the datas ID
+        :type folder_dir: String
+        :returns: A dictionary of IDs as keys and JSON data as values
+        :rtype: dict
+        '''
+
+        data = {}
+        for file_name in os.listdir(folder_dir):
+            file_path = os.path.join(folder_dir, file_name)
+            tweet_id = file_name.rstrip('.json').lstrip('5')
+            with open(file_path, 'r') as file_data:
+                data[tweet_id] = json.load(file_data)
+        return data
+
+    def parse_tweet(tweet_data, anno_data, tweet_id):
+
+        def get_offsets(entity, tweet_text, target):
+            offset_shifts = [0, -1, 1]
+            from_offset = entity['offset']
+            for offset_shift in offset_shifts:
+                from_offset_shift = from_offset + offset_shift
+                to_offset = from_offset_shift + len(target)
+                offsets = [(from_offset_shift, to_offset)]
+                offset_text = tweet_text[from_offset_shift : to_offset].lower()
+                if offset_text == target.lower():
+                    return offsets
+            raise ValueError('Offset {} does not match target text {}. Full '\
+                             'text {}\nid {}'\
+                             .format(from_offset, target, tweet_text, tweet_id))
+
+        def fuzzy_target_match(tweet_text, target):
+            low_target = target.lower()
+            target_searches = [low_target, '[^\w]' + low_target,
+                               '[^\w]' + low_target + '[^\w]',
+                               low_target + '[^\w]', 
+                               low_target.replace(' ', ''),
+                               low_target.replace(" '", '')]
+            for target_search in target_searches:
+                target_matches = list(re.finditer(target_search, 
+                                                  tweet_text.lower()))
+                if len(target_matches) == 1:
+                    return target_matches
+            if tweet_id in set(['81211671026352128', '78689580104290305',
+                                '81209490499960832']):
+                return None
+            if tweet_id == '75270720671973376' and target == 'kippers':
+                return None
+            if tweet_id == '65855178264686592' and target == 'tax':
+                return None
+            print(tweet_data)
+            print(anno_data)
+            raise ValueError('Cannot find the exact additional '\
+                             'entity {} within the tweet {}'\
+                             .format(target, tweet_text))
+
+
+
+        target_instances = []
+        tweet_id = str(tweet_id)
+        tweet_text = tweet_data['content']
+        target_ids = []
+        # Parse all of the entities that have been detected automatically
+        for entity in tweet_data['entities']:
+            data_dict = {}
+            target = entity['entity']
+            target_ids.append(entity['id'])
+            entity_id = str(entity['id'])
+            data_dict['spans'] = get_offsets(entity, tweet_text, target)
+            data_dict['target'] = entity['entity']
+            data_dict['target_id'] = tweet_id + '#' + entity_id
+            data_dict['sentence_id'] = tweet_id
+            data_dict['sentiment'] = anno_data['items'][entity_id]
+            if data_dict['sentiment'] == 'doesnotapply' and not include_dnr:
+                continue
+            data_dict['text'] = tweet_text
+            target_instances.append(Target(**data_dict))
+        # Parse all of the entities that have been selected by the user
+        if include_additional:
+            additional_data = anno_data['additional_items']
+            if isinstance(additional_data, dict):
+                for target, sentiment in additional_data.items():
+                    target_matches = fuzzy_target_match(tweet_text, target)
+                    if target_matches is None:
+                        continue
+                    target_id = max(target_ids) + 1
+                    target_ids.append(target_id)
+                    data_dict['spans'] = [target_matches[0].span()]
+                    data_dict['target'] = target
+                    data_dict['sentiment'] = sentiment
+                    data_dict['text'] = tweet_text
+                    data_dict['sentence_id'] = tweet_id
+                    data_dict['target_id'] = tweet_id + '#' + str(target_id)
+                    target_instances.append(Target(**data_dict))
+
+        return target_instances
+
+    def get_data(id_file, tweets_data, annos_data):
+        targets = []
+        with open(id_file, 'r') as id_data:
+            for tweet_id in id_data:
+                tweet_id = tweet_id.strip()
+                tweet_data = tweets_data[tweet_id]
+                anno_data = annos_data[tweet_id]
+                targets.extend(parse_tweet(tweet_data, anno_data, tweet_id))
+        return TargetCollection(targets)
+
+    folder_path = os.path.abspath(folder_path)
+    tweets_data = get_file_data(os.path.join(folder_path, 'tweets'))
+    annotations_data = get_file_data(os.path.join(folder_path, 'annotations'))
+
+    train_ids_file = os.path.join(folder_path, 'train_id.txt')
+    train_data = get_data(train_ids_file, tweets_data, annotations_data)
+    test_ids_file = os.path.join(folder_path, 'test_id.txt')
+    test_data = get_data(test_ids_file, tweets_data, annotations_data)
+
+    return train_data, test_data
