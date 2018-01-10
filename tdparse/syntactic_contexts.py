@@ -27,6 +27,10 @@ def target_normalisation(target_dict):
     sorted_spans = sorted(target_dict['spans'], key=lambda span: span[0],
                           reverse=True)
     norm_target = '_'.join(target_dict['target'].split())
+    # have to remove "'" and '"' or else the target gets tokenised on those
+    norm_target = norm_target.replace('"', '')
+    norm_target = norm_target.replace("'", '')
+
     org_text = target_dict['text']
     for start_index, end_index in sorted_spans:
         start_text = org_text[: start_index]
@@ -163,6 +167,8 @@ def dependency_context(target_dicts, parser, lower=False):
         rel_target = target_dicts[index]
         valid_num_targets = len(rel_target['spans'])
         if valid_num_targets != len(contexts):
+            #import code
+            #code.interact(local=locals())
             raise ValueError('The number of identified targets `{}` not equal '\
                              'to the number of targets in the data `{}`'\
                              .format(contexts, rel_target))

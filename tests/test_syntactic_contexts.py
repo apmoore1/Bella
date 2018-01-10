@@ -3,6 +3,7 @@ Unit test suite for the :py:mod:`tdparse.syntactic_contexts` module.
 '''
 from unittest import TestCase
 
+from tdparse.data_types import Target
 from tdparse.syntactic_contexts import context
 from tdparse.syntactic_contexts import target_normalisation
 from tdparse.syntactic_contexts import dependency_context
@@ -23,24 +24,25 @@ class TestTarget(TestCase):
                                'be of type dict only'):
             target_normalisation(['anything'])
 
-        test_values = [{'id':0,
+        test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
                         'Tweet!!!! and it was an awful ssNews Articless I think.',
                         'target':'news article',
-                        'spans':[[15, 27], [85, 97]]},
-                       {'id':1,
+                        'spans':[(15, 27), (85, 97)]},
+                       {'target_id':str(1),
                         'sentiment':1,
                         'text':'I had a great ssDay however I did not get much '\
                         'work done in the days',
                         'target':'day',
-                        'spans':[[16, 19], [64, 67]]}]
+                        'spans':[(16, 19), (64, 67)]}]
         valid_results = [('This is a fake news_article dd that is to represent a '\
                           'Tweet!!!! and it was an awful ss news_article ss I think.',
                           'news_article'),
                          ('I had a great ss day however I did not get much '\
                           'work done in the day s',
                           'day')]
+        test_values = [Target(**test_value) for test_value in test_values]
         for index, test_value in enumerate(test_values):
             test_result = target_normalisation(test_value)
             valid_result = valid_results[index]
@@ -53,33 +55,34 @@ class TestTarget(TestCase):
         '''
 
         # Test the normalise case
-        test_values = [{'id':0,
+        test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
                         'Tweet!!!! and it was an awful ssNews Articless I think.',
                         'target':'news article',
-                        'spans':[[15, 27], [85, 97]]},
-                       {'id':1,
+                        'spans':[(15, 27), (85, 97)]},
+                       {'target_id':str(1),
                         'sentiment':1,
                         'text':'I had a great ssDay however I did not get much '\
                         'work done in the days',
                         'target':'day',
-                        'spans':[[16, 19], [64, 67]]},
-                       {'id':2,
+                        'spans':[(16, 19), (64, 67)]},
+                       {'target_id':str(2),
                         'sentiment':1,
                         'text':'Ten pop star heartthrobe is all the rage on '\
                         'social media',
                         'target':'is',
-                        'spans':[[25, 27]]},
-                       {'id':3,
+                        'spans':[(25, 27)]},
+                       {'target_id':str(3),
                         'sentiment':1,
                         'text':'Ten pop star heartthrobe is all the rage on '\
                         'social media',
                         'target':'ten',
-                        'spans':[[0, 3]]}]
+                        'spans':[(0, 3)]}]
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
                          ['heartthrobe all Ten pop star rage on the media '\
                           'social'], ['']]
+        test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_relation_context(test_values, tweebo,
                                                    n_relations=(1, -1))
         for index, valid_result in enumerate(valid_results):
@@ -113,18 +116,18 @@ class TestTarget(TestCase):
         '''
 
         # Test the normalise case
-        test_values = [{'id':0,
+        test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
                         'Tweet!!!! and it was an awful ssNews Articless I think.',
                         'target':'news article',
-                        'spans':[[15, 27], [85, 97]]},
-                       {'id':1,
+                        'spans':[(15, 27), (85, 97)]},
+                       {'target_id':str(1),
                         'sentiment':1,
                         'text':'I had a great ssDay however I did not get much '\
                         'work done in the days',
                         'target':'day',
-                        'spans':[[16, 19], [64, 67]]}]
+                        'spans':[(16, 19), (64, 67)]}]
         valid_results = [[{'text' : 'This is a fake news_article',
                            'span' : [15, 27]},
                           {'text' : 'dd that is to represent a Tweet and it was '\
@@ -136,6 +139,7 @@ class TestTarget(TestCase):
                           {'text' : 'I had a great day however I did not get '\
                                     'much work done in the day',
                            'span' : [62, 65]}]]
+        test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
             test_result = test_results[index]
@@ -148,18 +152,18 @@ class TestTarget(TestCase):
                                  msg='spans are different correct `{}` test `{}`'\
                                      .format(valid_dict['span'], test_dict['span']))
         # Test the lower casing case
-        test_values = [{'id':0,
+        test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
                         'Tweet!!!! and it was an awful ssNews Articless I think.',
                         'target':'news article',
-                        'spans':[[15, 27], [85, 97]]},
-                       {'id':1,
+                        'spans':[(15, 27), (85, 97)]},
+                       {'target_id':str(1),
                         'sentiment':1,
                         'text':'I had a great ssDay however I did not get much '\
                         'work done in the days',
                         'target':'day',
-                        'spans':[[16, 19], [64, 67]]}]
+                        'spans':[(16, 19), (64, 67)]}]
         valid_results = [[{'text' : 'this is a fake news_article',
                            'span' : [15, 27]},
                           {'text' : 'dd that is to represent a tweet and it was '\
@@ -171,7 +175,31 @@ class TestTarget(TestCase):
                           {'text' : 'i had a great day however i did not get '\
                                     'much work done in the day',
                            'span' : [62, 65]}]]
+        test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo, lower=True)
+        for index, valid_result in enumerate(valid_results):
+            test_result = test_results[index]
+            for dict_index, valid_dict in enumerate(valid_result):
+                test_dict = test_result[dict_index]
+                self.assertEqual(valid_dict['text'], test_dict['text'],
+                                 msg='texts are different correct `{}` test `{}`'\
+                                     .format(valid_dict['text'], test_dict['text']))
+                self.assertEqual(valid_dict['span'], test_dict['span'],
+                                 msg='spans are different correct `{}` test `{}`'\
+                                     .format(valid_dict['span'], test_dict['span']))
+        # Test the case where the target is mentioned twice but is only relevant
+        # to one of the mentions
+        test_values = [{'target_id':str(1),
+                        'sentiment':1,
+                        'text':'I had a great ssDay however I did not get much '\
+                        'work done in the day',
+                        'target':'day',
+                        'spans':[(14, 17)]}]
+        valid_results = [[{'text' : 'I had a great day however I did not get '\
+                                    'much work done in the day',
+                           'span' : [14, 17]}]]
+        test_values = [Target(**test_value) for test_value in test_values]
+        test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
             test_result = test_results[index]
             for dict_index, valid_dict in enumerate(valid_result):
