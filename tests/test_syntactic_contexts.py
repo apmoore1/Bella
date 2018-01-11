@@ -38,10 +38,10 @@ class TestTarget(TestCase):
                         'spans':[(16, 19), (64, 67)]}]
         valid_results = [('This is a fake news_article dd that is to represent a '\
                           'Tweet!!!! and it was an awful ss news_article ss I think.',
-                          'news_article'),
+                          'news_article', [], 2),
                          ('I had a great ss day however I did not get much '\
                           'work done in the day s',
-                          'day')]
+                          'day', [0, 1], 1)]
         test_values = [Target(**test_value) for test_value in test_values]
         for index, test_value in enumerate(test_values):
             test_result = target_normalisation(test_value)
@@ -109,6 +109,24 @@ class TestTarget(TestCase):
             test_result = test_results[index]
             self.assertEqual(valid_result, test_result, msg='Incorrect context'\
                              ' correct {} test {}'.format(valid_result, test_result))
+
+        # Testing for when a sentence mentions the target more than onece but we 
+        # are only interested in the first mention
+        test_values = [{'target_id':str(1),
+                        'sentiment':1,
+                        'text':'I had a great ssDay however I did not get much '\
+                        'work done in the day',
+                        'target':'day',
+                        'spans':[(16, 19)]}]
+        valid_results = [['a great']]
+        test_values = [Target(**test_value) for test_value in test_values]
+        test_results = dependency_relation_context(test_values, tweebo,
+                                                   n_relations=(1, -1))
+        for index, valid_result in enumerate(valid_results):
+            test_result = test_results[index]
+            self.assertEqual(valid_result, test_result, msg='Incorrect context'\
+                             ' for more than one mention correct {} test {}'\
+                             .format(valid_result, test_result))
 
     def test_dependency_context(self):
         '''
@@ -194,7 +212,13 @@ class TestTarget(TestCase):
                         'text':'I had a great ssDay however I did not get much '\
                         'work done in the day',
                         'target':'day',
-                        'spans':[(14, 17)]}]
+                        'spans':[(16, 19)]},
+                        {'spans': [(64, 97)], 
+                         'target_id': '6541', 
+                         'target': 'Core Processing Unit temperatures', 
+                         'text': 'Temperatures on the outside were alright but i did '\
+                                 'not track in Core Processing Unit temperatures.', 
+                         'sentiment': 0}]
         valid_results = [[{'text' : 'I had a great day however I did not get '\
                                     'much work done in the day',
                            'span' : [14, 17]}]]
@@ -210,6 +234,8 @@ class TestTarget(TestCase):
                 self.assertEqual(valid_dict['span'], test_dict['span'],
                                  msg='spans are different correct `{}` test `{}`'\
                                      .format(valid_dict['span'], test_dict['span']))
+
+        Target()
     def test_context(self):
         '''
         Tests context
