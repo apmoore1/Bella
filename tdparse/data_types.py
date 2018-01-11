@@ -162,7 +162,7 @@ class Target(MutableMapping):
                 raise_type = True
         elif not isinstance(value, type(sent_value)):
             raise_type = True
-        
+
         if raise_type:
             raise TypeError('Value to be stored for the `predicted` sentiment '\
                             'has to be the same data type as the sentiment '\
@@ -408,7 +408,7 @@ class TargetCollection(MutableMapping):
         instances stored.
         :rtype: None
         '''
-        
+
         if not isinstance(sent_preds, list):
             raise TypeError('The predicted sentiments have to be of type list '\
                             'not {}'.format(type(sent_preds)))
@@ -469,7 +469,6 @@ class TargetCollection(MutableMapping):
         :returns: A subset based on the number of unique sentiments per sentence.
         :rtype: TargetCollection
         '''
-        
 
         def group_by_sentence():
             '''
@@ -489,7 +488,7 @@ class TargetCollection(MutableMapping):
             return sentence_targets
 
         all_relevent_targets = []
-        for sentence_id, targets in group_by_sentence().items():
+        for targets in group_by_sentence().values():
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
