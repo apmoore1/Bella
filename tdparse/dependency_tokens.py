@@ -245,7 +245,7 @@ class DependencyToken():
         if target_index != 0:
             num_previous_chars += target_index
         target_word = self.token
-        target_span = [num_previous_chars, num_previous_chars + len(target_word)]
+        target_span = (num_previous_chars, num_previous_chars + len(target_word))
         if connected_text[target_span[0] : target_span[1]] != target_word:
             raise ValueError('Cannot get the target word `{}` within the connected '\
                              'text `{}` this could be due to the connected words '\
