@@ -27,7 +27,7 @@ def dong(file_path):
     file_path = os.path.abspath(file_path)
     if not os.path.isfile(file_path):
         raise FileNotFoundError('This file does not exist {}'.format(file_path))
-
+    file_name, _ = os.path.splitext(os.path.basename(file_path))
     sentiment_range = [-1, 0, 1]
 
     sentiment_data = TargetCollection()
@@ -55,7 +55,11 @@ def dong(file_path):
                     offsets.extend([match.span()
                                     for match in re.finditer(joined_target, text)])
                 sent_dict['spans'] = offsets
-                sent_dict['target_id'] = str(len(sentiment_data))
+                sent_id = file_name + str(len(sentiment_data))
+                # Sentence ID is the same as the target as there is only one 
+                # target per sentence
+                sent_dict['sentence_id'] = sent_id
+                sent_dict['target_id'] = sent_id
                 sent_target = Target(**sent_dict)
                 sentiment_data.add(sent_target)
                 sent_dict = {}
@@ -94,8 +98,8 @@ def semeval(file_path):
             aspect_term_data['target_id'] = aspect_id
             aspect_term_data['target'] = aspect_term['term']
             aspect_term_data['sentiment'] = sentiment
-            aspect_term_data['spans'] = [(aspect_term['from'],
-                                          aspect_term['to'])]
+            aspect_term_data['spans'] = [(int(aspect_term['from']),
+                                          int(aspect_term['to']))]
             aspect_terms_data.append(aspect_term_data)
         return aspect_terms_data
     def add_text(aspect_data, text):
@@ -115,6 +119,9 @@ def semeval(file_path):
             data['text'] = text
         return aspect_data
 
+    file_path = os.path.abspath(file_path)
+    file_name, _ = os.path.splitext(os.path.basename(file_path))
+
     tree = ET.parse(file_path)
     sentences = tree.getroot()
     all_aspect_term_data = TargetCollection()
@@ -125,8 +132,10 @@ def semeval(file_path):
     for sentence in sentences:
         aspect_term_data = None
         text_index = None
-        sentence_id = sentence.attrib['id']
+        sentence_id = file_name + sentence.attrib['id']
         for index, data in enumerate(sentence):
+            if data.tag == 'sentence':
+                raise Exception(sentence.attrib['id'])
             if data.tag == 'text':
                 text_index = index
             elif data.tag == 'aspectTerms':
@@ -156,6 +165,9 @@ def election(folder_path, include_dnr=False, include_additional=False):
     :returns: A TargetCollection containing Target instances.
     :rtype: TargetCollection
     '''
+
+    folder_path = os.path.abspath(folder_path)
+    folder_name, _ = os.path.splitext(os.path.basename(folder_path))
 
     def get_file_data(folder_dir):
         '''
@@ -229,8 +241,8 @@ def election(folder_path, include_dnr=False, include_additional=False):
             entity_id = str(entity['id'])
             data_dict['spans'] = get_offsets(entity, tweet_text, target)
             data_dict['target'] = entity['entity']
-            data_dict['target_id'] = tweet_id + '#' + entity_id
-            data_dict['sentence_id'] = tweet_id
+            data_dict['target_id'] = folder_name + tweet_id + '#' + entity_id
+            data_dict['sentence_id'] = folder_name + tweet_id
             data_dict['sentiment'] = anno_data['items'][entity_id]
             if data_dict['sentiment'] == 'doesnotapply' and not include_dnr:
                 continue
@@ -266,7 +278,6 @@ def election(folder_path, include_dnr=False, include_additional=False):
                 targets.extend(parse_tweet(tweet_data, anno_data, tweet_id))
         return TargetCollection(targets)
 
-    folder_path = os.path.abspath(folder_path)
     tweets_data = get_file_data(os.path.join(folder_path, 'tweets'))
     annotations_data = get_file_data(os.path.join(folder_path, 'annotations'))
 
@@ -276,3 +287,93 @@ def election(folder_path, include_dnr=False, include_additional=False):
     test_data = get_data(test_ids_file, tweets_data, annotations_data)
 
     return train_data, test_data
+
+
+def hu_liu(file_path):
+    '''
+    Parser for the datasets from the following two papers (DOES NOT WORK):
+
+    1. `A Holistic Lexicon-Based Approach to Opinion Mining \
+    <https://www.cs.uic.edu/~liub/FBS/opinion-mining-final-WSDM.pdf>`_
+    2. `Mining and Summarizing Customer Reviews \
+    <https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf>`_
+
+    Currently this does not work. This is due to the dataset not containing 
+    enough data to determine where the targets are in the text.
+
+    :param file_path: The path to a file containing annotations in the format \
+    of hu and liu sentiment datasets.
+    :type file_path: String
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
+    '''
+    file_path = os.path.abspath(file_path)
+    file_name = os.path.basename(file_path)
+    sentiment_data = TargetCollection()
+
+    with open(file_path, 'r', encoding='cp1252') as annotations:
+        for sentence_index, annotation in enumerate(annotations):
+            # If it does not contain ## then not a sentence
+            if '##' not in annotation:
+                continue
+            targets_text = annotation.split('##')
+            if len(targets_text) > 2 or len(targets_text) < 1:
+                raise ValueError('The annotation {} when split on `##` should '\
+                                 'contain at least the sentence text and at'\
+                                 ' most the text and the targets and not {}'\
+                                 .format(annotation, targets_text))
+            # If it just contains the sentence text then go to next
+            elif len(targets_text) == 1:
+                continue
+            elif targets_text[0].strip() == '':
+                continue
+            targets, text = targets_text
+            targets = targets.strip()
+            text = text.strip()
+            sentence_id = file_name + '#{}'.format(sentence_index)
+
+            targets = targets.split(',')
+            for target_index, target in enumerate(targets):
+                target = target.strip()
+                sentiment_match = re.search(r'\[[+-]\d\]$', target)
+                is_implicit = re.search(r'\[[up]\]', target)
+                if is_implicit:
+                    print('Target {} is implicit {}'.format(target, text))
+                    continue
+                if not sentiment_match:
+                    raise ValueError('Target {} does not have a corresponding'\
+                                     ' sentiment value. annotation {}'\
+                                     .format(target, annotation))
+                target_text = target[:sentiment_match.start()].strip()
+                sentiment_text = sentiment_match.group().strip().strip('[]')
+                sentiment_value = int(sentiment_text)
+
+                target_matches = list(re.finditer(target_text, text))
+                if len(target_matches) != 1:
+                    print('The Target {} can only occur once in the '\
+                          'text {}'.format(target_text, text))
+                    continue
+                    raise ValueError('The Target {} can only occur once in the '\
+                                     'text {}'.format(target_text, text))
+                target_span = target_matches[0].span()
+                target_id = sentence_id + '#{}'.format(target_index)
+
+                data_dict = {}
+                data_dict['spans'] = [target_span]
+                data_dict['target'] = target_text
+                data_dict['sentiment'] = sentiment_value
+                data_dict['text'] = text
+                data_dict['sentence_id'] = sentence_id
+                data_dict['target_id'] = target_id
+                sentiment_data.add(Target(**data_dict))
+    return sentiment_data
+
+
+
+
+
+
+
+
+
+
