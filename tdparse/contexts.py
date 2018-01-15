@@ -47,8 +47,8 @@ def context(target_dict, specific_context, inc_target=False):
     spans = target_dict['spans']
     contexts = []
     for span in spans:
-        start_char = int(span[0])
-        end_char = int(span[1])
+        start_char = span[0]
+        end_char = span[1]
         if specific_context == 'left':
             if inc_target:
                 contexts.append(text[:end_char])
