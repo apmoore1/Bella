@@ -6,7 +6,16 @@ import re
 
 from tdparse.data_types import Target
 
-
+def normalise_target(target):
+    target = '_'.join([sub_target.capitalize() for sub_target in target.split()])
+    # Found that if there is more than one `_` then the Dependency tagger 
+    # can think it is more than one word sometimes
+    target_split = target.split('_', 1)
+    if len(target_split) == 2:
+        first_target, second_target = target_split
+        second_target = second_target.replace('_', '')
+        target = '{}_{}'.format(first_target, second_target)
+    return '${}$'.format(target)
 def target_normalisation(target_dict):
     '''
     Given a target instance it normalises the target by removing whitespaces
@@ -22,25 +31,6 @@ def target_normalisation(target_dict):
     :rtype: tuple
     '''
 
-    def candidate_target_spans(text, target, actual_target_spans):
-        all_cand_spans = [a_target.span() for a_target \
-                          in re.finditer(target.lower(), text.lower())]
-
-        all_cand_spans = set(sorted(all_cand_spans, key=lambda span: span[0]))
-        actual_target_spans = set(sorted(actual_target_spans, 
-                                         key=lambda span: span[0]))
-        order_actual_targets = []
-        matched_spans = set()
-        for index, cand_span in enumerate(all_cand_spans):
-            if cand_span in actual_target_spans:
-                order_actual_targets.append(index)
-                matched_spans.add(cand_span)
-        if matched_spans != actual_target_spans:
-            raise ValueError('Candiates target spans found {} but do not match '\
-                             'the actual target spans in the text {}'\
-                             .format(matched_spans, actual_target_spans))
-        return order_actual_targets
-
     if not isinstance(target_dict, Target):
         raise TypeError('target_dict parameter has to be of type Target and '\
                         'not {}'.format(type(target_dict)))
@@ -48,26 +38,18 @@ def target_normalisation(target_dict):
     sorted_spans = sorted(target_dict['spans'], key=lambda span: span[0],
                           reverse=True)
     org_text = target_dict['text']
-    org_target = target_dict['target']
-    target_order = []
-    if len(org_target.split()) == 1:
-        target_order = candidate_target_spans(org_text, org_target, 
-                                              sorted_spans)
+    target = target_dict['target']
 
-    org_target_split = org_target.split()
-    norm_target = '_'.join(org_target_split)
-    # have to remove "'" and '"' or else the target gets tokenised on those
-    norm_target = norm_target.replace('"', '')
-    norm_target = norm_target.replace("'", '')                     
-
+    # captalize each word in the target and remove whitespace
+    target = normalise_target(target)
     for start_index, end_index in sorted_spans:
         start_text = org_text[: start_index]
         end_text = org_text[end_index :]
-        start_text += ' ' + norm_target + ' '
+        start_text += ' {} '.format(target)
         org_text = start_text + end_text
     org_text = ' '.join(org_text.split())
 
-    return org_text, norm_target, target_order, len(org_target_split)
+    return org_text
 
 def normalise_context(target_dicts, lower):
     '''
@@ -88,19 +70,15 @@ def normalise_context(target_dicts, lower):
     # Normalise the target and text
     all_text = []
     all_norm_targets = []
-    target_orders = []
-    len_target_splits = []
     for target_dict in target_dicts:
-        target_data = target_normalisation(target_dict)
-        norm_text, norm_target, target_order, len_target_split = target_data
+        norm_target = target_dict['target']
+        norm_text = target_normalisation(target_dict)
         if lower:
             norm_text = norm_text.lower()
             norm_target = norm_target.lower()
         all_text.append(norm_text)
         all_norm_targets.append(norm_target)
-        target_orders.append(target_order)
-        len_target_splits.append(len_target_split)
-    return all_text, all_norm_targets, target_orders, len_target_splits
+    return all_text, all_norm_targets
 
 def dependency_relation_context(target_dicts, parser, lower=False,
                                 n_relations=(1, 1)):
@@ -127,47 +105,32 @@ def dependency_relation_context(target_dicts, parser, lower=False,
     :type lower: bool. Default False.
     :type n_relations: tuple. Default (1, 1).
     :returns: A list of a list of Strings where each String represents a specific \
-    target word within a target sentence dependecy related text at n_relations \
+    target word within a target sentence dependency related text at n_relations \
     depth.
     :rtype: list
     '''
 
     # Normalise the target and text
-    norm_data = normalise_context(target_dicts, lower)
-    all_text, all_norm_targets, target_orders, target_sizes = norm_data
+    norm_texts, norm_targets = normalise_context(target_dicts, lower)
     # Get contexts
-    all_dependency_tokens = parser(all_text)
+    all_dependency_tokens = parser(norm_texts)
     all_contexts = []
 
     for index, dependency_tokens in enumerate(all_dependency_tokens):
         contexts = []
-        norm_target = all_norm_targets[index]
-
-        if target_sizes[index] == 1:
-            target_order = target_orders[index]
-            count = 0
-            for dependency_token in dependency_tokens:
-                if dependency_token.token.lower() == norm_target.lower():
-                    if count in target_order:
-                        all_related_words = dependency_token\
-                                            .get_n_relations(n_relations)
-                        related_text = ' '.join(all_related_words)
-                        contexts.append(related_text)
-                    count += 1
-        else:
-            for dependency_token in dependency_tokens:
-                if dependency_token.token.lower() == norm_target.lower():
-                    all_related_words = dependency_token\
-                                        .get_n_relations(n_relations)
-                    related_text = ' '.join(all_related_words)
-                    contexts.append(related_text)
+        norm_target = norm_targets[index]
 
 
-        #for dependency_token in dependency_tokens:
-        #    if dependency_token.token.lower() == norm_target.lower():
-        #        all_related_words = dependency_token.get_n_relations(n_relations)
-        #        related_text = ' '.join(all_related_words)
-        #        contexts.append(related_text)
+        for dependency_token in dependency_tokens:
+            current_token = normalise_target(norm_target)
+            if lower:
+                current_token = current_token.lower()
+            if dependency_token.token == current_token:
+                all_related_words = dependency_token.get_n_relations(n_relations)
+                related_text = ' '.join(all_related_words)
+                related_text = related_text.replace(current_token, norm_target)
+                contexts.append(related_text)
+
         rel_target = target_dicts[index]
         valid_num_targets = len(rel_target['spans'])
         if valid_num_targets != len(contexts):
@@ -180,6 +143,70 @@ def dependency_relation_context(target_dicts, parser, lower=False,
                              'have a target {}'.format(rel_target))
         all_contexts.append(contexts)
     return all_contexts
+
+def text_and_span(text, target, current_token, target_span):
+
+    # Find the index of target with regards to the special token representing
+    # the target and other words in the text that are the target words as well
+    target_token_match_spans = []
+    escaped_targ_tok = re.escape(current_token)
+    targ_tok_queries = [r'^{}\s'.format(escaped_targ_tok), 
+                        r'\s{}$'.format(escaped_targ_tok), 
+                        r'^{}$'.format(escaped_targ_tok),
+                        r'\s{}\s'.format(escaped_targ_tok)]
+    search_queries = targ_tok_queries + [r'\s{}\s'.format(re.escape(target))]
+    for query_index, search_query in enumerate(search_queries):
+        for match in re.finditer(search_query, text):
+            span_match = match.span()
+            # Need to remove the whitespace tokens within the span match
+            if query_index == 0:
+                span_match = (0, span_match[1] - 1)
+            elif query_index == 1:
+                span_match = (span_match[0] + 1, span_match[1])
+            elif query_index == 2:
+                span_match = (0, span_match[1])
+            else:
+                span_match = (span_match[0] + 1, span_match[1] - 1)
+            target_token_match_spans.append(span_match)
+    if target_token_match_spans == []:
+        raise ValueError('There should be at least one Target Token `{}` in '\
+                         'the text `{}`'.format(current_token, text))
+    target_token_match_spans = sorted(target_token_match_spans, 
+                                      key=lambda span: span[0])
+
+    target_token_index = None
+    for index, match_span in enumerate(target_token_match_spans):
+        if match_span == target_span:
+            target_token_index = index
+    if target_token_index is None:
+        #import code
+        #code.interact(local=locals())
+        raise ValueError('Cannot find the related default TOKEN `{}` which '\
+                         'identifies the current target `{}` at span `{}` '\
+                         'in text `{}` candidate spans {}'\
+                         .format(current_token, target, target_span, text, 
+                                 target_token_match_spans))
+    updated_text = text
+    for targ_tok_pattern in targ_tok_queries:
+        updated_text = re.sub(targ_tok_pattern, ' {} '.format(target), updated_text)
+
+    match_count = 0
+    re_target_pattern = r'\s{}\s'.format(re.escape(target))
+    for index, match in enumerate(re.finditer(re_target_pattern, updated_text)):
+        if index == target_token_index:
+            span_match = match.span()
+            # Need to remove the whitespace tokens within the span match
+            updated_target_span = (span_match[0] + 1, span_match[1] - 1)
+        match_count += 1
+
+    org_match_count = len(target_token_match_spans)
+    if match_count != org_match_count:
+        raise ValueError('The number of target words `{}` are not equal to the'\
+                         'number that were converted `{}`. Text `{}` target `{}`'\
+                         .format(org_match_count, match_count, text, target))
+    return updated_text.strip(), updated_target_span
+
+
 
 def dependency_context(target_dicts, parser, lower=False):
     '''
@@ -209,32 +236,27 @@ def dependency_context(target_dicts, parser, lower=False):
     '''
 
     # Normalise the target and text
-    norm_data = normalise_context(target_dicts, lower)
-    all_text, all_norm_targets, target_orders, target_sizes = norm_data
+    norm_texts, norm_targets = normalise_context(target_dicts, lower)
     # Get contexts
-    all_dependency_tokens = parser(all_text)
+    all_dependency_tokens = parser(norm_texts)
     all_contexts = []
+
     for index, dependency_tokens in enumerate(all_dependency_tokens):
         contexts = []
-        norm_target = all_norm_targets[index]
-        if target_sizes[index] == 1:
-            target_order = target_orders[index]
-            count = 0
-            for dependency_token in dependency_tokens:
-                if dependency_token.token.lower() == norm_target.lower():
-                    if count in target_order:
-                        connected_text, target_span = dependency_token\
-                                                      .connected_target_span()
-                        contexts.append({'text' : connected_text, 
-                                         'span' : target_span})
-                    count += 1
-        else:
-            for dependency_token in dependency_tokens:
-                if dependency_token.token.lower() == norm_target.lower():
-                    connected_text, target_span = dependency_token\
-                                                  .connected_target_span()
-                    contexts.append({'text' : connected_text, 
-                                     'span' : target_span})
+        norm_target = norm_targets[index]
+
+
+        for dependency_token in dependency_tokens:
+            current_token = normalise_target(norm_target)
+            if lower:
+                current_token = current_token.lower()
+            if dependency_token.token == current_token:
+                connected_text, target_span = dependency_token\
+                                              .connected_target_span()
+                text_span = text_and_span(connected_text, norm_target,
+                                          current_token, target_span)
+                contexts.append({'text' : text_span[0],
+                                 'span' : text_span[1]})
         rel_target = target_dicts[index]
         valid_num_targets = len(rel_target['spans'])
         if valid_num_targets != len(contexts):
