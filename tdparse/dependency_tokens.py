@@ -35,13 +35,9 @@ class DependencyToken():
          either `CONNECTED` for connected words or `CURRENT` stating it is the \
          current token. All words are ordered by their occurence in the text. \
          The connected words are all words in the same dependecy tree.
-        :param connected_words: list of all syntactically connected words. This \
-        can be seen as getting all words in the dependecy graph that this token \
-        is within. It also includes the token, therefore if there are no \
-        words then it will just return the token in the list.
         :type token: String
         :type relations: dict
-        :type list:
+        :type connected_words: list
         :returns: Constructor
         :rtype: None
         '''
