@@ -207,7 +207,7 @@ class TestDependencyTokens(TestCase):
         token = 'nothing'
 
         valid_con_text = 'this nothing is an example'
-        valid_targ_span = [5, 12]
+        valid_targ_span = (5, 12)
 
         dep_token = DependencyToken(token, relations, connected_words)
         test_con_text, test_targ_span = dep_token.connected_target_span()
@@ -221,7 +221,7 @@ class TestDependencyTokens(TestCase):
                            ('is', 'CONNECTED'), ('an', 'CONNECTED'),
                            ('example', 'CONNECTED')]
         valid_con_text = 'nothing this is an example'
-        valid_targ_span = [0, 7]
+        valid_targ_span = (0, 7)
         dep_token = DependencyToken(token, relations, connected_words)
         test_con_text, test_targ_span = dep_token.connected_target_span()
         self.assertEqual(valid_con_text, test_con_text, msg='Connected words '\
@@ -234,7 +234,7 @@ class TestDependencyTokens(TestCase):
                            ('is', 'CONNECTED'), ('an', 'CONNECTED'),
                            ('nothing', 'CURRENT')]
         valid_con_text = 'example this is an nothing'
-        valid_targ_span = [19, 26]
+        valid_targ_span = (19, 26)
         dep_token = DependencyToken(token, relations, connected_words)
         test_con_text, test_targ_span = dep_token.connected_target_span()
         self.assertEqual(valid_con_text, test_con_text, msg='Connected words '\
@@ -247,7 +247,7 @@ class TestDependencyTokens(TestCase):
                            ('is', 'CONNECTED'), ('an', 'CONNECTED'),
                            ('nothing', 'CURRENT')]
         valid_con_text = 'example this is an nothing'
-        valid_targ_span = [19, 26]
+        valid_targ_span = (19, 26)
         dep_token = DependencyToken(token, relations, connected_words)
         with self.assertRaises(ValueError, msg='As the connected words have '\
                                'whitespace padding that should not exist'):
