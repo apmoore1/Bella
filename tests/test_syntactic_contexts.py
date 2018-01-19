@@ -10,6 +10,7 @@ from tdparse.syntactic_contexts import dependency_context
 from tdparse.syntactic_contexts import dependency_relation_context
 from tdparse.dependency_parsers import tweebo
 
+
 class TestTarget(TestCase):
     '''
     Contains the following functions:
@@ -23,6 +24,9 @@ class TestTarget(TestCase):
         with self.assertRaises(TypeError, msg='target_dict parameter has to '\
                                'be of type dict only'):
             target_normalisation(['anything'])
+
+        new_test_case = "#britneyspears Britney Spears 's new single -3' debuts "\
+                        "at #1: video: congratulations are in order .."
 
         test_values = [{'target_id':str(0),
                         'sentiment':-1,
@@ -52,12 +56,27 @@ class TestTarget(TestCase):
                         'text':'however I did not get much done in the day',
                         'target':'day',
                         'spans':[(39, 42)]},
-                       {'spans': [(47, 80)], 
-                         'target_id': '2', 
-                         'target': 'Core Processing Unit temperatures', 
-                         'text': 'Temperatures were ok but I was not tracking'\
-                                 ' in Core Processing Unit temperatures.', 
-                         'sentiment': 0}]
+                       {'spans': [(47, 80)],
+                        'target_id': '2',
+                        'target': 'Core Processing Unit temperatures',
+                        'text': 'Temperatures were ok but I was not tracking'\
+                                ' in Core Processing Unit temperatures.',
+                        'sentiment': 0},
+                       {'spans': [(1, 14), (15, 29)],
+                        'target_id': '8',
+                        'target': 'britney spears',
+                        'text': "#britneyspears Britney Spears 's new single "\
+                                "-3' debuts at #1: video: congratulations are "\
+                                "in order ..",
+                        'sentiment': 0},
+                       {'spans': [(39, 50), (53, 64)],
+                        'target_id': '9',
+                        'target': 'Sarah Palin',
+                        'text': "Letterman Apologizes to His Wife...and "\
+                                "Sarah Palin - Sarah Palin , I'm terribly, "\
+                                "terribly sorry. So there we g...",
+                        'sentiment': 0}
+                      ]
         valid_results = ['This is a fake {} dd that is to represent a '\
                          'Tweet!!!! and it was an awful {} ss I think.'\
                          .format('$News_Article$', '$News_Article$'),
@@ -71,14 +90,20 @@ class TestTarget(TestCase):
                          'however I did not get much done in the {}'\
                          .format('$Day$'),
                          'Temperatures were ok but I was not tracking'\
-                         ' in {} .'.format('$Core_ProcessingUnitTemperatures$')]
+                         ' in {} .'.format('$Core_ProcessingUnitTemperatures$'),
+                         "# {} {} 's new single -3' debuts at #1: video: "\
+                         "congratulations are in order .."\
+                         .format('$Britney_Spears$', '$Britney_Spears$'),
+                         "Letterman Apologizes to His Wife...and "\
+                         "{} - {} , I'm terribly, terribly sorry. So there "\
+                         "we g...".format("$Sarah_Palin$", "$Sarah_Palin$")]
         test_values = [Target(**test_value) for test_value in test_values]
         for index, test_value in enumerate(test_values):
             test_result = target_normalisation(test_value)
             valid_result = valid_results[index]
             self.assertEqual(valid_result, test_result, msg='Results is '\
-                             '{} and should be {}'\
-                             .format(test_result, valid_result))
+                             '{} and should be {}. Test value {}'\
+                             .format(test_result, valid_result, test_value))
     def test_dependency_relation_context(self):
         '''
         Tests dependency_relation_context
@@ -110,7 +135,7 @@ class TestTarget(TestCase):
                         'target':'ten',
                         'spans':[(0, 3)]}]
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
-                         ['on heartthrobe rage Ten pop star the media social all'], 
+                         ['on heartthrobe rage Ten pop star the media social all'],
                          ['']]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_relation_context(test_values, tweebo,
@@ -131,7 +156,7 @@ class TestTarget(TestCase):
 
         # Testing to ensure it will lower case the words before processing
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
-                         ['on heartthrobe rage ten pop star the media social all'], 
+                         ['on heartthrobe rage ten pop star the media social all'],
                          ['']]
         test_results = dependency_relation_context(test_values, tweebo, True,
                                                    (1, -1))
@@ -140,7 +165,7 @@ class TestTarget(TestCase):
             self.assertEqual(valid_result, test_result, msg='Incorrect context'\
                              ' correct {} test {}'.format(valid_result, test_result))
 
-        # Testing for when a sentence mentions the target more than onece but we 
+        # Testing for when a sentence mentions the target more than onece but we
         # are only interested in the first mention
         test_values = [{'target_id':str(1),
                         'sentiment':1,
@@ -175,18 +200,40 @@ class TestTarget(TestCase):
                         'text':'I had a great Day however I did not get much '\
                         'work done in the days',
                         'target':'day',
-                        'spans':[(14, 17), (62, 65)]}]
-        valid_results = [[{'text' : 'This is a fake news article',
-                           'span' : (15, 27)},
+                        'spans':[(14, 17), (62, 65)]},
+                       {'spans': [(1, 14), (15, 29)],
+                        'target_id': '8',
+                        'target': 'britney spears',
+                        'text': "#britneyspears Britney Spears 's new single "\
+                                "-3' debuts at #1: video: congratulations are "\
+                                "in order ..",
+                        'sentiment': 0},
+                       {'spans': [(39, 50), (53, 64)],
+                        'target_id': '9',
+                        'target': 'Sarah Palin',
+                        'text': "Letterman Apologizes to His Wife...and Sarah Palin - Sarah Palin , I'm terribly, terribly sorry. So there we g...",
+                                #"Sarah Palin - Sarah Palin , I'm terribly, "\
+                                #"terribly sorry. So there we g...",
+                        'sentiment': 0}]
+        valid_results = [[{'text' : 'This is a fake  news article  ',
+                           'span' : (16, 28)},
                           {'text' : 'dd that is to represent a Tweet and it was '\
-                                    'an awful news article',
-                           'span' : (52, 64)}],
-                         [{'text' : 'I had a great day however I did not get '\
-                                    'much work done in the day',
-                           'span' : (14, 17)},
-                          {'text' : 'I had a great day however I did not get '\
-                                    'much work done in the day',
-                           'span' : (62, 65)}]]
+                                    'an awful  news article  ',
+                           'span' : (53, 65)}],
+                         [{'text' : 'I had a great  day  however I did not get '\
+                                    'much work done in the  day  ',
+                           'span' : (15, 18)},
+                          {'text' : 'I had a great  day  however I did not get '\
+                                    'much work done in the  day  ',
+                           'span' : (65, 68)}],
+                         [{'text' : "  britney spears   britney spears  ",
+                           'span' : (2, 16)},
+                          {'text' : "  britney spears   britney spears  ",
+                           'span' : (19, 33)}],
+                         [{'text' : "Letterman Apologizes to His Wife and  Sarah Palin  ",
+                           'span' : (38, 49)},
+                          {'text' : "  Sarah Palin  ",
+                           'span' : (2, 13)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
@@ -198,7 +245,9 @@ class TestTarget(TestCase):
                                      .format(valid_dict['text'], test_dict['text']))
                 self.assertEqual(valid_dict['span'], test_dict['span'],
                                  msg='spans are different correct `{}` test `{}`'\
-                                     .format(valid_dict['span'], test_dict['span']))
+                                     ' text `{}`'.format(valid_dict['span'],
+                                                         test_dict['span'],
+                                                         test_dict['text']))
         # Test the lower casing case
         test_values = [{'target_id':str(0),
                         'sentiment':-1,
@@ -212,17 +261,17 @@ class TestTarget(TestCase):
                         'work done in the days',
                         'target':'day',
                         'spans':[(14, 17), (62, 65)]}]
-        valid_results = [[{'text' : 'this is a fake news article',
-                           'span' : (15, 27)},
+        valid_results = [[{'text' : 'this is a fake  news article  ',
+                           'span' : (16, 28)},
                           {'text' : 'dd that is to represent a tweet and it was '\
-                                    'an awful news article',
-                           'span' : (52, 64)}],
-                         [{'text' : 'i had a great day however i did not get '\
-                                    'much work done in the day',
-                           'span' : (14, 17)},
-                          {'text' : 'i had a great day however i did not get '\
-                                    'much work done in the day',
-                           'span' : (62, 65)}]]
+                                    'an awful  news article  ',
+                           'span' : (53, 65)}],
+                         [{'text' : 'i had a great  day  however i did not get '\
+                                    'much work done in the  day  ',
+                           'span' : (15, 18)},
+                          {'text' : 'i had a great  day  however i did not get '\
+                                    'much work done in the  day  ',
+                           'span' : (65, 68)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo, lower=True)
         for index, valid_result in enumerate(valid_results):
@@ -235,7 +284,7 @@ class TestTarget(TestCase):
                 self.assertEqual(valid_dict['span'], test_dict['span'],
                                  msg='spans are different correct `{}` test `{}`'\
                                      .format(valid_dict['span'], test_dict['span']))
-        # Test the case where the target is mentioned twice but is only relevant
+        # Test the case where the target is mentioned twice but only 1 is relevant
         # to one of the mentions
         test_values = [{'target_id':str(1),
                         'sentiment':1,
@@ -249,21 +298,21 @@ class TestTarget(TestCase):
                         'work done in the Day',
                         'target':'day',
                         'spans':[(14, 17)]},
-                        {'spans': [(47, 80)], 
-                         'target_id': '2', 
-                         'target': 'Core Processing Unit temperatures', 
+                        {'spans': [(47, 80)],
+                         'target_id': '2',
+                         'target': 'Core Processing Unit temperatures',
                          'text': 'Temperatures were ok but I was not tracking'\
-                                 ' in Core Processing Unit temperatures.', 
+                                 ' in Core Processing Unit temperatures.',
                          'sentiment': 0}]
-        valid_results = [[{'text' : 'I had a great day however I did not get '\
+        valid_results = [[{'text' : 'I had a great  day  however I did not get '\
                                     'much work done in the day',
-                           'span' : (14, 17)}],
-                          [{'text' : 'I had a great day however I did not get '\
+                           'span' : (15, 18)}],
+                          [{'text' : 'I had a great  day  however I did not get '\
                                      'much work done in the Day',
-                            'span' : (14, 17)}],
+                            'span' : (15, 18)}],
                           [{'text' : 'Temperatures were ok but I was not tracking'\
-                                     ' in Core Processing Unit temperatures',
-                            'span' : (47, 80)}]]
+                                     ' in  Core Processing Unit temperatures  ',
+                            'span' : (48, 81)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):

@@ -8,7 +8,7 @@ from tdparse.data_types import Target
 
 def normalise_target(target):
     target = '_'.join([sub_target.capitalize() for sub_target in target.split()])
-    # Found that if there is more than one `_` then the Dependency tagger 
+    # Found that if there is more than one `_` then the Dependency tagger
     # can think it is more than one word sometimes
     target_split = target.split('_', 1)
     if len(target_split) == 2:
@@ -150,8 +150,8 @@ def text_and_span(text, target, current_token, target_span):
     # the target and other words in the text that are the target words as well
     target_token_match_spans = []
     escaped_targ_tok = re.escape(current_token)
-    targ_tok_queries = [r'^{}\s'.format(escaped_targ_tok), 
-                        r'\s{}$'.format(escaped_targ_tok), 
+    targ_tok_queries = [r'^{}\s'.format(escaped_targ_tok),
+                        r'\s{}$'.format(escaped_targ_tok),
                         r'^{}$'.format(escaped_targ_tok),
                         r'\s{}\s'.format(escaped_targ_tok)]
     search_queries = targ_tok_queries + [r'\s{}\s'.format(re.escape(target))]
@@ -168,10 +168,11 @@ def text_and_span(text, target, current_token, target_span):
             else:
                 span_match = (span_match[0] + 1, span_match[1] - 1)
             target_token_match_spans.append(span_match)
+    print(target_token_match_spans)
     if target_token_match_spans == []:
         raise ValueError('There should be at least one Target Token `{}` in '\
                          'the text `{}`'.format(current_token, text))
-    target_token_match_spans = sorted(target_token_match_spans, 
+    target_token_match_spans = sorted(target_token_match_spans,
                                       key=lambda span: span[0])
 
     target_token_index = None
@@ -179,32 +180,37 @@ def text_and_span(text, target, current_token, target_span):
         if match_span == target_span:
             target_token_index = index
     if target_token_index is None:
-        #import code
-        #code.interact(local=locals())
+        import code
+        code.interact(local=locals())
         raise ValueError('Cannot find the related default TOKEN `{}` which '\
                          'identifies the current target `{}` at span `{}` '\
                          'in text `{}` candidate spans {}'\
-                         .format(current_token, target, target_span, text, 
+                         .format(current_token, target, target_span, text,
                                  target_token_match_spans))
     updated_text = text
     for targ_tok_pattern in targ_tok_queries:
-        updated_text = re.sub(targ_tok_pattern, ' {} '.format(target), updated_text)
-
+        updated_text = re.sub(targ_tok_pattern, '  {}  '.format(target), updated_text)
+    #import code
+    #code.interact(local=locals())
     match_count = 0
     re_target_pattern = r'\s{}\s'.format(re.escape(target))
+    print('`{}`'.format(updated_text))
+    print(list(re.finditer(re_target_pattern, updated_text)))
     for index, match in enumerate(re.finditer(re_target_pattern, updated_text)):
         if index == target_token_index:
             span_match = match.span()
             # Need to remove the whitespace tokens within the span match
             updated_target_span = (span_match[0] + 1, span_match[1] - 1)
         match_count += 1
+    print(updated_text)
+    print(updated_text.strip())
 
     org_match_count = len(target_token_match_spans)
     if match_count != org_match_count:
         raise ValueError('The number of target words `{}` are not equal to the'\
-                         'number that were converted `{}`. Text `{}` target `{}`'\
-                         .format(org_match_count, match_count, text, target))
-    return updated_text.strip(), updated_target_span
+                         'number that were converted `{}`. Text `{}` target `{}` {}'\
+                         .format(org_match_count, match_count, text, target, updated_text))
+    return updated_text, updated_target_span
 
 
 
@@ -253,6 +259,14 @@ def dependency_context(target_dicts, parser, lower=False):
             if dependency_token.token == current_token:
                 connected_text, target_span = dependency_token\
                                               .connected_target_span()
+                if dependency_token.token == '$Sarah_Palin$' \
+                and target_span==(37,50):
+                    import code
+                    code.interact(local=locals())
+                print('Target: {} Text: {} Target: {}'.format(norm_target,
+                                                              norm_texts[index],
+                                                              target_dicts[index]))
+                print('Connected text: {}'.format(connected_text))
                 text_span = text_and_span(connected_text, norm_target,
                                           current_token, target_span)
                 contexts.append({'text' : text_span[0],
