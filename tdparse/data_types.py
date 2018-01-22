@@ -229,6 +229,8 @@ class TargetCollection(MutableMapping):
     Target instances stored.
     6. confusion_matrix -- Returns the confusion matrix between the True and \
     predicted sentiment values.
+    7. subset_by_sentiment -- Creates a new TargetCollection based on the \
+    number of unique sentiments in a sentence.
     '''
 
     def __init__(self, list_of_target=None):
@@ -271,7 +273,7 @@ class TargetCollection(MutableMapping):
                            .format(key, self._storage[key], value))
         temp_value = copy.deepcopy(value)
         # As the id will be saved as the key no longer needed in the target
-        # instance (value). However if the key does not match the `target_id` 
+        # instance (value). However if the key does not match the `target_id`
         # raise KeyError
         if 'target_id' in value:
             if value['target_id'] != key:
@@ -438,7 +440,7 @@ class TargetCollection(MutableMapping):
         sentiment_values = sorted(self.stored_sentiments())
         true_values = self.sentiment_data()
         pred_values = self.sentiment_data(sentiment_field='predicted')
-        conf_matrix = metrics.confusion_matrix(true_values, pred_values, 
+        conf_matrix = metrics.confusion_matrix(true_values, pred_values,
                                                labels=sentiment_values)
         if norm:
             conf_matrix = conf_matrix / conf_matrix.sum()
@@ -455,10 +457,10 @@ class TargetCollection(MutableMapping):
     def subset_by_sentiment(self, num_unique_sentiments):
         '''
         Creates a subset based on the number of unique sentiment values per
-        sentence. E.g. if num_unique_sentiments = 2 then it will 
-        return all the Target instances where each target intance has at least 
-        two target instances per sentence and those targets can have only one 
-        of two sentiment values. This can be used to test how well a method 
+        sentence. E.g. if num_unique_sentiments = 2 then it will
+        return all the Target instances where each target intance has at least
+        two target instances per sentence and those targets can have only one
+        of two sentiment values. This can be used to test how well a method
         can extract exact sentiment information for the associated target.
 
         NOTE: Requires that all Target instances stored contain a sentence_id.
@@ -470,29 +472,71 @@ class TargetCollection(MutableMapping):
         :rtype: TargetCollection
         '''
 
-        def group_by_sentence():
-            '''
-            :returns: A dictionary of sentence_id as keys and a list of target \
-            instances that have the same sentence_id as values.
-            :rtype: defaultdict (default is list)
-            '''
 
-            sentence_targets = defaultdict(list)
-            for target in self.data():
-                if 'sentence_id' not in target:
-                    raise ValueError('A Target id instance {} does not have '\
-                                     'a sentence_id which is required.'\
-                                     .format(target))
-                sentence_id = target['sentence_id']
-                sentence_targets[sentence_id].append(target)
-            return sentence_targets
 
         all_relevent_targets = []
-        for targets in group_by_sentence().values():
+        for targets in self._group_by_sentence().values():
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
         return TargetCollection(all_relevent_targets)
+
+    # Not tested
+    def targets_per_sentence(self):
+        '''
+        :returns: Dictionary of number of targets as keys and values the number \
+        of sentences that have that many targets per sentence.
+        :rtype: dict
+
+        :Example:
+        If we have 5 sentences that contain 1 target each and 4 sentences that 
+        contain 3 targets each then it will return a dict like:
+        {1 : 5, 3 : 4}
+        '''
+
+        targets_sentence = {}
+        for targets in self._group_by_sentence().values():
+            num_targets = len(targets)
+            targets_sentence[num_targets] = targets_sentence.get(num_targets, 0) + 1
+        return targets_sentence
+
+    # Not tested
+    def avg_targets_per_sentence(self):
+        return len(self) / self.number_sentences()
+    # Not tested
+    def number_sentences(self):
+        return len(self._group_by_sentence())
+    # Not tested
+    def number_unique_targets(self):
+        target_count = {}
+        for target_instance in self.values():
+            target = target_instance['target']
+            target_count[target] = target_count.get(target, 0) + 1
+        return len(target_count)
+
+    def _group_by_sentence(self):
+        '''
+        :returns: A dictionary of sentence_id as keys and a list of target \
+        instances that have the same sentence_id as values.
+        :rtype: defaultdict (default is list)
+        '''
+
+        sentence_targets = defaultdict(list)
+        for target in self.data():
+            if 'sentence_id' not in target:
+                raise ValueError('A Target id instance {} does not have '\
+                                 'a sentence_id which is required.'\
+                                 .format(target))
+            sentence_id = target['sentence_id']
+            sentence_targets[sentence_id].append(target)
+        return sentence_targets
+
+    @staticmethod
+    def combine_collections(*args):
+        all_targets = []
+        for collections in args:
+            all_targets.extend(collections.data())
+        return TargetCollection(all_targets)
 
     def __eq__(self, other):
 
