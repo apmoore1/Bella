@@ -56,7 +56,7 @@ def dong(file_path):
                                     for match in re.finditer(joined_target, text)])
                 sent_dict['spans'] = offsets
                 sent_id = file_name + str(len(sentiment_data))
-                # Sentence ID is the same as the target as there is only one 
+                # Sentence ID is the same as the target as there is only one
                 # target per sentence
                 sent_dict['sentence_id'] = sent_id
                 sent_dict['target_id'] = sent_id
@@ -67,10 +67,21 @@ def dong(file_path):
                 raise Exception('Problem')
     return sentiment_data
 
-def semeval(file_path):
+
+
+
+def _semeval_extract_data(sentences, file_name, conflict=False,
+                          sentence_ids_skip=None):
     '''
-    :param file_path: File path to the semeval data
-    :type file_path: String
+    :param sentences: A `sentences` named element
+    :param file_name: Name of the file being parsed
+    :param conflict: Determine if to keep the target data that has a conflict \
+    sentiment label.
+    :param sentence_ids_skip: IDs of sentences that should be skipped
+    :type sentences: xml.etree.ElementTree.Element
+    :type file_name: String
+    :type conflict: bool. Defailt False
+    :type sentence_ids_skip: list. Default None
     :returns: A TargetCollection containing Target instances.
     :rtype: TargetCollection
     '''
@@ -78,6 +89,7 @@ def semeval(file_path):
     # Converts the sentiment tags from Strings to ints
     sentiment_mapper = {'conflict' : -2, 'negative' : -1,
                         'neutral' : 0, 'positive' : 1}
+
     def extract_aspect_terms(aspect_terms, sentence_id):
         '''
         :param aspect_terms: An aspectTerms element within the xml tree
@@ -94,14 +106,27 @@ def semeval(file_path):
             aspect_term = aspect_term.attrib
             aspect_term_data = {}
             sentiment = sentiment_mapper[aspect_term['polarity']]
+            if sentiment == -2 and not conflict:
+                continue
             aspect_id = '{}{}'.format(sentence_id, index)
             aspect_term_data['target_id'] = aspect_id
-            aspect_term_data['target'] = aspect_term['term']
+            if 'term' in aspect_term:
+                aspect_term_data['target'] = aspect_term['term']
+            elif 'target' in aspect_term:
+                aspect_term_data['target'] = aspect_term['target']
+            else:
+                raise KeyError('There is no `target` attribute in the opinions '\
+                               'element {}'.format(aspect_term))
             aspect_term_data['sentiment'] = sentiment
             aspect_term_data['spans'] = [(int(aspect_term['from']),
                                           int(aspect_term['to']))]
+            aspect_term_data['sentence_id'] = sentence_id
+            # If the target is NULL then there is no target
+            if aspect_term_data['target'] == 'NULL':
+                continue
             aspect_terms_data.append(aspect_term_data)
         return aspect_terms_data
+
     def add_text(aspect_data, text):
         '''
         :param aspect_data: A list of dicts containing `span`, `target` and \
@@ -119,33 +144,28 @@ def semeval(file_path):
             data['text'] = text
         return aspect_data
 
-    file_path = os.path.abspath(file_path)
-    file_name, _ = os.path.splitext(os.path.basename(file_path))
-
-    tree = ET.parse(file_path)
-    sentences = tree.getroot()
     all_aspect_term_data = TargetCollection()
-    if sentences.tag != 'sentences':
-        raise ValueError('The root of all semeval xml files should '\
-                         'be sentences and not {}'\
-                         .format(sentences.tag))
     for sentence in sentences:
         aspect_term_data = None
         text_index = None
         sentence_id = file_name + sentence.attrib['id']
+        # Allow the parser to skip certain sentences
+        if sentence_ids_skip is not None:
+            if sentence.attrib['id'] in sentence_ids_skip:
+                continue
         for index, data in enumerate(sentence):
             if data.tag == 'sentence':
                 raise Exception(sentence.attrib['id'])
             if data.tag == 'text':
                 text_index = index
-            elif data.tag == 'aspectTerms':
+            elif data.tag == 'aspectTerms' or data.tag == 'Opinions':
                 aspect_term_data = extract_aspect_terms(data, sentence_id)
         if aspect_term_data is None:
             continue
         if text_index is None:
             raise ValueError('A semeval sentence should always have text '\
                              'semeval file {} sentence id {}'\
-                             .format(file_path, sentence.attrib['id']))
+                             .format(file_name, sentence.attrib['id']))
         sentence_text = sentence[text_index].text
         aspect_term_data = add_text(aspect_term_data, sentence_text)
         for aspect in aspect_term_data:
@@ -153,19 +173,84 @@ def semeval(file_path):
             all_aspect_term_data.add(sent_target)
     return all_aspect_term_data
 
+
+def semeval_15_16(file_path, sep_16_from_15=False):
+    '''
+    Parser for the SemEval 2015 and 2016 datasets.
+
+    :param file_path: File path to the semeval 2014 data
+    :param sep_16_from_15: Ensure that the test sets of semeval 2016 is complete \
+    seperate from the semeval test set of 2015
+    :type file_path: String
+    :type sep_16_from_15: bool. Default False
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
+    '''
+
+    file_path = os.path.abspath(file_path)
+    file_name, _ = os.path.splitext(os.path.basename(file_path))
+
+    tree = ET.parse(file_path)
+    reviews = tree.getroot()
+    all_aspect_term_data = []
+    if reviews.tag != 'Reviews':
+        raise ValueError('The root of all semeval 15/16 xml files should '\
+                         'be reviews and not {}'\
+                         .format(reviews.tag))
+    for review in reviews:
+        review_id = review.attrib['rid']
+        for sentences in review:
+            if sep_16_from_15:
+                ids_to_skip = ["en_SnoozeanAMEatery_480032670:4"]
+                review_targets = _semeval_extract_data(sentences, file_name,
+                                                       sentence_ids_skip=ids_to_skip)
+                all_aspect_term_data.extend(review_targets.data())
+            else:
+                review_targets = _semeval_extract_data(sentences, file_name).data()
+                all_aspect_term_data.extend(review_targets)
+    return TargetCollection(all_aspect_term_data)
+
+def semeval_14(file_path, conflict=False):
+    '''
+    Parser for the SemEval 2014 datasets.
+
+    :param file_path: File path to the semeval 2014 data
+    :param conflict: determine if to include the conflict sentiment value
+    :type file_path: String
+    :type conflict: bool. Default False.
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
+    '''
+    file_path = os.path.abspath(file_path)
+    file_name, _ = os.path.splitext(os.path.basename(file_path))
+
+    tree = ET.parse(file_path)
+    sentences = tree.getroot()
+    if sentences.tag != 'sentences':
+        raise ValueError('The root of all semeval xml files should '\
+                         'be sentences and not {}'\
+                         .format(sentences.tag))
+    return _semeval_extract_data(sentences, file_name, conflict=conflict)
+
 def election(folder_path, include_dnr=False, include_additional=False):
     '''
-    Data can be downloaded from 
+    Data can be downloaded from
     `FigShare <https://figshare.com/articles/EACL_2017_-_Multi-target_\
     UK_election_Twitter_sentiment_corpus/4479563/1>`_
 
     :param folder_path: Path to the folder containing the data after it has \
     been unziped and all folders within it have been unziped.
+    :param include_dnr: determine if to include the `doesnotapply` label
+    :param include_additional: NOTE: This does not work at the moment. \
+    Determine if to parse the additional data.
     :type folder_path: String
+    :type include_dnr: bool. Default False
+    :type include_additional: bool. Default False
     :returns: A TargetCollection containing Target instances.
     :rtype: TargetCollection
     '''
 
+    sentiment_mapper = {'negative' : -1, 'neutral' : 0, 'positive' : 1}
     folder_path = os.path.abspath(folder_path)
     folder_name, _ = os.path.splitext(os.path.basename(folder_path))
 
@@ -204,13 +289,13 @@ def election(folder_path, include_dnr=False, include_additional=False):
 
         def fuzzy_target_match(tweet_text, target):
             low_target = target.lower()
-            target_searches = [low_target, '[^\w]' + low_target,
-                               '[^\w]' + low_target + '[^\w]',
-                               low_target + '[^\w]', 
+            target_searches = [low_target, r'[^\w]' + low_target,
+                               r'[^\w]' + low_target + r'[^\w]',
+                               low_target + r'[^\w]',
                                low_target.replace(' ', ''),
                                low_target.replace(" '", '')]
             for target_search in target_searches:
-                target_matches = list(re.finditer(target_search, 
+                target_matches = list(re.finditer(target_search,
                                                   tweet_text.lower()))
                 if len(target_matches) == 1:
                     return target_matches
@@ -246,6 +331,8 @@ def election(folder_path, include_dnr=False, include_additional=False):
             data_dict['sentiment'] = anno_data['items'][entity_id]
             if data_dict['sentiment'] == 'doesnotapply' and not include_dnr:
                 continue
+            # Convert from Strings to Integer 
+            data_dict['sentiment'] = sentiment_mapper[data_dict['sentiment']]
             data_dict['text'] = tweet_text
             target_instances.append(Target(**data_dict))
         # Parse all of the entities that have been selected by the user
@@ -298,7 +385,7 @@ def hu_liu(file_path):
     2. `Mining and Summarizing Customer Reviews \
     <https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf>`_
 
-    Currently this does not work. This is due to the dataset not containing 
+    Currently this does not work. This is due to the dataset not containing
     enough data to determine where the targets are in the text.
 
     :param file_path: The path to a file containing annotations in the format \
@@ -367,13 +454,3 @@ def hu_liu(file_path):
                 data_dict['target_id'] = target_id
                 sentiment_data.add(Target(**data_dict))
     return sentiment_data
-
-
-
-
-
-
-
-
-
-
