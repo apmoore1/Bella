@@ -25,9 +25,6 @@ class TestTarget(TestCase):
                                'be of type dict only'):
             target_normalisation(['anything'])
 
-        new_test_case = "#britneyspears Britney Spears 's new single -3' debuts "\
-                        "at #1: video: congratulations are in order .."
-
         test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
@@ -77,26 +74,25 @@ class TestTarget(TestCase):
                                 "terribly sorry. So there we g...",
                         'sentiment': 0}
                       ]
-        valid_results = ['This is a fake {} dd that is to represent a '\
-                         'Tweet!!!! and it was an awful {} ss I think.'\
-                         .format('$News_Article$', '$News_Article$'),
-                         'I had a great ss {} however I did not get much '\
-                         'work done in the {} s'\
-                         .format('$Day$', '$Day$'),
-                         'I had a great ss {} however I did not get much '\
-                         'work done in the days'.format('$Day$'),
-                         '{} however I did not get much done'\
-                         .format('$Day$'),
-                         'however I did not get much done in the {}'\
-                         .format('$Day$'),
-                         'Temperatures were ok but I was not tracking'\
-                         ' in {} .'.format('$Core_ProcessingUnitTemperatures$'),
-                         "# {} {} 's new single -3' debuts at #1: video: "\
-                         "congratulations are in order .."\
-                         .format('$Britney_Spears$', '$Britney_Spears$'),
-                         "Letterman Apologizes to His Wife...and "\
-                         "{} - {} , I'm terribly, terribly sorry. So there "\
-                         "we g...".format("$Sarah_Palin$", "$Sarah_Palin$")]
+        valid_results = [('This is a fake news_article dd that is to represent '\
+                          'a Tweet!!!! and it was an awful news_article ss I '\
+                          'think.', 'news_article'),
+                         ('I had a great ss day however I did not get much work'\
+                          ' done in the day s', 'day'),
+                         ('I had a great ss $day$ however I did not get much '\
+                          'work done in the days', '$day$'),
+                         ('day however I did not get much done', 'day'),
+                         ('however I did not get much done in the day',
+                          'day'),
+                         ('Temperatures were ok but I was not tracking in '\
+                          'Core_ProcessingUnittemperatures .',
+                          'Core_ProcessingUnittemperatures'),
+                         ("# britney_spears britney_spears 's new single "
+                          "-3' debuts at #1: video: congratulations are in order ..",
+                          'britney_spears'),
+                         ("Letterman Apologizes to His Wife...and Sarah_Palin"\
+                          " - Sarah_Palin , I'm terribly, terribly sorry. "\
+                          "So there we g...", 'Sarah_Palin')]
         test_values = [Target(**test_value) for test_value in test_values]
         for index, test_value in enumerate(test_values):
             test_result = target_normalisation(test_value)
@@ -188,7 +184,7 @@ class TestTarget(TestCase):
         Tests dependency_context
         '''
 
-        # Test the normalise case
+        # Test the multiple span cases
         test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
@@ -211,29 +207,105 @@ class TestTarget(TestCase):
                        {'spans': [(39, 50), (53, 64)],
                         'target_id': '9',
                         'target': 'Sarah Palin',
-                        'text': "Letterman Apologizes to His Wife...and Sarah Palin - Sarah Palin , I'm terribly, terribly sorry. So there we g...",
-                                #"Sarah Palin - Sarah Palin , I'm terribly, "\
-                                #"terribly sorry. So there we g...",
+                        'text': "Letterman Apologizes to His Wife...and Sarah "\
+                                "Palin - Sarah Palin , I'm terribly, terribly "\
+                                "sorry. So there we g...",
+                        'sentiment': 0},
+                       {'spans': [(5, 14)],
+                        'target_id': '9',
+                        'target': 'wait time',
+                        'text': "less wait time for me!",
+                        'sentiment': 0},
+                       {'spans': [(81, 91)],
+                        'target_id': '9',
+                        'target': '@RichardWS',
+                        'text': "Lower taxes rendered null & void with the "\
+                                "planned increase in VAT by the tories. "\
+                                "@RichardWS #battlefornumber10 @RichardWS",
+                        'sentiment': 0},
+                       {'spans': [(46, 57)],
+                        'target_id': '9',
+                        'target': '@Shaun_XL5:',
+                        'text': "< My main #GE2015 policy worry is now defence "\
+                                "@Shaun_XL5: I think we need Nato target of 2% "\
+                                "GDP with hardcore auditing  @paullewismoney",
+                        'sentiment': 0},
+                       {'spans': [(102, 119)],
+                        'target_id': '9',
+                        'target': 'first-time buyers',
+                        'text': "Despite spin, no new government money for "\
+                                "#housing: transferring resources from affordable"\
+                                " renting to first-time buyers. #GE2015 #GE15",
+                        'sentiment': 0},
+                       {'spans': [(130, 140)],
+                        'target_id': '9',
+                        'target': '@UNICEF_uk!',
+                        'text': "Violence against children around the world is "\
+                                "like a hidden epidemic. Michael Sheen talking "\
+                                "well abt SDGs on #marrshow Nice work @UNICEF_uk!",
+                        'sentiment': 0},
+                       {'spans': [(21, 32)],
+                        'target_id': '9',
+                        'target': 'Tony #Blair',
+                        'text': "Corrupt war criminal Tony #Blair's rats are "\
+                                "running amok inside Labour today. If I was "\
+                                "thinking of voting Labour today. I'd stop. #GE15",
+                        'sentiment': 0},
+                       {'spans': [(39, 49)],
+                        'target_id': '9',
+                        'target': '@UKLabour;',
+                        'text': "Day 1 of #GE2015 & I'm already sick of "\
+                                "@UKLabour; their lies & their forgetfulness. "\
+                                "Whose policies created the need for austerity?"\
+                                " Yes. Lab!",
+                        'sentiment': 0},
+                       {'spans': [(33, 46)],
+                        'target_id': '9',
+                        'target': '@GrantShapps’',
+                        'text': "Lest Cameron forgets: Police say @GrantShapps’ "\
+                                "firm sales “may constitute offence of fraud” "\
+                                "#bbcdp #pmqs : http://t.co/Gu9Ke6sRtX",
                         'sentiment': 0}]
-        valid_results = [[{'text' : 'This is a fake  news article  ',
-                           'span' : (16, 28)},
+        valid_results = [[{'text' : 'This is a fake news article',
+                           'span' : (15, 27)},
                           {'text' : 'dd that is to represent a Tweet and it was '\
-                                    'an awful  news article  ',
-                           'span' : (53, 65)}],
-                         [{'text' : 'I had a great  day  however I did not get '\
-                                    'much work done in the  day  ',
-                           'span' : (15, 18)},
-                          {'text' : 'I had a great  day  however I did not get '\
-                                    'much work done in the  day  ',
-                           'span' : (65, 68)}],
-                         [{'text' : "  britney spears   britney spears  ",
-                           'span' : (2, 16)},
-                          {'text' : "  britney spears   britney spears  ",
-                           'span' : (19, 33)}],
-                         [{'text' : "Letterman Apologizes to His Wife and  Sarah Palin  ",
-                           'span' : (38, 49)},
-                          {'text' : "  Sarah Palin  ",
-                           'span' : (2, 13)}]]
+                                    'an awful news article',
+                           'span' : (52, 64)}],
+                         [{'text' : 'I had a great day however I did not get '\
+                                    'much work done in the day',
+                           'span' : (14, 17)},
+                          {'text' : 'I had a great day however I did not get '\
+                                    'much work done in the day',
+                           'span' : (62, 65)}],
+                         [{'text' : "britney spears britney spears",
+                           'span' : (0, 14)},
+                          {'text' : "britney spears britney spears",
+                           'span' : (15, 29)}],
+                         [{'text' : "Letterman Apologizes to His Wife and Sarah "\
+                                    "Palin Sarah Palin I'm terribly",
+                           'span' : (37, 48)},
+                          {'text' : "Letterman Apologizes to His Wife and Sarah "\
+                                    "Palin Sarah Palin I'm terribly",
+                           'span' : (49, 60)}],
+                         [{'text' : 'less wait time for me',
+                           'span' : (5, 14)}],
+                         [{'text' : '@RichardWS',
+                           'span' : (0, 10)}],
+                         [{'text' : "My main #GE2015 policy worry is now defence"\
+                                    " @Shaun_XL5:", 'span' : (44, 55)}],
+                         [{'text' : "transferring resources from affordable "\
+                                    "renting to first-time buyers",
+                           'span' : (50, 67)}],
+                         [{'text' : "@UNICEF_uk!", 'span' : (0, 11)}],
+                         [{'text' : "criminal Tony #Blair",
+                           'span' : (9, 20)}],
+                         [{'text' : "Day 1 of #GE2015 & I'm already sick of "\
+                                    "@UKLabour; their lies & their forgetfulness",
+                           'span' : (39, 49)}],
+                         [{'text' : "Lest Cameron forgets Police say "\
+                                    "@GrantShapps’ firm sales",
+                           'span' : (32, 45)}]]
+
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
@@ -248,12 +320,18 @@ class TestTarget(TestCase):
                                      ' text `{}`'.format(valid_dict['span'],
                                                          test_dict['span'],
                                                          test_dict['text']))
-        # Test the lower casing case
+        # Test the lower casing case of the text and if the target is upper case
         test_values = [{'target_id':str(0),
                         'sentiment':-1,
                         'text':'This is a fake news articledd that is to represent a '\
                         'Tweet!!!! and it was an awful News Articless I think.',
                         'target':'news article',
+                        'spans':[(15, 27), (83, 95)]},
+                       {'target_id':str(0),
+                        'sentiment':-1,
+                        'text':'This is a fake news articledd that is to represent a '\
+                        'Tweet!!!! and it was an awful News Articless I think.',
+                        'target':'News Article',
                         'spans':[(15, 27), (83, 95)]},
                        {'target_id':str(1),
                         'sentiment':1,
@@ -261,17 +339,22 @@ class TestTarget(TestCase):
                         'work done in the days',
                         'target':'day',
                         'spans':[(14, 17), (62, 65)]}]
-        valid_results = [[{'text' : 'this is a fake  news article  ',
-                           'span' : (16, 28)},
+        valid_results = [[{'text' : 'this is a fake news article',
+                           'span' : (15, 27)},
                           {'text' : 'dd that is to represent a tweet and it was '\
-                                    'an awful  news article  ',
-                           'span' : (53, 65)}],
-                         [{'text' : 'i had a great  day  however i did not get '\
-                                    'much work done in the  day  ',
-                           'span' : (15, 18)},
-                          {'text' : 'i had a great  day  however i did not get '\
-                                    'much work done in the  day  ',
-                           'span' : (65, 68)}]]
+                                    'an awful news article',
+                           'span' : (52, 64)}],
+                         [{'text' : 'this is a fake news article',
+                           'span' : (15, 27)},
+                          {'text' : 'dd that is to represent a tweet and it was '\
+                                    'an awful news article',
+                           'span' : (52, 64)}],
+                         [{'text' : 'i had a great day however i did not get '\
+                                    'much work done in the day',
+                           'span' : (14, 17)},
+                          {'text' : 'i had a great day however i did not get '\
+                                    'much work done in the day',
+                           'span' : (62, 65)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo, lower=True)
         for index, valid_result in enumerate(valid_results):
@@ -303,16 +386,22 @@ class TestTarget(TestCase):
                          'target': 'Core Processing Unit temperatures',
                          'text': 'Temperatures were ok but I was not tracking'\
                                  ' in Core Processing Unit temperatures.',
-                         'sentiment': 0}]
-        valid_results = [[{'text' : 'I had a great  day  however I did not get '\
+                         'sentiment': 0},
+                        {'text' : 'I also recommend the rice dishes or the different varieties of congee (rice porridge).',
+                         'spans' : [(63, 85)],
+                         'target_id' : '4',
+                         'target' : 'congee (rice porridge)',
+                         'sentiment' : 1}]
+        valid_results = [[{'text' : 'I had a great day however I did not get '\
                                     'much work done in the day',
-                           'span' : (15, 18)}],
-                          [{'text' : 'I had a great  day  however I did not get '\
+                           'span' : (14, 17)}],
+                          [{'text' : 'I had a great day however I did not get '\
                                      'much work done in the Day',
-                            'span' : (15, 18)}],
+                            'span' : (14, 17)}],
                           [{'text' : 'Temperatures were ok but I was not tracking'\
-                                     ' in  Core Processing Unit temperatures  ',
-                            'span' : (48, 81)}]]
+                                     ' in Core Processing Unit temperatures',
+                            'span' : (47, 80)}],
+                          [{'text' : 'I also recommend the rice dishes or the different varieties of congee (rice porridge)', 'span' : (63, 85)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
@@ -329,7 +418,6 @@ class TestTarget(TestCase):
         '''
         Tests context
         '''
-
         def test_contexts(all_valid_results, all_test_results):
             '''
             :param all_valid_results: A list of a list of Strings that are the \
