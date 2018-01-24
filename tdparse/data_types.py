@@ -206,6 +206,11 @@ class Target(MutableMapping):
                 if not self[key] == other[key]:
                     return False
         return True
+    def __array__(self):
+        '''
+        Function for converting it to a numpy array
+        '''
+        return np.asarray(dict(self))
 
 class TargetCollection(MutableMapping):
     '''
@@ -332,6 +337,20 @@ class TargetCollection(MutableMapping):
             data_dict = {**target_data}
             data_dict['target_id'] = _id
             _data.append(Target(**data_dict))
+        return _data
+
+    def data_dict(self):
+        '''
+        :returns: Same as the data function but returns dicts instead of \
+        Targets
+        :rtype: list
+        '''
+
+        _data = []
+        for _id, target_data in self.items():
+            data_dict = {**target_data}
+            data_dict['target_id'] = _id
+            _data.append(data_dict)
         return _data
 
     def stored_sentiments(self):
@@ -489,7 +508,7 @@ class TargetCollection(MutableMapping):
         :rtype: dict
 
         :Example:
-        If we have 5 sentences that contain 1 target each and 4 sentences that 
+        If we have 5 sentences that contain 1 target each and 4 sentences that
         contain 3 targets each then it will return a dict like:
         {1 : 5, 3 : 4}
         '''

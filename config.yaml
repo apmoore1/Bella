@@ -7,6 +7,12 @@ semeval_2014_rest_train: ../aspect datasets/semeval_2014/restaurants_train.xml
 semeval_2014_lap_train: ../aspect datasets/semeval_2014/laptop_train.xml
 semeval_2014_rest_test: ../aspect datasets/semeval_2014/restaurants_test.xml
 semeval_2014_lap_test: ../aspect datasets/semeval_2014/laptop_test.xml
+semeval_2015_rest_test: ../aspect datasets/semeval_2015/restaurants_test.xml
+semeval_2016_rest_test: ../aspect datasets/semeval_2016/restaurants_test.xml
+election_folder_dir: ../aspect datasets/election_data_bo_wang
+product_reviews_dir: ../aspect datasets/product_reviews
+youtubean: ../aspect datasets/youtubean/samsung_galaxy_s5.xml
+
 
 #
 # Word vector paths
