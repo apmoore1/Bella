@@ -1,12 +1,21 @@
+import random as rn
+import os
+import tempfile
+
 import numpy as np
+import tensorflow as tf
 import keras
+from keras import backend as K
 from keras import preprocessing, models, optimizers, initializers
 from keras.layers import Dense, LSTM, Input, Embedding
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
+
 class TLSTM():
     def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
-                 lstm_dimension=None, optimiser=None, patience=5):
+                 lstm_dimension=None, optimiser=None, patience=None,
+                 batch_size=32, epochs=100):
         '''
         :param tokeniser: The tokeniser function to tokenise the text.
         :param embeddings: The embeddings to use
@@ -17,11 +26,21 @@ class TLSTM():
         :param lstm_dimension: Output of the LSTM layer. If None it is the \
         which is the default then the dimension will be the same as the \
         embedding vector.
+        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
+        `keras optimiser <https://keras.io/optimizers/>`_.
+        :param patience: Wether or not to use EarlyStopping default is not \
+        stated by the None value. If so this is the patience value e.g. 5.
+        :param batch_size: Number of samples per gradient update
+        :param epochs: Number of epochs to train the model.
         :type tokeniser: function
         :type embeddings: :py:class:`tdparse.word_vectors.WordVectors` instance
         :type pad_size: int. Default -1
         :type lower: bool. Default False
         :type lstm_dimension: int. Default None
+        :type optimiser: Keras optimiser. Default None which uses SDG.
+        :type patience: int. Default None.
+        :type batch_size: int. Default 32
+        :type epochs: int. Default 100.
         :returns: The instance of LSTM
         :rtype: :py:class:`tdparse.models.tdlstm.LSTM`
         '''
@@ -39,6 +58,8 @@ class TLSTM():
         if optimiser is not None:
             self.optimiser = optimiser
         self.patience = patience
+        self.batch_size = batch_size
+        self.epochs = epochs
 
     def process_text(self, texts, max_length, padding='pre', truncate='pre'):
         '''
@@ -164,7 +185,15 @@ class TLSTM():
 
     @staticmethod
     def cross_val(train_data, train_y, lstm_model,
-                  validation_size=0.2, cv=5, scorer=None):
+                  validation_size=0.2, cv=5, scorer=None,
+                  reproducible=True):
+        '''
+        :param train_data: Training features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :param train_y: Target values of the training data
+        :param lstm_model: Model that has a fit and predict function
+        :param valida
+        '''
         splitter = StratifiedKFold(n_splits=cv)
         train_data = np.asarray(train_data)
         train_y = np.asarray(train_y)
@@ -175,13 +204,14 @@ class TLSTM():
             temp_train_y = train_y[train_index]
             temp_test_data = train_data[test_index]
             temp_test_y = train_y[test_index]
-            lstm_model.fit(temp_train_data, temp_train_y, 
-                           validation_size=validation_size)
+            lstm_model.fit(temp_train_data, temp_train_y,
+                           validation_size=validation_size,
+                           reproducible=reproducible)
             predictions = lstm_model.predict(temp_test_data)
             predictions = np.argmax(predictions, axis=1)
             if scorer is not None:
                 num_classes = np.unique(predictions).shape[0]
-                temp_test_y = keras.utils.to_categorical(temp_test_y, 
+                temp_test_y = keras.utils.to_categorical(temp_test_y,
                                                          num_classes=num_classes)
                 temp_test_y = np.argmax(temp_test_y, axis=1)
                 scores.append(scorer(temp_test_y, predictions))
@@ -191,7 +221,8 @@ class TLSTM():
 
 
 
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=1):
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+            reproducible=True, embedding_layer_trainable=False):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
@@ -200,15 +231,29 @@ class TLSTM():
         for validation data
         :param verbose: Verbosity of the traning the model. 0=silent, \
         1=progress bar, and 2=one line per epoch
+        :param reproducible: Wether or not to make the model to be reproducible. \
+        This will slow done the training.
         :type train_data: list
         :type train_y: list
         :type validation_size: float. Default 0.2
         :type verbose: int. Default 1
+        :type reproducible: bool. Default True.
         :returns: Nothing. The self.model will be fitted.
         :rtype: None
         '''
 
         self.model = None
+        if reproducible:
+            os.environ['PYTHONHASHSEED'] = '0'
+            np.random.seed(42)
+            rn.seed(42)
+            # Forces tensorflow to use only one thread
+            session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+                                          inter_op_parallelism_threads=1)
+            tf.set_random_seed(1234)
+
+            sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+            K.set_session(sess)
 
         # Data pre-processing
         all_data, all_y = self.create_training_data(train_data, train_y,
@@ -221,20 +266,32 @@ class TLSTM():
         input_layer = Input(shape=(self.test_pad_size,))
         embedding_layer = Embedding(input_dim=vocab_size, output_dim=vector_size,
                                     input_length=self.test_pad_size,
+                                    trainable=embedding_layer_trainable,
                                     weights=[embedding_matrix])(input_layer)
         lstm_layer = LSTM(self.lstm_dimension)(embedding_layer)
         predictions = Dense(num_classes, activation='softmax')(lstm_layer)
         model = models.Model(inputs=input_layer, outputs=predictions)
 
-        # Model configuration
-        model.compile(optimizer=self.optimiser,
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
-        early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                       patience=self.patience)
-        model.fit(all_data, all_y, validation_split=validation_size,
-                  epochs=100, callbacks=[early_stopping],
-                  verbose=verbose)
+        model.compile(optimizer=self.optimiser, metrics=['accuracy'],
+                      loss='categorical_crossentropy')
+        with tempfile.NamedTemporaryFile() as weight_file:
+            # Set up the callbacks
+            callbacks = None
+            if self.patience is not None:
+                model_checkpoint = ModelCheckpoint(weight_file.name,
+                                                   monitor='val_loss',
+                                                   save_best_only=True,
+                                                   save_weights_only=True,
+                                                   mode='min')
+                early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                               patience=self.patience)
+                callbacks = [early_stopping, model_checkpoint]
+            model.fit(all_data, all_y, validation_split=validation_size,
+                      epochs=self.epochs, callbacks=callbacks,
+                      verbose=verbose, batch_size=self.batch_size)
+            # Load the best model from the saved weight file
+            if self.patience is not None:
+                model.load_weights(weight_file.name)
         self.model = model
 
     def predict(self, test_data):
