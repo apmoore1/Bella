@@ -197,7 +197,7 @@ class WordVectors(object):
         index_vector[0] = self.unknown_vector
         return index_vector
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     def _unknown_vector(self):
