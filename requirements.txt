@@ -13,6 +13,7 @@ entrypoints==0.2.3
 enum34==1.1.6
 ftfy==5.2.0
 gensim==3.0.1
+graphviz==0.8.2
 h5py==2.7.1
 html5lib==0.9999999
 idna==2.6
@@ -56,6 +57,7 @@ prompt-toolkit==1.0.15
 protobuf==3.5.0.post1
 ptyprocess==0.5.2
 py==1.4.34
+pydot==1.2.4
 Pygments==2.2.0
 pylint==1.8.1
 pyparsing==2.2.0
