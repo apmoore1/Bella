@@ -494,7 +494,7 @@ class TargetCollection(MutableMapping):
 
 
         all_relevent_targets = []
-        for targets in self._group_by_sentence().values():
+        for targets in self.group_by_sentence().values():
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
@@ -514,7 +514,7 @@ class TargetCollection(MutableMapping):
         '''
 
         targets_sentence = {}
-        for targets in self._group_by_sentence().values():
+        for targets in self.group_by_sentence().values():
             num_targets = len(targets)
             targets_sentence[num_targets] = targets_sentence.get(num_targets, 0) + 1
         return targets_sentence
@@ -524,7 +524,7 @@ class TargetCollection(MutableMapping):
         return len(self) / self.number_sentences()
     # Not tested
     def number_sentences(self):
-        return len(self._group_by_sentence())
+        return len(self.group_by_sentence())
     # Not tested
     def number_unique_targets(self):
         target_count = {}
@@ -533,7 +533,22 @@ class TargetCollection(MutableMapping):
             target_count[target] = target_count.get(target, 0) + 1
         return len(target_count)
 
-    def _group_by_sentence(self):
+    def no_targets_sentiment(self):
+        sentiment_targets = {}
+        for target in self.values():
+            sentiment = target['sentiment']
+            sentiment_targets[sentiment] = sentiment_targets.get(sentiment, 0) + 1
+        return sentiment_targets
+
+    def ratio_targets_sentiment(self):
+        no_sentiment_target = self.no_targets_sentiment()
+        total_targets = sum(no_sentiment_target.values())
+        ratio_sentiment_targets = {}
+        for sentiment, no_targets in no_sentiment_target.items():
+            ratio_sentiment_targets[sentiment] = round(no_targets / total_targets, 2)
+        return ratio_sentiment_targets
+
+    def group_by_sentence(self):
         '''
         :returns: A dictionary of sentence_id as keys and a list of target \
         instances that have the same sentence_id as values.
