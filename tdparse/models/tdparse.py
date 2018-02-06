@@ -183,6 +183,9 @@ class TDParseMinus(TargetInd):
         params_list = self._add_to_all_params(params_list, parser_name, parsers)
         return params_list
 
+    def __repr__(self):
+        return 'TDParse Minus'
+
 class TDParse(TDParseMinus):
     def __init__(self, child_relations=False):
         super().__init__(child_relations)
@@ -466,6 +469,9 @@ class TDParse(TDParseMinus):
         '''
 
         return 'union__dependency__context'
+
+    def __repr__(self):
+        return 'TDParse'
 
 class TDParsePlus(TDParse):
     def __init__(self, child_relations=False):
@@ -887,3 +893,6 @@ class TDParsePlus(TDParse):
         params_list = self._add_to_params(params_list, senti_lexicons,
                                           self._get_word_senti_names())
         return params_list
+
+    def __repr__(self):
+        return 'TDParse Plus'

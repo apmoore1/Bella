@@ -6,16 +6,21 @@ import numpy as np
 import tensorflow as tf
 import keras
 from keras import backend as K
-from keras import preprocessing, models, optimizers, initializers
-from keras.layers import Dense, LSTM, Input, Embedding
+from keras import preprocessing, models, optimizers, initializers, layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.utils import to_categorical
+
+# Displaying the Neural Network models
+from keras.utils.vis_utils import model_to_dot, plot_model
+from IPython.display import SVG
 
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
-class TLSTM():
-    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
-                 lstm_dimension=None, optimiser=None, patience=None,
-                 batch_size=32, epochs=100):
+from tdparse.contexts import context
+from tdparse.neural_pooling import matrix_median
+
+class LSTM():
+    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False):
         '''
         :param tokeniser: The tokeniser function to tokenise the text.
         :param embeddings: The embeddings to use
@@ -36,13 +41,8 @@ class TLSTM():
         :type embeddings: :py:class:`tdparse.word_vectors.WordVectors` instance
         :type pad_size: int. Default -1
         :type lower: bool. Default False
-        :type lstm_dimension: int. Default None
-        :type optimiser: Keras optimiser. Default None which uses SDG.
-        :type patience: int. Default None.
-        :type batch_size: int. Default 32
-        :type epochs: int. Default 100.
-        :returns: The instance of LSTM
-        :rtype: :py:class:`tdparse.models.tdlstm.LSTM`
+        :returns: The instance of TLSTM
+        :rtype: :py:class:`tdparse.models.tdlstm.TLSTM`
         '''
 
         self.tokeniser = tokeniser
@@ -51,15 +51,6 @@ class TLSTM():
         self.test_pad_size = 0
         self.lower = lower
         self.model = None
-        self.lstm_dimension = lstm_dimension
-        if self.lstm_dimension is None:
-            self.lstm_dimension = self.embeddings.embedding_matrix.shape[1]
-        self.optimiser = optimizers.SGD(lr=0.01)
-        if optimiser is not None:
-            self.optimiser = optimiser
-        self.patience = patience
-        self.batch_size = batch_size
-        self.epochs = epochs
 
     def process_text(self, texts, max_length, padding='pre', truncate='pre'):
         '''
@@ -111,7 +102,6 @@ class TLSTM():
             raise ValueError('The max sequence length is 0 suggesting no '\
                              'data was provided for training or testing')
         # Pad the sequences
-
         # If max pad size is set and training the model set the test_pad_size
         # to max sequence length
         if max_length == -1:
@@ -144,7 +134,28 @@ class TLSTM():
             return (train_data[train_indexs], train_y[train_indexs],
                     train_data[validation_index], train_y[validation_index])
 
-    def create_training_data(self, train_data, train_y, validation_size=0.2):
+    def create_training_y(self, train_y, validation_y):
+        all_y = np.hstack((train_y, validation_y))
+        # Convert the training true values into categorical data format
+        num_classes = np.unique(all_y).shape[0]
+        all_y = to_categorical(all_y, num_classes=num_classes)\
+                .astype(np.float32)
+        return all_y
+
+    def _pre_process(self, data_dicts, training=False):
+        text_data = [data['text'] for data in data_dicts]
+        if training:
+            if self.model is not None:
+                raise ValueError('When pre-process the data for training the '\
+                                 'the model should be None not {}'\
+                                 .format(self.model))
+            self.test_pad_size, sequence_data = self.process_text(text_data,
+                                                                  self.pad_size)
+            return sequence_data
+        else:
+            _, sequence_data = self.process_text(text_data, self.test_pad_size)
+            return sequence_data
+    def create_training_text(self, train_data, validation_data):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
@@ -163,38 +174,44 @@ class TLSTM():
         :rtype: tuple
         '''
 
-        # Create train and validation splits
-        data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size)
-        temp_train, temp_train_y, validation_data, validation_y = data
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
-        all_train_text = [data['text'] for data in temp_train]
-        self.test_pad_size, sequence_train_data = self.process_text(all_train_text,
-                                                                    self.pad_size)
-        all_val_text = [data['text'] for data in validation_data]
-        _, sequence_val_data = self.process_text(all_val_text, self.test_pad_size)
+        sequence_train_data = self._pre_process(train_data, training=True)
+        sequence_val_data = self._pre_process(validation_data, training=False)
         # Stack the validation data with the training data to complie with Keras.
-        all_data = np.vstack((sequence_train_data, sequence_val_data))
-        all_y = np.hstack((temp_train_y, validation_y))
-        # Convert the training true values into categorial data format
-        num_classes = np.unique(all_y).shape[0]
-        all_y = keras.utils.to_categorical(all_y, num_classes=num_classes)\
-                .astype(np.float32)
-        return all_data, all_y
+        all_text = np.vstack((sequence_train_data, sequence_val_data))
+        return all_text
 
     @staticmethod
-    def cross_val(train_data, train_y, lstm_model,
-                  validation_size=0.2, cv=5, scorer=None,
-                  reproducible=True):
+    def cross_val(train_data, train_y, lstm_model, cv=5, scorer=None,
+                  reproducible=True, **fit_kwargs):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
         :param train_y: Target values of the training data
         :param lstm_model: Model that has a fit and predict function
-        :param valida
+        :param cv: Number of folds the cross validation performs
+        :param scorer: OPTIONAL. The scoring function to perform each fold. \
+        The function must take the true targets as the first parameter and \
+        predicted targets as the second parameter. e.g sklearn.metrics.f1_score
+        :param reproducible: Whether the train and validation splits are random \
+        or not.
+        :param fit_kwargs: key word arguments to pass to the fit function.
+        :type train_data: list
+        :type train_y: list
+        :type lstm_model: Instance of LSTM
+        :type cv: int. Default 5
+        :type scorer: function
+        :type reproducible: bool. Default True
+        :type fit_kwargs: dict
+        :returns: A tuple of length 2 where the 1. list of raw prediction values \
+        2. list of scores produced from the scorer.
+        :rtype: tuple
         '''
+
         splitter = StratifiedKFold(n_splits=cv)
+        if not reproducible:
+            splitter = StratifiedKFold(n_splits=cv, shuffle=True)
         train_data = np.asarray(train_data)
         train_y = np.asarray(train_y)
         all_predictions = []
@@ -204,45 +221,55 @@ class TLSTM():
             temp_train_y = train_y[train_index]
             temp_test_data = train_data[test_index]
             temp_test_y = train_y[test_index]
-            lstm_model.fit(temp_train_data, temp_train_y,
-                           validation_size=validation_size,
-                           reproducible=reproducible)
+            lstm_model.fit(temp_train_data, temp_train_y, **fit_kwargs)
             predictions = lstm_model.predict(temp_test_data)
             predictions = np.argmax(predictions, axis=1)
             if scorer is not None:
                 num_classes = np.unique(predictions).shape[0]
-                temp_test_y = keras.utils.to_categorical(temp_test_y,
-                                                         num_classes=num_classes)
+                temp_test_y = to_categorical(temp_test_y, num_classes=num_classes)
                 temp_test_y = np.argmax(temp_test_y, axis=1)
                 scores.append(scorer(temp_test_y, predictions))
             all_predictions.append(predictions)
         return (all_predictions, scores)
 
-
-
-
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
-            reproducible=True, embedding_layer_trainable=False):
+    @staticmethod
+    def score(true_values, pred_values, scorer, *args, **kwargs):
         '''
-        :param train_data: Training features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :param train_y: Target values of the training data
-        :param validation_size: The fraction of the training data to be set aside \
-        for validation data
-        :param verbose: Verbosity of the traning the model. 0=silent, \
-        1=progress bar, and 2=one line per epoch
-        :param reproducible: Wether or not to make the model to be reproducible. \
-        This will slow done the training.
-        :type train_data: list
-        :type train_y: list
-        :type validation_size: float. Default 0.2
-        :type verbose: int. Default 1
-        :type reproducible: bool. Default True.
-        :returns: Nothing. The self.model will be fitted.
-        :rtype: None
-        '''
+        Allows true values which are in the format as a list of Target values
+        to be scored against the predicted values which are one hot encoded
+        due to the output of the predict function. The score is defined by the
+        scorer function.
 
-        self.model = None
+        :param true_values: Correct Target values
+        :param pred_values: Predicted Target values
+        :param scorer: Scoring function. The function must take the true \
+        targets as the first parameter and predicted targets as the second \
+        parameter. e.g sklearn.metrics.f1_score
+        :param args: Additional arguments to the scorer function
+        :param kwargs: Additional key word arguments to the scorer function
+        :type true_values: array
+        :type pred_values: array
+        :type scorer: function
+        :returns: The output from the scorer based on the true and predicted \
+        values normally a float.
+        :rtype: scorer output
+        '''
+        num_classes = pred_values.shape[1]
+        if num_classes != len(set(true_values)):
+            raise ValueError('The number of classes in the test data {} is '\
+                             'is different to the number of classes in the '\
+                             'train data {}'\
+                             .format(len(set(true_values)), num_classes))
+        # Convert the true values to the same format as the predicted values
+        norm_true_values = to_categorical(true_values, num_classes=num_classes)
+        # Converted both the true and predicted values from one hot encoded
+        # matrix to single value vector
+        norm_true_values = np.argmax(norm_true_values, axis=1)
+        pred_values = np.argmax(pred_values, axis=1)
+        return scorer(norm_true_values, pred_values, *args, **kwargs)
+
+    @staticmethod
+    def _to_be_reproducible(reproducible):
         if reproducible:
             os.environ['PYTHONHASHSEED'] = '0'
             np.random.seed(42)
@@ -254,43 +281,131 @@ class TLSTM():
 
             sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
             K.set_session(sess)
+        else:
+            np.random.seed(None)
+            rn.seed(np.random.randint(0, 400))
+            tf.set_random_seed(np.random.randint(0, 400))
+
+
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+            reproducible=True, embedding_layer_trainable=False,
+            lstm_dimension=None, optimiser=None, patience=None,
+            batch_size=32, epochs=100, org_initialisers=True):
+        '''
+        :param train_data: Training features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :param train_y: Target values of the training data
+        :param validation_size: The fraction of the training data to be set aside \
+        for validation data
+        :param verbose: Verbosity of the traning the model. 0=silent, \
+        1=progress bar, and 2=one line per epoch
+        :param reproducible: Wether or not to make the model to be reproducible. \
+        This will slow done the training.
+        :param embedding_layer_trainable: Whether the word embeddings weights \
+        are updated during training.
+        :param lstm_dimension: Output of the LSTM layer. If None it is the \
+        which is the default then the dimension will be the same as the \
+        embedding vector.
+        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
+        `keras optimiser <https://keras.io/optimizers/>`_.
+        :param patience: Wether or not to use EarlyStopping default is not \
+        stated by the None value. If so this is the patience value e.g. 5.
+        :param batch_size: Number of samples per gradient update
+        :param epochs: Number of epochs to train the model.
+        :param org_initialisers: Whether to use the original weight initializers \
+        that were stated in the paper. If False then use Keras default initializers.
+        :type train_data: list
+        :type train_y: list
+        :type validation_size: float. Default 0.2
+        :type verbose: int. Default 1
+        :type reproducible: bool. Default True.
+        :type embedding_layer_trainable: bool. Default False
+        :type lstm_dimension: int. Default None
+        :type optimiser: Keras optimiser. Default None which uses SDG.
+        :type patience: int. Default None.
+        :type batch_size: int. Default 32
+        :type epochs: int. Default 100.
+        :type org_initialisers: bool. Default True
+        :returns: Nothing. The self.model will be fitted.
+        :rtype: None
+        '''
+
+        self.model = None
+        self._to_be_reproducible(reproducible)
 
         # Data pre-processing
-        all_data, all_y = self.create_training_data(train_data, train_y,
-                                                    validation_size)
+        data = self.validation_split(train_data, train_y,
+                                     validation_size=validation_size)
+        temp_train, temp_train_y, validation_data, validation_y = data
+        all_data = self.create_training_text(temp_train, validation_data)
+        all_y = self.create_training_y(temp_train_y, validation_y)
         num_classes = all_y.shape[1]
 
         # LSTM model
         embedding_matrix = self.embeddings.embedding_matrix
         vocab_size, vector_size = embedding_matrix.shape
-        input_layer = Input(shape=(self.test_pad_size,))
-        embedding_layer = Embedding(input_dim=vocab_size, output_dim=vector_size,
-                                    input_length=self.test_pad_size,
-                                    trainable=embedding_layer_trainable,
-                                    weights=[embedding_matrix])(input_layer)
-        lstm_layer = LSTM(self.lstm_dimension)(embedding_layer)
-        predictions = Dense(num_classes, activation='softmax')(lstm_layer)
-        model = models.Model(inputs=input_layer, outputs=predictions)
+        if lstm_dimension is None:
+            lstm_dimension = vector_size
+        # Model layers
+        input_layer = layers.Input(shape=(self.test_pad_size,),
+                                   name='text_input')
+        embedding_layer = layers\
+                          .Embedding(input_dim=vocab_size,
+                                     output_dim=vector_size,
+                                     input_length=self.test_pad_size,
+                                     trainable=embedding_layer_trainable,
+                                     weights=[embedding_matrix],
+                                     name='embedding_layer')(input_layer)
+        lstm_layer = layers.LSTM(lstm_dimension,
+                                 name='lstm_layer')(embedding_layer)
+        prediction_layer = layers.Dense(num_classes, activation='softmax',
+                                        name='output')(lstm_layer)
+        if org_initialisers:
+            uniform_init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
+            lstm_init = {'kernel_initializer' : uniform_init,
+                         'recurrent_initializer' : uniform_init,
+                         'bias_initializer' : uniform_init}
+            dense_init = {'kernel_initializer' : uniform_init,
+                          'bias_initializer' : uniform_init}
+            embedding_init = {'embeddings_initializer' : uniform_init}
+            # Model layers
+            embedding_layer = layers\
+                              .Embedding(input_dim=vocab_size,
+                                         output_dim=vector_size,
+                                         input_length=self.test_pad_size,
+                                         trainable=embedding_layer_trainable,
+                                         weights=[embedding_matrix],
+                                         name='embedding_layer',
+                                         **embedding_init)(input_layer)
+            lstm_layer = layers.LSTM(lstm_dimension, name='lstm_layer'
+                                     **lstm_init)(embedding_layer)
+            prediction_layer = layers.Dense(num_classes, activation='softmax',
+                                            name='output', **dense_init)\
+                                           (lstm_layer)
 
-        model.compile(optimizer=self.optimiser, metrics=['accuracy'],
+        model = models.Model(inputs=input_layer, outputs=prediction_layer)
+
+        if optimiser is None:
+            optimiser = optimizers.SGD(lr=0.01)
+        model.compile(optimizer=optimiser, metrics=['accuracy'],
                       loss='categorical_crossentropy')
         with tempfile.NamedTemporaryFile() as weight_file:
             # Set up the callbacks
             callbacks = None
-            if self.patience is not None:
+            if patience is not None:
                 model_checkpoint = ModelCheckpoint(weight_file.name,
                                                    monitor='val_loss',
                                                    save_best_only=True,
                                                    save_weights_only=True,
                                                    mode='min')
                 early_stopping = EarlyStopping(monitor='val_loss', mode='min',
-                                               patience=self.patience)
+                                               patience=patience)
                 callbacks = [early_stopping, model_checkpoint]
             model.fit(all_data, all_y, validation_split=validation_size,
-                      epochs=self.epochs, callbacks=callbacks,
-                      verbose=verbose, batch_size=self.batch_size)
+                      epochs=epochs, callbacks=callbacks,
+                      verbose=verbose, batch_size=batch_size)
             # Load the best model from the saved weight file
-            if self.patience is not None:
+            if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
 
@@ -308,7 +423,556 @@ class TLSTM():
                              '`fit` method.')
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
-        all_test_text = [data['text'] for data in test_data]
-        _, sequence_test_data = self.process_text(all_test_text,
-                                                  self.test_pad_size)
+        sequence_test_data = self._pre_process(test_data, training=False)
         return self.model.predict(sequence_test_data)
+
+    def visulaise(self, plot_format='vert'):
+        '''
+        :param plot_format: Whether the plot is shown vertical or horizontal. \
+        Vertical is default and denoted as `vert` else horizontal is `hoz`
+        :type plot_format: String
+        :returns: A plot showing the structure of the Neural Network when using \
+        a Jupyter or IPython notebook
+        :rtype: IPython.core.display.SVG
+        '''
+
+        if self.model is None:
+            raise ValueError('The model has to be fitted before being able '\
+                             'to visulaise it.')
+        rankdir = 'TB'
+        if plot_format == 'hoz':
+            rankdir = 'LR'
+        dot_model = model_to_dot(self.model, show_shapes=True,
+                                 show_layer_names=True, rankdir=rankdir)
+        return SVG(dot_model.create(prog='dot', format='svg'))
+
+    def visulaise_to_file(self, file_path, plot_format='vert'):
+        '''
+        :param file_path: File path to save the plot of the Neural Network.
+        :param plot_format: Whether the plot is shown vertical or horizontal. \
+        Vertical is default and denoted as `vert` else horizontal is `hoz`
+        :type file_path: String
+        :type plot_format: String. Default 'vert'
+        :returns: Nothing. Saves the visual to the file path given.
+        :rtype: None
+        '''
+
+        if self.model is None:
+            raise ValueError('The model has to be fitted before being able '\
+                             'to visulaise it.')
+        rankdir = 'TB'
+        if plot_format == 'hoz':
+            rankdir = 'LR'
+        plot_model(self.model, to_file=file_path, show_shapes=True,
+                   show_layer_names=True, rankdir=rankdir)
+
+class TDLSTM(LSTM):
+
+    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
+                 inc_target=True):
+        '''
+        :param pad_size: Applies to both the right and left hand side. However \
+        if -1 is set then the left and right maximum pad size is found \
+        independently.
+        :type pad_size: int
+        '''
+        super().__init__(tokeniser, embeddings, pad_size=pad_size, lower=lower)
+        self.left_pad_size = pad_size
+        self.left_test_pad_size = 0
+        self.right_pad_size = pad_size
+        self.right_test_pad_size = 0
+        self.inc_target = inc_target
+
+    def predict(self, test_data):
+        '''
+        :param test_y: Test features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :type test_y: list
+        :returns: A list of predicted samples for the test data.
+        :rtype: numpy.ndarray
+        '''
+
+        if self.model is None:
+            raise ValueError('The model has not been fitted please run the '\
+                             '`fit` method.')
+        # Convert from a sequence of dictionaries into texts and then integers
+        # that represent the tokens in the text within the embedding space.
+        left_sequence, right_sequence = self._pre_process(test_data,
+                                                          training=False)
+
+        return self.model.predict({'left_text_input' : left_sequence,
+                                   'right_text_input' : right_sequence})
+
+    def _pre_process(self, data_dicts, training=False):
+
+        def context_texts(context_data_dicts):
+            # Context returns all of the left and right context occurrences
+            # therefore if a target is mentioned Twice and are associated then
+            # for a single text two left and right occurrences are returned.
+            # Thus these are a list of lists we therefore chose only the
+            # first mentioned target as the paper linked to this method does
+            # not specify which they used.
+            left_texts = [context(data, 'left', inc_target=self.inc_target) \
+                         for data in context_data_dicts]
+            right_texts = [context(data, 'right', inc_target=self.inc_target) \
+                           for data in context_data_dicts]
+            left_texts = [texts[0] for texts in left_texts]
+            right_texts = [texts[0] for texts in right_texts]
+            return left_texts, right_texts
+
+        # Convert from a sequence of dictionaries into texts and then integers
+        # that represent the tokens in the text within the embedding space.
+
+        # Get left and right contexts
+        left_text, right_text = context_texts(data_dicts)
+        if training:
+            if self.model is not None:
+                raise ValueError('When pre-process the data for training the '\
+                                 'the model should be None not {}'\
+                                 .format(self.model))
+            left_pad_sequence = self.process_text(left_text, self.left_pad_size)
+            self.left_test_pad_size, left_sequence = left_pad_sequence
+
+            right_pad_sequence = self.process_text(right_text, self.right_pad_size,
+                                                   padding='post', truncate='post')
+            self.right_test_pad_size, right_sequence = right_pad_sequence
+            return left_sequence, right_sequence
+        else:
+            left_pad_sequence = self.process_text(left_text,
+                                                  self.left_test_pad_size)
+            _, left_sequence = left_pad_sequence
+
+            right_pad_sequence = self.process_text(right_text,
+                                                   self.right_test_pad_size,
+                                                   padding='post', truncate='post')
+            _, right_sequence = right_pad_sequence
+            return left_sequence, right_sequence
+
+
+    def create_training_text(self, train_data, validation_data):
+        '''
+        :param train_data: Training features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :param train_y: Target values
+        :validation_size: The fraction of the training data to be set aside \
+        for validation data
+        :type train_data: list
+        :type train_y: list
+        :type validation_size: float Default 0.2
+        :returns: A tuple of length 2 where the first value is a list of \
+        Integers that reprsent the words in the text features where each Integer \
+        corresponds to a Word Vector in the embedding vector. Second value are \
+        the target values. Both lists in the tuples contain training data in the \
+        first part of the list and the second part of the list based on the \
+        validation split contains the validation data.
+        :rtype: tuple
+        '''
+
+        train_sequences  = self._pre_process(train_data, training=True)
+        left_sequence_train, right_sequence_train = train_sequences
+        validation_sequences  = self._pre_process(validation_data, training=False)
+        left_sequence_val, right_sequence_val = validation_sequences
+
+        # Stack the validation data with the training data to complie with Keras.
+        left_data = np.vstack((left_sequence_train, left_sequence_val))
+        right_data = np.vstack((right_sequence_train, right_sequence_val))
+        return left_data, right_data
+
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+            reproducible=True, embedding_layer_trainable=False,
+            lstm_dimension=None, optimiser=None, patience=None,
+            batch_size=32, epochs=100, org_initialisers=True):
+        '''
+        :param train_data: Training features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :param train_y: Target values of the training data
+        :param validation_size: The fraction of the training data to be set aside \
+        for validation data
+        :param verbose: Verbosity of the traning the model. 0=silent, \
+        1=progress bar, and 2=one line per epoch
+        :param reproducible: Wether or not to make the model to be reproducible. \
+        This will slow done the training.
+        :param embedding_layer_trainable: Whether the word embeddings weights \
+        are updated during training.
+        :param lstm_dimension: Output of the LSTM layer. If None it is the \
+        which is the default then the dimension will be the same as the \
+        embedding vector.
+        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
+        `keras optimiser <https://keras.io/optimizers/>`_.
+        :param patience: Wether or not to use EarlyStopping default is not \
+        stated by the None value. If so this is the patience value e.g. 5.
+        :param batch_size: Number of samples per gradient update
+        :param epochs: Number of epochs to train the model.
+        :param org_initialisers: Whether to use the original weight initializers \
+        that were stated in the paper. If False then use Keras default initializers.
+        :type train_data: list
+        :type train_y: list
+        :type validation_size: float. Default 0.2
+        :type verbose: int. Default 1
+        :type reproducible: bool. Default True.
+        :type embedding_layer_trainable: bool. Default False
+        :type lstm_dimension: int. Default None
+        :type optimiser: Keras optimiser. Default None which uses SDG.
+        :type patience: int. Default None.
+        :type batch_size: int. Default 32
+        :type epochs: int. Default 100.
+        :type org_initialisers: bool. Default True
+        :returns: Nothing. The self.model will be fitted.
+        :rtype: None
+        '''
+
+        self.model = None
+        self._to_be_reproducible(reproducible)
+
+        # Data pre-processing
+        data = self.validation_split(train_data, train_y,
+                                     validation_size=validation_size)
+        temp_train, temp_train_y, validation_data, validation_y = data
+        left_data, right_data = self.create_training_text(temp_train, validation_data)
+        all_y = self.create_training_y(temp_train_y, validation_y)
+        num_classes = all_y.shape[1]
+
+        # LSTM model
+        embedding_matrix = self.embeddings.embedding_matrix
+        vocab_size, vector_size = embedding_matrix.shape
+        if lstm_dimension is None:
+            lstm_dimension = vector_size
+        if optimiser is None:
+            optimiser = optimizers.SGD(lr=0.01)
+        # Model layers
+        # Left LSTM
+        left_input = layers.Input(shape=(self.left_test_pad_size,),
+                                  name='left_text_input')
+        left_embedding_layer = layers\
+                               .Embedding(input_dim=vocab_size,
+                                          output_dim=vector_size,
+                                          input_length=self.left_test_pad_size,
+                                          trainable=embedding_layer_trainable,
+                                          weights=[embedding_matrix],
+                                          name='left_embedding_layer')(left_input)
+        left_lstm_layer = layers.LSTM(lstm_dimension,
+                                      name='left_lstm_layer')(left_embedding_layer)
+        # Right LSTM
+        right_input = layers.Input(shape=(self.right_test_pad_size,),
+                                   name='right_text_input')
+        right_embedding_layer = layers\
+                                .Embedding(input_dim=vocab_size,
+                                           output_dim=vector_size,
+                                           input_length=self.right_test_pad_size,
+                                           trainable=embedding_layer_trainable,
+                                           weights=[embedding_matrix],
+                                           name='right_embedding_layer')(right_input)
+        right_lstm_layer = layers.LSTM(lstm_dimension,
+                                       name='right_lstm_layer')(right_embedding_layer)
+        # Merge the outputs of the left and right LSTMs
+        merge_layer = layers.concatenate([left_lstm_layer, right_lstm_layer],
+                                         name='left_right_lstm_merge')
+        predictions = layers.Dense(num_classes, activation='softmax',
+                                   name='output')(merge_layer)
+
+        if org_initialisers:
+            uniform_init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
+            lstm_init = {'kernel_initializer' : uniform_init,
+                         'recurrent_initializer' : uniform_init,
+                         'bias_initializer' : uniform_init}
+            dense_init = {'kernel_initializer' : uniform_init,
+                          'bias_initializer' : uniform_init}
+            embedding_init = {'embeddings_initializer' : uniform_init}
+            # Model layers
+            left_embedding_layer = layers\
+                                   .Embedding(input_dim=vocab_size,
+                                              output_dim=vector_size,
+                                              input_length=self.left_test_pad_size,
+                                              trainable=embedding_layer_trainable,
+                                              weights=[embedding_matrix],
+                                              name='left_embedding_layer',
+                                              **embedding_init)(left_input)
+            left_lstm_layer = layers.LSTM(lstm_dimension, name='left_lstm_layer',
+                                          **lstm_init)(left_embedding_layer)
+            right_embedding_layer = layers\
+                                    .Embedding(input_dim=vocab_size,
+                                               output_dim=vector_size,
+                                               input_length=self.right_test_pad_size,
+                                               trainable=embedding_layer_trainable,
+                                               weights=[embedding_matrix],
+                                               name='right_embedding_layer',
+                                               **embedding_init)(right_input)
+            right_lstm_layer = layers.LSTM(lstm_dimension, name='right_lstm_layer',
+                                           **lstm_init)(right_embedding_layer)
+            predictions = layers.Dense(num_classes, activation='softmax',
+                                       name='output', **dense_init)(merge_layer)
+
+        model = models.Model(inputs=[left_input, right_input],
+                             outputs=predictions)
+        model.compile(optimizer=optimiser, metrics=['accuracy'],
+                      loss='categorical_crossentropy')
+        with tempfile.NamedTemporaryFile() as weight_file:
+            # Set up the callbacks
+            callbacks = None
+            if patience is not None:
+                model_checkpoint = ModelCheckpoint(weight_file.name,
+                                                   monitor='val_loss',
+                                                   save_best_only=True,
+                                                   save_weights_only=True,
+                                                   mode='min')
+                early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                               patience=patience)
+                callbacks = [early_stopping, model_checkpoint]
+            model.fit([left_data, right_data], all_y, validation_split=validation_size,
+                      epochs=epochs, callbacks=callbacks,
+                      verbose=verbose, batch_size=batch_size)
+            # Load the best model from the saved weight file
+            if patience is not None:
+                model.load_weights(weight_file.name)
+        self.model = model
+
+class TCLSTM(TDLSTM):
+
+    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
+                 inc_target=True):
+        '''
+        :param pad_size: Applies to both the right and left hand side. However \
+        if -1 is set then the left and right maximum pad size is found \
+        independently.
+        :type pad_size: int
+        '''
+        super().__init__(tokeniser, embeddings, pad_size=pad_size, lower=lower)
+        self.left_pad_size = pad_size
+        self.left_test_pad_size = 0
+        self.right_pad_size = pad_size
+        self.right_test_pad_size = 0
+        self.inc_target = inc_target
+
+    def predict(self, test_data):
+        '''
+        :param test_y: Test features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :type test_y: list
+        :returns: A list of predicted samples for the test data.
+        :rtype: numpy.ndarray
+        '''
+
+        if self.model is None:
+            raise ValueError('The model has not been fitted please run the '\
+                             '`fit` method.')
+        # Convert from a sequence of dictionaries into texts and then integers
+        # that represent the tokens in the text within the embedding space.
+        sequence_targets = self._pre_process(test_data, training=False)
+        left_sequence, left_targets, right_sequence, right_targets = sequence_targets
+        return self.model.predict({'left_text_input' : left_sequence,
+                                   'left_target' : left_targets,
+                                   'right_text_input' : right_sequence,
+                                   'right_target' : right_targets})
+
+
+    def _pre_process(self, data_dicts, training=False):
+        def context_median_targets(pad_size):
+            vector_size = self.embeddings.vector_size
+            target_matrix = np.zeros((len(data_dicts),
+                                      pad_size, vector_size))
+            for index, data in enumerate(data_dicts):
+                target_vectors = []
+                target_words = data['target'].split()
+                for target_word in target_words:
+                    target_vectors.append(self.embeddings.lookup_vector(target_word))
+                target_vectors = np.vstack(target_vectors)
+                median_target_vector = matrix_median(target_vectors)
+                median_vectors = np.repeat(median_target_vector, pad_size,
+                                           axis=0)
+                target_matrix[index] = median_vectors
+            return target_matrix
+
+
+        sequences = super()._pre_process(data_dicts, training=training)
+        left_sequence, right_sequence = sequences
+        left_target_vectors = context_median_targets(self.left_test_pad_size)
+        right_target_vectors = context_median_targets(self.right_test_pad_size)
+        return (left_sequence, left_target_vectors,
+                right_sequence, right_target_vectors)
+
+    def create_training_data(self, train_data, validation_data):
+        '''
+        :param train_data: :param train_data: Training features. Specifically \
+        a list of dict like structures that contain `target` key.
+        '''
+
+        train_seq_targ = self._pre_process(train_data, training=True)
+        validation_seq_targ = self._pre_process(validation_data, training=False)
+
+        train_l_seq, train_l_targ, train_r_seq, train_r_targ = train_seq_targ
+        val_l_seq, val_l_targ, val_r_seq, val_r_targ = validation_seq_targ
+
+        left_sequences = np.vstack((train_l_seq, val_l_seq))
+        right_sequences = np.vstack((train_r_seq, val_r_seq))
+        left_targets = np.vstack((train_l_targ, val_l_targ))
+        right_targets = np.vstack((train_r_targ, val_r_targ))
+
+        return left_sequences, left_targets, right_sequences, right_targets
+
+
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+            reproducible=True, embedding_layer_trainable=False,
+            lstm_dimension=None, optimiser=None, patience=None,
+            batch_size=32, epochs=100, org_initialisers=True):
+        '''
+        :param train_data: Training features. Specifically a list of dict like \
+        structures that contain `text` key.
+        :param train_y: Target values of the training data
+        :param validation_size: The fraction of the training data to be set aside \
+        for validation data
+        :param verbose: Verbosity of the traning the model. 0=silent, \
+        1=progress bar, and 2=one line per epoch
+        :param reproducible: Wether or not to make the model to be reproducible. \
+        This will slow done the training.
+        :param embedding_layer_trainable: Whether the word embeddings weights \
+        are updated during training.
+        :param lstm_dimension: Output of the LSTM layer. If None it is the \
+        which is the default then the dimension will be the same as the \
+        embedding vector.
+        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
+        `keras optimiser <https://keras.io/optimizers/>`_.
+        :param patience: Wether or not to use EarlyStopping default is not \
+        stated by the None value. If so this is the patience value e.g. 5.
+        :param batch_size: Number of samples per gradient update
+        :param epochs: Number of epochs to train the model.
+        :param org_initialisers: Whether to use the original weight initializers \
+        that were stated in the paper. If False then use Keras default initializers.
+        :type train_data: list
+        :type train_y: list
+        :type validation_size: float. Default 0.2
+        :type verbose: int. Default 1
+        :type reproducible: bool. Default True.
+        :type embedding_layer_trainable: bool. Default False
+        :type lstm_dimension: int. Default None
+        :type optimiser: Keras optimiser. Default None which uses SDG.
+        :type patience: int. Default None.
+        :type batch_size: int. Default 32
+        :type epochs: int. Default 100.
+        :type org_initialisers: bool. Default True
+        :returns: Nothing. The self.model will be fitted.
+        :rtype: None
+        '''
+
+        self.model = None
+        self._to_be_reproducible(reproducible)
+
+        # Data pre-processing
+        data = self.validation_split(train_data, train_y,
+                                     validation_size=validation_size)
+        temp_train, temp_train_y, validation_data, validation_y = data
+        sequence_targets = self.create_training_data(temp_train, validation_data)
+        left_data, left_targets, right_data, right_targets = sequence_targets
+        all_y = self.create_training_y(temp_train_y, validation_y)
+        num_classes = all_y.shape[1]
+
+        # LSTM model
+        embedding_matrix = self.embeddings.embedding_matrix
+        vocab_size, vector_size = embedding_matrix.shape
+        if lstm_dimension is None:
+            # Double the vector size as we have to take into consideration the 
+            # concatenated target vector
+            lstm_dimension = 2 * vector_size
+        # Model layers
+        # Left LSTM
+        left_input = layers.Input(shape=(self.left_test_pad_size,),
+                                  name='left_text_input')
+        left_embedding_layer = layers\
+                               .Embedding(input_dim=vocab_size,
+                                          output_dim=vector_size,
+                                          input_length=self.left_test_pad_size,
+                                          trainable=embedding_layer_trainable,
+                                          weights=[embedding_matrix],
+                                          name='left_embedding_layer')(left_input)
+        left_target_input = layers.Input(shape=(self.left_test_pad_size, vector_size),
+                                         name='left_target')
+        left_text_target = layers.concatenate([left_embedding_layer,
+                                               left_target_input],
+                                              name='left_text_target')
+        left_lstm_layer = layers.LSTM(lstm_dimension,
+                                      name='left_lstm')(left_text_target)
+        # Right LSTM
+        right_input = layers.Input(shape=(self.right_test_pad_size,),
+                                   name='right_text_input')
+        right_embedding_layer = layers\
+                                .Embedding(input_dim=vocab_size,
+                                           output_dim=vector_size,
+                                           input_length=self.right_test_pad_size,
+                                           trainable=embedding_layer_trainable,
+                                           weights=[embedding_matrix],
+                                           name='right_embedding_layer')(right_input)
+        right_target_input = layers.Input(shape=(self.right_test_pad_size, vector_size),
+                                          name='right_target')
+        right_text_target = layers.concatenate([right_embedding_layer,
+                                                right_target_input],
+                                               name='right_text_target')
+        right_lstm_layer = layers.LSTM(lstm_dimension,
+                                       name='right_lstm')(right_text_target)
+        # Merge the outputs of the left and right LSTMs
+        merge_layer = layers.concatenate([left_lstm_layer, right_lstm_layer],
+                                         name='left_right_lstm_merge')
+        predictions = layers.Dense(num_classes, activation='softmax',
+                                   name='output')(merge_layer)
+        if org_initialisers:
+            uniform_init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
+            lstm_init = {'kernel_initializer' : uniform_init,
+                         'recurrent_initializer' : uniform_init,
+                         'bias_initializer' : uniform_init}
+            dense_init = {'kernel_initializer' : uniform_init,
+                          'bias_initializer' : uniform_init}
+            embedding_init = {'embeddings_initializer' : uniform_init}
+            # Model layers
+            left_embedding_layer = layers\
+                                   .Embedding(input_dim=vocab_size,
+                                              output_dim=vector_size,
+                                              input_length=self.left_test_pad_size,
+                                              trainable=embedding_layer_trainable,
+                                              weights=[embedding_matrix],
+                                              name='left_embedding_layer',
+                                              **embedding_init)(left_input)
+            left_lstm_layer = layers.LSTM(lstm_dimension, name='left_lstm',
+                                          **lstm_init)(left_text_target)
+
+            right_embedding_layer = layers\
+                                    .Embedding(input_dim=vocab_size,
+                                               output_dim=vector_size,
+                                               input_length=self.right_test_pad_size,
+                                               trainable=embedding_layer_trainable,
+                                               weights=[embedding_matrix],
+                                               name='right_embedding_layer',
+                                               **embedding_init)(right_input)
+            right_lstm_layer = layers.LSTM(lstm_dimension, name='right_lstm',
+                                           **lstm_init)(right_text_target)
+            predictions = layers.Dense(num_classes, activation='softmax',
+                                       name='output', **dense_init)(merge_layer)
+
+
+        input_layers = [left_input, left_target_input,
+                        right_input, right_target_input]
+        model = models.Model(inputs=input_layers, outputs=predictions)
+        if optimiser is None:
+            optimiser = optimizers.SGD(lr=0.01)
+        model.compile(optimizer=optimiser, metrics=['accuracy'],
+                      loss='categorical_crossentropy')
+        with tempfile.NamedTemporaryFile() as weight_file:
+            # Set up the callbacks
+            callbacks = None
+            if patience is not None:
+                model_checkpoint = ModelCheckpoint(weight_file.name,
+                                                   monitor='val_loss',
+                                                   save_best_only=True,
+                                                   save_weights_only=True,
+                                                   mode='min')
+                early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                               patience=patience)
+                callbacks = [early_stopping, model_checkpoint]
+            input_data = {'left_text_input' : left_data,
+                          'left_target' : left_targets,
+                          'right_text_input' : right_data,
+                          'right_target' : right_targets}
+            model.fit(input_data, all_y, validation_split=validation_size,
+                      epochs=epochs, callbacks=callbacks,
+                      verbose=verbose, batch_size=batch_size)
+            # Load the best model from the saved weight file
+            if patience is not None:
+                model.load_weights(weight_file.name)
+        self.model = model

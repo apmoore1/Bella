@@ -83,6 +83,16 @@ class TargetInd():
         :rtype: float
         '''
 
+        def grid_res_to_dict(grid_results):
+            c_score = {}
+            c_scores = grid_results[['param_svm__C', 'mean_test_score']]
+            for i in c_scores.index:
+                c_result = c_scores.loc[i]
+                c_value = c_result['param_svm__C']
+                test_score = c_result['mean_test_score'] 
+                c_score[c_value] = test_score
+            return c_score
+
         # If C value given in grid_params remove it
         if 'C' in grid_params:
             del grid_params['C']
@@ -98,8 +108,10 @@ class TargetInd():
                 break
         grid_params['C'] = coarse_range
         cv_params = self.get_cv_params(**grid_params)
+        c_scores = {}
         coarse_results = self.grid_search(train_data, train_y,
                                           params=cv_params, **kwargs)
+        c_scores = {**grid_res_to_dict(coarse_results), **c_scores}
         best_coarse_c = self.model.best_params_['svm__C']
 
         # Fine grain search
@@ -111,8 +123,9 @@ class TargetInd():
 
         fine_results = self.grid_search(train_data, train_y,
                                         params=cv_params, **kwargs)
+        c_scores = {**grid_res_to_dict(fine_results), **c_scores}
         best_c = self.model.best_params_['svm__C']
-        return best_c
+        return best_c, c_scores
 
 
 
@@ -365,37 +378,33 @@ class TargetInd():
         else:
             raise ValueError('self.model is not fitted please fit the model '\
                              'using the fit function')
-    def score(self, test_data, true_values, scorer=None, *args, **kwargs):
+    @staticmethod
+    def score(true_values, pred_values, scorer, *args, **kwargs):
         '''
         Performs predicitions on the test_data and then scores the predicitons
         based on the scorer function using the true values. Returns the output
         of scorer function.
 
-        :param test_data: Input data into the `predict` function
-        :param true_values: True values associated to the test_data
-        :param scorer: A function that will asses the performs of the predicitons \
-        takes as input (true_values, predictions, *args, **kwargs)
+        :param true_values: Correct Target values
+        :param pred_values: Predicted Target values
+        :param scorer: Scoring function. The function must take the true \
+        targets as the first parameter and predicted targets as the second \
+        parameter. e.g sklearn.metrics.f1_score
         :param args: Additional arguments to the scorer function
         :param kwargs: Additional key word arguments to the scorer function
-        :type test_data: list
-        :type true_values: list, numpy.ndarray
+        :type true_values: array
+        :type pred_values: array
         :type scorer: function. Default sklearn.metrics.accuracy_score
-        :returns: The output of the scorer function normally a float
-        :rtype: float
+        :returns: The output from the scorer based on the true and predicted \
+        values normally a float.
+        :rtype: scorer output
         '''
 
-        if scorer is None:
-            scorer = accuracy_score
-        else:
-            if not isinstance(scorer, types.FunctionType):
-                raise TypeError('scorer must be of type function and not {}'\
-                                .format(type(scorer)))
-        if self.model is not None:
-            predictions = self.model.predict(test_data)
-            return scorer(true_values, predictions, *args, **kwargs)
-        else:
-            raise ValueError('self.model is not fitted please fit the model '\
-                             'using the fit function')
+        return scorer(true_values, pred_values, *args, **kwargs)
+
+    def __repr__(self):
+        return 'Target Indepdent'
+
 class TargetDepC(TargetInd):
     def __init__(self):
         super().__init__()
@@ -509,6 +518,9 @@ class TargetDepC(TargetInd):
         return ['union__left__tokens',
                 'union__right__tokens',
                 'union__target__tokens']
+
+    def __repr__(self):
+        return 'Target Dependent Context'
 
 
 class TargetDep(TargetInd):
@@ -653,6 +665,9 @@ class TargetDep(TargetInd):
                 'union__right__tokens',
                 'union__target__tokens',
                 'union__full__tokens']
+
+    def __repr__(self):
+        return 'Target Dependent'
 
 class TargetDepSent(TargetInd):
     def __init__(self):
@@ -908,3 +923,6 @@ class TargetDepSent(TargetInd):
         params_list = self._add_to_params(params_list, senti_lexicons,
                                           self._get_word_senti_names())
         return params_list
+
+    def __repr__(self):
+        return 'Target Dependent Plus'
