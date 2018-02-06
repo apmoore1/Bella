@@ -11,7 +11,11 @@ semeval_2015_rest_test: ../aspect datasets/semeval_2015/restaurants_test.xml
 semeval_2016_rest_test: ../aspect datasets/semeval_2016/restaurants_test.xml
 election_folder_dir: ../aspect datasets/election_data_bo_wang
 product_reviews_dir: ../aspect datasets/product_reviews
+product_train: ../aspect datasets/product_reviews/train.xml
+product_test: ../aspect datasets/product_reviews/test.xml
 youtubean: ../aspect datasets/youtubean/samsung_galaxy_s5.xml
+youtubean_train: ../aspect datasets/youtubean/train.xml
+youtubean_test: ../aspect datasets/youtubean/test.xml
 
 
 #
