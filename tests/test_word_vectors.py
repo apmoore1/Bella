@@ -13,7 +13,7 @@ from tdparse.word_vectors import WordVectors
 from tdparse.word_vectors import GensimVectors
 from tdparse.word_vectors import PreTrained
 from tdparse.word_vectors import GloveTwitterVectors
-from tdparse.word_vectors import GloveCommonCrawl
+from tdparse.word_vectors import GloveCommonCrawl840
 
 class TestWordVectors(TestCase):
     '''
@@ -261,7 +261,7 @@ class TestWordVectors(TestCase):
         Tests that the Glove Common Crawl 840B vector are downloaded correctly
         '''
 
-        glove_common_crawl_vectors = GloveCommonCrawl(skip_conf=True)
+        glove_common_crawl_vectors = GloveCommonCrawl840(skip_conf=True)
 
         current_dir = os.path.abspath(os.path.dirname(__file__))
         glove_common_folder = os.path.join(current_dir, os.pardir, 'data',

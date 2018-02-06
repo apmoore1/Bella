@@ -483,7 +483,7 @@ class GloveTwitterVectors(PreTrained):
 
         return np.zeros(self.vector_size, dtype=np.float32)
 
-class GloveCommonCrawl(PreTrained):
+class GloveCommonCrawl840(PreTrained):
 
     @staticmethod
     def download(skip_conf):
@@ -545,7 +545,86 @@ class GloveCommonCrawl(PreTrained):
 
         glove_file = self.download(skip_conf)
         if name is None:
-            name = 'glove 300d common crawl'
+            name = 'glove 300d 840b common crawl'
+        super().__init__(glove_file, name=name, unit_length=unit_length,
+                         delimenter=' ')
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size, dtype=np.float32)
+
+
+class GloveCommonCrawl42(PreTrained):
+
+    @staticmethod
+    def download(skip_conf):
+        '''
+        This method checks if the
+        `Glove Common Crawl 42B <https://nlp.stanford.edu/projects/glove/>`_
+        word vectors are already in the repoistory if not it downloads and
+        unzips the 300 Dimension word vector if permission is granted.
+
+        :param skip_conf: Whether to skip the permission step as it requires \
+        user input. True to skip permission.
+        :type skip_conf: bool
+        :returns: The filepath to the 300 dimension word vector
+        :rtype: String
+        '''
+
+        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
+                                    'glove_common_crawl_42b')
+        os.makedirs(glove_folder, exist_ok=True)
+        glove_file_path = os.path.join(glove_folder, 'glove.42B.300d.txt')
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if not os.path.isfile(glove_file_path):
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the glove vectors this is '\
+                               'a large download of 1.9GB and takes 5GB of disk '\
+                               'space after being unzipped. Would you like to '\
+                               'continue? If so type `yes`\n'
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'http://nlp.stanford.edu/data/glove.42B.300d.zip'
+                glove_zip_path = os.path.join(glove_folder, 'glove.42B.300d.zip')
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with open(glove_zip_path, 'wb') as glove_zip_file:
+                    glove_requests = requests.get(download_link, stream=True)
+                    for chunk in glove_requests.iter_content(chunk_size=128):
+                        glove_zip_file.write(chunk)
+                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
+                    glove_zip_file.extractall(path=glove_folder)
+            else:
+                raise Exception('Glove Common Crawl 42b vectors not downloaded '\
+                                'therefore cannot load them')
+            if not os.path.isfile(glove_file_path):
+                raise Exception('Error in either downloading the glove vectors '\
+                                'or file path names. Files in the glove folder '\
+                                '{} and where the golve file should be {}'\
+                                .format(os.listdir(glove_folder), glove_file_path))
+        return glove_file_path
+
+    def __init__(self, name=None, unit_length=False, skip_conf=False):
+        '''
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type skip_conf: bool. Default False
+        '''
+
+        glove_file = self.download(skip_conf)
+        if name is None:
+            name = 'glove 300d 42B common crawl'
         super().__init__(glove_file, name=name, unit_length=unit_length,
                          delimenter=' ')
 
