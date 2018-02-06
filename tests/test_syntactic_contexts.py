@@ -65,15 +65,7 @@ class TestTarget(TestCase):
                         'text': "#britneyspears Britney Spears 's new single "\
                                 "-3' debuts at #1: video: congratulations are "\
                                 "in order ..",
-                        'sentiment': 0},
-                       {'spans': [(39, 50), (53, 64)],
-                        'target_id': '9',
-                        'target': 'Sarah Palin',
-                        'text': "Letterman Apologizes to His Wife...and "\
-                                "Sarah Palin - Sarah Palin , I'm terribly, "\
-                                "terribly sorry. So there we g...",
-                        'sentiment': 0}
-                      ]
+                        'sentiment': 0}]
         valid_results = [('This is a fake news_article dd that is to represent '\
                           'a Tweet!!!! and it was an awful news_article ss I '\
                           'think.', 'news_article'),
@@ -89,10 +81,7 @@ class TestTarget(TestCase):
                           'Core_ProcessingUnittemperatures'),
                          ("# britney_spears britney_spears 's new single "
                           "-3' debuts at #1: video: congratulations are in order ..",
-                          'britney_spears'),
-                         ("Letterman Apologizes to His Wife...and Sarah_Palin"\
-                          " - Sarah_Palin , I'm terribly, terribly sorry. "\
-                          "So there we g...", 'Sarah_Palin')]
+                          'britney_spears')]
         test_values = [Target(**test_value) for test_value in test_values]
         for index, test_value in enumerate(test_values):
             test_result = target_normalisation(test_value)
@@ -120,18 +109,18 @@ class TestTarget(TestCase):
                         'spans':[(14, 17), (62, 65)]},
                        {'target_id':str(2),
                         'sentiment':1,
-                        'text':'Ten pop star heartthrobe is all the rage on '\
-                        'social media',
-                        'target':'is',
-                        'spans':[(25, 27)]},
+                        'text':'this is an alternative sentence to see how it '\
+                        'performs',
+                        'target':'sentence',
+                        'spans':[(23, 31)]},
                        {'target_id':str(3),
                         'sentiment':1,
-                        'text':'Ten pop star heartthrobe is all the rage on '\
+                        'text':'Teen pop star heartthrobe is all the rage on '\
                         'social media',
-                        'target':'ten',
-                        'spans':[(0, 3)]}]
+                        'target':'teen',
+                        'spans':[(0, 4)]}]
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
-                         ['on heartthrobe rage Ten pop star the media social all'],
+                         ['an alternative to see performs it how'],
                          ['']]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_relation_context(test_values, tweebo,
@@ -143,7 +132,7 @@ class TestTarget(TestCase):
 
         # Testing when we only want the first dependency relation
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
-                         ['on heartthrobe rage'], ['']]
+                         ['an alternative to'], ['']]
         test_results = dependency_relation_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):
             test_result = test_results[index]
@@ -152,7 +141,7 @@ class TestTarget(TestCase):
 
         # Testing to ensure it will lower case the words before processing
         valid_results = [['a fake', 'an awful'], ['a great', 'the'],
-                         ['on heartthrobe rage ten pop star the media social all'],
+                         ['an alternative to see performs it how'],
                          ['']]
         test_results = dependency_relation_context(test_values, tweebo, True,
                                                    (1, -1))
@@ -161,7 +150,7 @@ class TestTarget(TestCase):
             self.assertEqual(valid_result, test_result, msg='Incorrect context'\
                              ' correct {} test {}'.format(valid_result, test_result))
 
-        # Testing for when a sentence mentions the target more than onece but we
+        # Testing for when a sentence mentions the target more than once but we
         # are only interested in the first mention
         test_values = [{'target_id':str(1),
                         'sentiment':1,
@@ -203,13 +192,6 @@ class TestTarget(TestCase):
                         'text': "#britneyspears Britney Spears 's new single "\
                                 "-3' debuts at #1: video: congratulations are "\
                                 "in order ..",
-                        'sentiment': 0},
-                       {'spans': [(39, 50), (53, 64)],
-                        'target_id': '9',
-                        'target': 'Sarah Palin',
-                        'text': "Letterman Apologizes to His Wife...and Sarah "\
-                                "Palin - Sarah Palin , I'm terribly, terribly "\
-                                "sorry. So there we g...",
                         'sentiment': 0},
                        {'spans': [(5, 14)],
                         'target_id': '9',
@@ -281,12 +263,6 @@ class TestTarget(TestCase):
                            'span' : (0, 14)},
                           {'text' : "britney spears britney spears",
                            'span' : (15, 29)}],
-                         [{'text' : "Letterman Apologizes to His Wife and Sarah "\
-                                    "Palin Sarah Palin I'm terribly",
-                           'span' : (37, 48)},
-                          {'text' : "Letterman Apologizes to His Wife and Sarah "\
-                                    "Palin Sarah Palin I'm terribly",
-                           'span' : (49, 60)}],
                          [{'text' : 'less wait time for me',
                            'span' : (5, 14)}],
                          [{'text' : '@RichardWS',
@@ -387,7 +363,8 @@ class TestTarget(TestCase):
                          'text': 'Temperatures were ok but I was not tracking'\
                                  ' in Core Processing Unit temperatures.',
                          'sentiment': 0},
-                        {'text' : 'I also recommend the rice dishes or the different varieties of congee (rice porridge).',
+                        {'text' : 'I also recommend the rice dishes or the '\
+                                  'different varieties of congee (rice porridge).',
                          'spans' : [(63, 85)],
                          'target_id' : '4',
                          'target' : 'congee (rice porridge)',
@@ -401,7 +378,10 @@ class TestTarget(TestCase):
                           [{'text' : 'Temperatures were ok but I was not tracking'\
                                      ' in Core Processing Unit temperatures',
                             'span' : (47, 80)}],
-                          [{'text' : 'I also recommend the rice dishes or the different varieties of congee (rice porridge)', 'span' : (63, 85)}]]
+                          [{'text' : 'I also recommend the rice dishes or the '\
+                                     'different varieties of congee (rice '\
+                                     'porridge)',
+                            'span' : (63, 85)}]]
         test_values = [Target(**test_value) for test_value in test_values]
         test_results = dependency_context(test_values, tweebo)
         for index, valid_result in enumerate(valid_results):

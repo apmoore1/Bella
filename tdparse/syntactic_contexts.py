@@ -172,6 +172,7 @@ def dependency_relation_context(target_dicts, parser, lower=False,
     '''
 
     # Normalise the target and text
+    targets = [target_dict['target'] for target_dict in target_dicts]
     norm_texts, norm_targets = normalise_context(target_dicts, lower)
     # Get contexts
     all_dependency_tokens = parser(norm_texts)
@@ -186,16 +187,18 @@ def dependency_relation_context(target_dicts, parser, lower=False,
                 text, norm_target = normalise_context([target_dicts[index]],
                                                       lower=lower,
                                                       renormalise=True)
+                norm_target = norm_target[0]
                 dependency_tokens = parser(text)[0]
             for dependency_token in dependency_tokens:
-                current_token = normalise_target(norm_target)
+                current_token = targets[index]
                 if lower:
                     current_token = current_token.lower()
-                if dependency_token.token == current_token:
+                if dependency_token.token == norm_target:
                     all_related_words = dependency_token.get_n_relations(n_relations)
                     related_text = ' '.join(all_related_words)
                     related_text = related_text.replace(current_token, norm_target)
                     contexts.append(related_text)
+                    print('NORM TARGET {} {}'.format(norm_target, all_related_words))
 
             rel_target = target_dicts[index]
             valid_num_targets = len(rel_target['spans'])
@@ -210,6 +213,7 @@ def dependency_relation_context(target_dicts, parser, lower=False,
                 raise ValueError('This should not happen as each data type should '\
                                  'have a target {}'.format(rel_target))
             all_contexts.append(contexts)
+            break
     return all_contexts
 
 
@@ -276,7 +280,6 @@ def dependency_context(target_dicts, parser, lower=False):
     that it is seperated and if it is a multi word target join the target words
     together to ensure when it is processed by the dependency parser it is treated
     as a singular word.
-
 
     Given a list of target sentences returns a list of contexts where each contexts
     is associated to a target sentence and each contexts contains a target context
@@ -359,12 +362,12 @@ def context(all_context_dicts, specific_context, inc_target=False):
     If the target only occur once in the text then for that text occurence the
     length of the list will be one.
 
-    :param target_dict: Dictionary that contains text and the spans of the \
-    target word in the text.
+    :param all_context_dicts: A list of dicts where each dict contains text and \
+    span keys.
     :param specific_context: String specifying the context e.g. left.
     :param inc_target: Whether to include the target word in the context text. \
     (Only applies for left and right context.)
-    :type target_dict: dict
+    :type all_context_dicts: list
     :type specific_context: String
     :type inc_target: Boolean Default False
     :returns: A list of of a list of context strings
