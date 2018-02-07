@@ -1,6 +1,7 @@
 import random as rn
 import os
 import tempfile
+from multiprocessing import Pool
 
 import numpy as np
 import tensorflow as tf
@@ -183,19 +184,35 @@ class LSTM():
         return all_text
 
     @staticmethod
-    def cross_val(train_data, train_y, lstm_model, cv=5, scorer=None,
-                  reproducible=True, **fit_kwargs):
+    def _train_test_score(train_data, train_y, test_data, test_y,
+                         lstm_model, model_params, score_func):
+        '''
+        Function to train, test, and return the scores and predictions.
+        '''
+        print(model_params)
+        lstm_model.fit(train_data, train_y, **model_params)
+        predictions = lstm_model.predict(test_data)
+        score = lstm_model.score(test_y, predictions, score_func)
+        return score, predictions
+
+    @staticmethod
+    def cross_val(train_data, train_y, lstm_model, scorer, cv=5,
+                  reproducible=True, multiprocess=False, n_jobs=-1,
+                  **fit_kwargs):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
         :param train_y: Target values of the training data
         :param lstm_model: Model that has a fit and predict function
         :param cv: Number of folds the cross validation performs
-        :param scorer: OPTIONAL. The scoring function to perform each fold. \
+        :param scorer: The scoring function to perform each fold. \
         The function must take the true targets as the first parameter and \
         predicted targets as the second parameter. e.g sklearn.metrics.f1_score
         :param reproducible: Whether the train and validation splits are random \
         or not.
+        :param multiprocess: Whether it should be parralised
+        :param n_jobs: if it is parralised, defines the nnumber of cores to \
+        parralise accross. -1 value states to use all cores.
         :param fit_kwargs: key word arguments to pass to the fit function.
         :type train_data: list
         :type train_y: list
@@ -203,11 +220,15 @@ class LSTM():
         :type cv: int. Default 5
         :type scorer: function
         :type reproducible: bool. Default True
+        :type multiprocess: bool. Default False
+        :type n_jobs: int. Default -1
         :type fit_kwargs: dict
         :returns: A tuple of length 2 where the 1. list of raw prediction values \
         2. list of scores produced from the scorer.
         :rtype: tuple
         '''
+
+
 
         splitter = StratifiedKFold(n_splits=cv)
         if not reproducible:
@@ -216,21 +237,28 @@ class LSTM():
         train_y = np.asarray(train_y)
         all_predictions = []
         scores = []
+        train_test_params = []
         for train_index, test_index in splitter.split(train_data, train_y):
-            temp_train_data = train_data[train_index]
-            temp_train_y = train_y[train_index]
-            temp_test_data = train_data[test_index]
-            temp_test_y = train_y[test_index]
-            lstm_model.fit(temp_train_data, temp_train_y, **fit_kwargs)
-            predictions = lstm_model.predict(temp_test_data)
-            predictions = np.argmax(predictions, axis=1)
-            if scorer is not None:
-                num_classes = np.unique(predictions).shape[0]
-                temp_test_y = to_categorical(temp_test_y, num_classes=num_classes)
-                temp_test_y = np.argmax(temp_test_y, axis=1)
-                scores.append(scorer(temp_test_y, predictions))
+            sub_train_data = train_data[train_index]
+            sub_train_y = train_y[train_index]
+            sub_test_data = train_data[test_index]
+            sub_test_y = train_y[test_index]
+            train_test_param = (sub_train_data, sub_train_y, sub_test_data,
+                                sub_test_y, lstm_model, fit_kwargs, scorer)
+            if multiprocess:
+                train_test_params.append(train_test_param)
+                continue
+            score, predictions = lstm_model._train_test_score(*train_test_param)
+            scores.append(score)
             all_predictions.append(predictions)
-        return (all_predictions, scores)
+        if multiprocess:
+            with Pool(n_jobs) as pool:
+                results = pool.starmap(lstm_model._train_test_score,
+                                       train_test_params)
+            for result in results:
+                scores.append(result[0])
+                all_predictions.append(result[1])
+        return scores, all_predictions
 
     @staticmethod
     def score(true_values, pred_values, scorer, *args, **kwargs):
@@ -287,7 +315,7 @@ class LSTM():
             tf.set_random_seed(np.random.randint(0, 400))
 
 
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=0,
             reproducible=True, embedding_layer_trainable=False,
             lstm_dimension=None, optimiser=None, patience=None,
             batch_size=32, epochs=100, org_initialisers=True):
@@ -377,7 +405,7 @@ class LSTM():
                                          weights=[embedding_matrix],
                                          name='embedding_layer',
                                          **embedding_init)(input_layer)
-            lstm_layer = layers.LSTM(lstm_dimension, name='lstm_layer'
+            lstm_layer = layers.LSTM(lstm_dimension, name='lstm_layer',
                                      **lstm_init)(embedding_layer)
             prediction_layer = layers.Dense(num_classes, activation='softmax',
                                             name='output', **dense_init)\
@@ -578,7 +606,7 @@ class TDLSTM(LSTM):
         right_data = np.vstack((right_sequence_train, right_sequence_val))
         return left_data, right_data
 
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=1,
+    def fit(self, train_data, train_y, validation_size=0.2, verbose=0,
             reproducible=True, embedding_layer_trainable=False,
             lstm_dimension=None, optimiser=None, patience=None,
             batch_size=32, epochs=100, org_initialisers=True):
@@ -869,7 +897,7 @@ class TCLSTM(TDLSTM):
         embedding_matrix = self.embeddings.embedding_matrix
         vocab_size, vector_size = embedding_matrix.shape
         if lstm_dimension is None:
-            # Double the vector size as we have to take into consideration the 
+            # Double the vector size as we have to take into consideration the
             # concatenated target vector
             lstm_dimension = 2 * vector_size
         # Model layers
