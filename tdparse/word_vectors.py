@@ -17,6 +17,7 @@ are its vector representation. Currently loads the Tang et al. vectors
 from collections import defaultdict
 import os
 import types
+import tempfile
 import zipfile
 
 import numpy as np
@@ -24,6 +25,7 @@ import requests
 from gensim.models.keyedvectors import KeyedVectors
 from gensim.models import word2vec
 from gensim.models.wrappers import FastText
+from gensim.scripts.glove2word2vec import glove2word2vec
 
 from tdparse import helper
 
@@ -387,15 +389,49 @@ class PreTrained(WordVectors):
 
         return self._word2vector['<unk>']
 
-class GloveTwitterVectors(PreTrained):
+class GloveTwitterVectors(WordVectors):
 
     @staticmethod
-    def download(skip_conf):
+    def glove_txt_binary(glove_file_path):
+        '''
+        Converts the Glove word embedding file which is a text file to a
+        binary file that can be loaded through gensims
+        KeyedVectors.load_word2vec_format method and deletes the text file
+        version and returns the file path to the new binary file.
+
+        :param glove_file_path: File path to the downloaded glove vector text \
+        file.
+        :type glove_file_path: String
+        :returns: The file path to the binary file version of the glove vector
+        :rtype: String
+        '''
+        # File path to the binary file
+        binary_file_path = os.path.splitext(os.path.basename(glove_file_path))
+        binary_file_path = binary_file_path[0]
+        binary_file_path += '.binary'
+        binary_file_path = os.path.join(os.path.dirname(glove_file_path),
+                                        binary_file_path)
+        if os.path.isfile(binary_file_path):
+            return binary_file_path
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
+            # Converts to word2vec file format
+            glove2word2vec(glove_file_path, temp_file.name)
+            word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
+                                                             binary=False)
+            # Creates the binary file version of the word vectors
+            word_vectors.save_word2vec_format(binary_file_path, binary=True)
+        # Delete the text version of the glove vectors
+        os.remove(glove_file_path)
+        return binary_file_path
+
+
+    def download(self, skip_conf):
         '''
         This method checks if the
         `Glove Twitter word vectors <https://nlp.stanford.edu/projects/glove/>`_
         are already in the repoistory if not it downloads and unzips the word
-        vectors if permission is granted.
+        vectors if permission is granted and converts them into a gensim
+        KeyedVectors binary representation.
 
         :param skip_conf: Whether to skip the permission step as it requires \
         user input. True to skip permission.
@@ -409,10 +445,10 @@ class GloveTwitterVectors(PreTrained):
                                     'glove_twitter')
         os.makedirs(glove_folder, exist_ok=True)
         current_glove_files = set(os.listdir(glove_folder))
-        all_glove_files = set(['glove.twitter.27B.25d.txt',
-                               'glove.twitter.27B.50d.txt',
-                               'glove.twitter.27B.100d.txt',
-                               'glove.twitter.27B.200d.txt'])
+        all_glove_files = set(['glove.twitter.27B.25d.binary',
+                               'glove.twitter.27B.50d.binary',
+                               'glove.twitter.27B.100d.binary',
+                               'glove.twitter.27B.200d.binary'])
         interset = all_glove_files.intersection(current_glove_files)
         # If the files in the folder aren't all the glove files that would be
         # downloaded re-download the zip and unzip the files.
@@ -440,7 +476,10 @@ class GloveTwitterVectors(PreTrained):
                 raise Exception('Glove Twitter vectors not downloaded therefore'\
                                 ' cannot load them')
 
-        add_full_path = lambda vec_file: os.path.join(glove_folder, vec_file)
+        def add_full_path(file_name):
+            file_path = os.path.join(glove_folder, file_name)
+            return self.glove_txt_binary(file_path)
+
         return {25 : add_full_path('glove.twitter.27B.25d.txt'),
                 50 : add_full_path('glove.twitter.27B.50d.txt'),
                 100 : add_full_path('glove.twitter.27B.100d.txt'),
@@ -468,8 +507,9 @@ class GloveTwitterVectors(PreTrained):
         if name is None:
             name = 'glove twitter {}d'.format(dimension)
         vector_file = dimension_file[dimension]
-        super().__init__(vector_file, name=name, unit_length=unit_length,
-                         delimenter=' ')
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
 
     def _unknown_vector(self):
         '''
