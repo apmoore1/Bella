@@ -13,7 +13,7 @@ from tdparse.word_vectors import WordVectors
 from tdparse.word_vectors import GensimVectors
 from tdparse.word_vectors import PreTrained
 from tdparse.word_vectors import GloveTwitterVectors
-from tdparse.word_vectors import GloveCommonCrawl840
+from tdparse.word_vectors import GloveCommonCrawl
 
 class TestWordVectors(TestCase):
     '''
@@ -246,10 +246,10 @@ class TestWordVectors(TestCase):
                          'Twitter vectors directory should be here {}'\
                          .format(glove_twitter_folder))
 
-        glove_twitter_files = ['glove.twitter.27B.25d.txt',
-                               'glove.twitter.27B.50d.txt',
-                               'glove.twitter.27B.100d.txt',
-                               'glove.twitter.27B.200d.txt']
+        glove_twitter_files = ['glove.twitter.27B.25d.binary',
+                               'glove.twitter.27B.50d.binary',
+                               'glove.twitter.27B.100d.binary',
+                               'glove.twitter.27B.200d.binary']
         for glove_twitter_file in glove_twitter_files:
             glove_file_path = os.path.join(glove_twitter_folder, glove_twitter_file)
             self.assertEqual(True, os.path.isfile(glove_file_path), msg='Glove '\
@@ -258,21 +258,26 @@ class TestWordVectors(TestCase):
 
     def test_glove_common_download(self):
         '''
-        Tests that the Glove Common Crawl 840B vector are downloaded correctly
+        Tests that the Glove Common Crawl 840 and 42 Billion token vectors are
+        downloaded correctly
         '''
 
-        glove_common_crawl_vectors = GloveCommonCrawl840(skip_conf=True)
+        for version in [42, 840]:
+            GloveCommonCrawl(version=version, skip_conf=True)
 
-        current_dir = os.path.abspath(os.path.dirname(__file__))
-        glove_common_folder = os.path.join(current_dir, os.pardir, 'data',
-                                           'word_vectors', 'glove_common_crawl_840b')
-        self.assertEqual(True, os.path.isdir(glove_common_folder), msg='Glove '\
-                         'Common Crawl vector directory should be here {}'\
-                         .format(glove_common_folder))
+            current_dir = os.path.abspath(os.path.dirname(__file__))
 
-        glove_common_file_path = os.path.join(glove_common_folder,
-                                              'glove.840B.300d.txt')
-        self.assertEqual(True, os.path.isfile(glove_common_file_path),
-                         msg='Glove common vector file {} should be here {}'\
-                             .format('glove.840B.300d.txt',
+            glove_common_folder = 'glove_common_crawl_{}b'.format(version)
+            glove_common_folder = os.path.join(current_dir, os.pardir, 'data',
+                                               'word_vectors',
+                                               glove_common_folder)
+            self.assertEqual(True, os.path.isdir(glove_common_folder),
+                             msg='Glove Common Crawl vector directory should '\
+                             'be here {}'.format(glove_common_folder))
+            glove_common_file_name = 'glove.{}B.300d.binary'.format(version)
+            glove_common_file_path = os.path.join(glove_common_folder,
+                                                  glove_common_file_name)
+            self.assertEqual(True, os.path.isfile(glove_common_file_path),
+                             msg='Glove common vector file {} should be here {}'\
+                             .format(glove_common_file_name,
                                      glove_common_file_path))

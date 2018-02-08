@@ -107,6 +107,39 @@ class WordVectors(object):
             del word2vector[word]
         return most_likely_size, word2vector, accepted_words
 
+    @staticmethod
+    def glove_txt_binary(glove_file_path):
+        '''
+        Converts the Glove word embedding file which is a text file to a
+        binary file that can be loaded through gensims
+        KeyedVectors.load_word2vec_format method and deletes the text file
+        version and returns the file path to the new binary file.
+
+        :param glove_file_path: File path to the downloaded glove vector text \
+        file.
+        :type glove_file_path: String
+        :returns: The file path to the binary file version of the glove vector
+        :rtype: String
+        '''
+        # File path to the binary file
+        binary_file_path = os.path.splitext(os.path.basename(glove_file_path))
+        binary_file_path = binary_file_path[0]
+        binary_file_path += '.binary'
+        binary_file_path = os.path.join(os.path.dirname(glove_file_path),
+                                        binary_file_path)
+        if os.path.isfile(binary_file_path):
+            return binary_file_path
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
+            # Converts to word2vec file format
+            glove2word2vec(glove_file_path, temp_file.name)
+            word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
+                                                             binary=False)
+            # Creates the binary file version of the word vectors
+            word_vectors.save_word2vec_format(binary_file_path, binary=True)
+        # Delete the text version of the glove vectors
+        os.remove(glove_file_path)
+        return binary_file_path
+
     def lookup_vector(self, word):
         '''
         Given a word returns the vector representation of that word. If the model
@@ -391,40 +424,6 @@ class PreTrained(WordVectors):
 
 class GloveTwitterVectors(WordVectors):
 
-    @staticmethod
-    def glove_txt_binary(glove_file_path):
-        '''
-        Converts the Glove word embedding file which is a text file to a
-        binary file that can be loaded through gensims
-        KeyedVectors.load_word2vec_format method and deletes the text file
-        version and returns the file path to the new binary file.
-
-        :param glove_file_path: File path to the downloaded glove vector text \
-        file.
-        :type glove_file_path: String
-        :returns: The file path to the binary file version of the glove vector
-        :rtype: String
-        '''
-        # File path to the binary file
-        binary_file_path = os.path.splitext(os.path.basename(glove_file_path))
-        binary_file_path = binary_file_path[0]
-        binary_file_path += '.binary'
-        binary_file_path = os.path.join(os.path.dirname(glove_file_path),
-                                        binary_file_path)
-        if os.path.isfile(binary_file_path):
-            return binary_file_path
-        with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
-            # Converts to word2vec file format
-            glove2word2vec(glove_file_path, temp_file.name)
-            word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
-                                                             binary=False)
-            # Creates the binary file version of the word vectors
-            word_vectors.save_word2vec_format(binary_file_path, binary=True)
-        # Delete the text version of the glove vectors
-        os.remove(glove_file_path)
-        return binary_file_path
-
-
     def download(self, skip_conf):
         '''
         This method checks if the
@@ -523,41 +522,52 @@ class GloveTwitterVectors(WordVectors):
 
         return np.zeros(self.vector_size, dtype=np.float32)
 
-class GloveCommonCrawl840(PreTrained):
+class GloveCommonCrawl(WordVectors):
 
-    @staticmethod
-    def download(skip_conf):
+
+    def download(self, skip_conf, version):
         '''
-        This method checks if the
-        `Glove Common Crawl 840B <https://nlp.stanford.edu/projects/glove/>`_
-        word vectors are already in the repoistory if not it downloads and
-        unzips the 300 Dimension word vector if permission is granted.
+        This method checks if either the `Glove Common Crawl \
+        <https://nlp.stanford.edu/projects/glove/>`_ 840 or 42 Billion token
+        word vectors were downloaded already into the repoistory if not it
+        downloads and unzips the 300 Dimension word vector if permission is
+        granted.
 
         :param skip_conf: Whether to skip the permission step as it requires \
         user input. True to skip permission.
+        :param version: Choice of either the 42 or 840 Billion token 300 \
+        dimension common crawl glove vectors. The values can be only 42 or \
+        840 and default is 42.
         :type skip_conf: bool
+        :type version: int
         :returns: The filepath to the 300 dimension word vector
         :rtype: String
         '''
 
         glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
-                                    'glove_common_crawl_840b')
+                                    'glove_common_crawl_{}b'.format(version))
         os.makedirs(glove_folder, exist_ok=True)
-        glove_file_path = os.path.join(glove_folder, 'glove.840B.300d.txt')
+        glove_file_path = os.path.join(glove_folder,
+                                       'glove.{}B.300d'.format(version))
+        glove_file_txt_path = glove_file_path + '.txt'
+        glove_file_binary_path = glove_file_path + '.binary'
         # If the files in the folder aren't all the glove files that would be
         # downloaded re-download the zip and unzip the files.
-        if not os.path.isfile(glove_file_path):
+        if not os.path.isfile(glove_file_binary_path) and \
+           not os.path.isfile(glove_file_txt_path):
             can_download = 'yes'
             if not skip_conf:
                 download_msg = 'We are going to download the glove vectors this is '\
-                               'a large download of 2GB and takes 5.6GB of disk '\
+                               'a large download of ~2GB and takes ~5.6GB of disk '\
                                'space after being unzipped. Would you like to '\
                                'continue? If so type `yes`\n'
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
-                download_link = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
-                glove_zip_path = os.path.join(glove_folder, 'glove.840B.300d.zip')
+                download_link = 'http://nlp.stanford.edu/data/'\
+                                'glove.{}B.300d.zip'.format(version)
+                glove_zip_path = os.path.join(glove_folder,
+                                              'glove.{}B.300d.zip'.format(version))
                 # Reference:
                 # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
                 with open(glove_zip_path, 'wb') as glove_zip_file:
@@ -567,106 +577,39 @@ class GloveCommonCrawl840(PreTrained):
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
             else:
-                raise Exception('Glove Common Crawl 840b vectors not downloaded '\
-                                'therefore cannot load them')
-            if not os.path.isfile(glove_file_path):
+                raise Exception('Glove Common Crawl {}b vectors not downloaded '\
+                                'therefore cannot load them'.format(version))
+            if not os.path.isfile(glove_file_txt_path):
                 raise Exception('Error in either downloading the glove vectors '\
                                 'or file path names. Files in the glove folder '\
                                 '{} and where the golve file should be {}'\
-                                .format(os.listdir(glove_folder), glove_file_path))
-        return glove_file_path
+                                .format(os.listdir(glove_folder),
+                                        glove_file_txt_path))
+        return self.glove_txt_binary(glove_file_txt_path)
 
-    def __init__(self, name=None, unit_length=False, skip_conf=False):
+    def __init__(self, version=42, name=None, unit_length=False,
+                 skip_conf=False):
         '''
+        :param version: Choice of either the 42 or 840 Billion token 300 \
+        dimension common crawl glove vectors. The values can be only 42 or \
+        840 and default is 42.
         :param skip_conf: Whether to skip the permission step for downloading \
         the word vectors as it requires user input. True to skip permission.
+        :type version: int. Default 42.
         :type skip_conf: bool. Default False
         '''
+        if version not in [42, 840]:
+            raise ValueError('Common Crawl only come in two version the 840 '\
+                             'or 42 Billion tokens. Require to choose between '\
+                             '42 and 840 and not {}'.format(version))
 
-        glove_file = self.download(skip_conf)
+
         if name is None:
-            name = 'glove 300d 840b common crawl'
-        super().__init__(glove_file, name=name, unit_length=unit_length,
-                         delimenter=' ')
-
-    def _unknown_vector(self):
-        '''
-        This is to be Overridden by sub classes if they want to return a custom
-        unknown vector.
-
-        :returns: A vector for all unknown words. In this case it is a zero
-        vector.
-        :rtype: numpy.ndarray
-        '''
-
-        return np.zeros(self.vector_size, dtype=np.float32)
-
-
-class GloveCommonCrawl42(PreTrained):
-
-    @staticmethod
-    def download(skip_conf):
-        '''
-        This method checks if the
-        `Glove Common Crawl 42B <https://nlp.stanford.edu/projects/glove/>`_
-        word vectors are already in the repoistory if not it downloads and
-        unzips the 300 Dimension word vector if permission is granted.
-
-        :param skip_conf: Whether to skip the permission step as it requires \
-        user input. True to skip permission.
-        :type skip_conf: bool
-        :returns: The filepath to the 300 dimension word vector
-        :rtype: String
-        '''
-
-        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
-                                    'glove_common_crawl_42b')
-        os.makedirs(glove_folder, exist_ok=True)
-        glove_file_path = os.path.join(glove_folder, 'glove.42B.300d.txt')
-        # If the files in the folder aren't all the glove files that would be
-        # downloaded re-download the zip and unzip the files.
-        if not os.path.isfile(glove_file_path):
-            can_download = 'yes'
-            if not skip_conf:
-                download_msg = 'We are going to download the glove vectors this is '\
-                               'a large download of 1.9GB and takes 5GB of disk '\
-                               'space after being unzipped. Would you like to '\
-                               'continue? If so type `yes`\n'
-                can_download = input(download_msg)
-
-            if can_download.strip().lower() == 'yes':
-                download_link = 'http://nlp.stanford.edu/data/glove.42B.300d.zip'
-                glove_zip_path = os.path.join(glove_folder, 'glove.42B.300d.zip')
-                # Reference:
-                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
-                with open(glove_zip_path, 'wb') as glove_zip_file:
-                    glove_requests = requests.get(download_link, stream=True)
-                    for chunk in glove_requests.iter_content(chunk_size=128):
-                        glove_zip_file.write(chunk)
-                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
-                    glove_zip_file.extractall(path=glove_folder)
-            else:
-                raise Exception('Glove Common Crawl 42b vectors not downloaded '\
-                                'therefore cannot load them')
-            if not os.path.isfile(glove_file_path):
-                raise Exception('Error in either downloading the glove vectors '\
-                                'or file path names. Files in the glove folder '\
-                                '{} and where the golve file should be {}'\
-                                .format(os.listdir(glove_folder), glove_file_path))
-        return glove_file_path
-
-    def __init__(self, name=None, unit_length=False, skip_conf=False):
-        '''
-        :param skip_conf: Whether to skip the permission step for downloading \
-        the word vectors as it requires user input. True to skip permission.
-        :type skip_conf: bool. Default False
-        '''
-
-        glove_file = self.download(skip_conf)
-        if name is None:
-            name = 'glove 300d 42B common crawl'
-        super().__init__(glove_file, name=name, unit_length=unit_length,
-                         delimenter=' ')
+            name = 'glove 300d {}b common crawl'.format(version)
+        vector_file = self.download(skip_conf, version)
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
 
     def _unknown_vector(self):
         '''
