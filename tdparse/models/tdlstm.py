@@ -189,7 +189,6 @@ class LSTM():
         '''
         Function to train, test, and return the scores and predictions.
         '''
-        print(model_params)
         lstm_model.fit(train_data, train_y, **model_params)
         predictions = lstm_model.predict(test_data)
         score = lstm_model.score(test_y, predictions, score_func)
