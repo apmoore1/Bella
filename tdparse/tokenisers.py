@@ -5,8 +5,11 @@ Strings.
 1. Whitespace - :py:func:`tdparse.tokenisers.whitespace`
 2. Twitter tokeniser - :py:func:`tdparse.tokenisers.ark_twokenize`
 '''
+import time
+import random
 
 import twokenize
+from pycorenlp import StanfordCoreNLP
 
 def whitespace(text):
     '''
@@ -38,3 +41,21 @@ def ark_twokenize(text):
     if isinstance(text, str):
         return twokenize.tokenizeRawTweetText(text)
     raise ValueError('The paramter must be of type str not {}'.format(type(text)))
+
+def stanford(text):
+    nlp = StanfordCoreNLP('http://localhost:9000')
+
+    tokens = []
+    annotations = None
+    while annotations is None:
+        annotations = nlp.annotate(text, properties={'annotators' : 'tokenize,ssplit',
+                                                     'tokenize.language' : 'en',
+                                                     'timeout' : '50000',
+                                                     'outputFormat' : 'json'})
+        if annotations is None:
+            time.sleep(1)
+
+    for sentence in annotations['sentences']:
+        tokens.extend([token['word'] for token in sentence['tokens']])
+
+    return tokens
