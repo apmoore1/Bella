@@ -6,11 +6,10 @@ Strings.
 2. Twitter tokeniser - :py:func:`tdparse.tokenisers.ark_twokenize`
 '''
 import time
-import random
 
 import twokenize
-from stanfordcorenlp import StanfordCoreNLP
 
+from tdparse import stanford_tools
 
 def whitespace(text):
     '''
@@ -44,12 +43,4 @@ def ark_twokenize(text):
     raise ValueError('The paramter must be of type str not {}'.format(type(text)))
 
 def stanford(text):
-    nlp = StanfordCoreNLP('http://localhost', port=9000)
-
-    tokens = []
-    while len(tokens) == 0:
-        tokens.extend(nlp.word_tokenize(text))
-        if len(tokens) == 0:
-            time.sleep(1)
-
-    return tokens
+    return stanford_tools.tokenise(text)
