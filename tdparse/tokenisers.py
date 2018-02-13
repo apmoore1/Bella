@@ -9,7 +9,8 @@ import time
 import random
 
 import twokenize
-from pycorenlp import StanfordCoreNLP
+from stanfordcorenlp import StanfordCoreNLP
+
 
 def whitespace(text):
     '''
@@ -43,19 +44,12 @@ def ark_twokenize(text):
     raise ValueError('The paramter must be of type str not {}'.format(type(text)))
 
 def stanford(text):
-    nlp = StanfordCoreNLP('http://localhost:9000')
+    nlp = StanfordCoreNLP('http://localhost', port=9000)
 
     tokens = []
-    annotations = None
-    while annotations is None:
-        annotations = nlp.annotate(text, properties={'annotators' : 'tokenize,ssplit',
-                                                     'tokenize.language' : 'en',
-                                                     'timeout' : '50000',
-                                                     'outputFormat' : 'json'})
-        if annotations is None:
+    while len(tokens) == 0:
+        tokens.extend(nlp.word_tokenize(text))
+        if len(tokens) == 0:
             time.sleep(1)
-
-    for sentence in annotations['sentences']:
-        tokens.extend([token['word'] for token in sentence['tokens']])
 
     return tokens
