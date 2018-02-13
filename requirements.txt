@@ -57,6 +57,7 @@ prompt-toolkit==1.0.15
 protobuf==3.5.0.post1
 ptyprocess==0.5.2
 py==1.4.34
+-e git+https://github.com/apmoore1/py-corenlp@41fad50457220a66d687b5899022fcb7026abbaa#egg=pycorenlp
 pydot==1.2.4
 Pygments==2.2.0
 pylint==1.8.1
