@@ -16,6 +16,9 @@ import pandas as pd
 from sklearn import metrics
 import seaborn as sns
 
+from tdparse.tokenisers import whitespace
+from tdparse.stanford_tools import constituency_parse
+
 class Target(MutableMapping):
     '''
     Mutable data store for a single Target value. This should be used as the
@@ -564,6 +567,22 @@ class TargetCollection(MutableMapping):
             sentence_id = target['sentence_id']
             sentence_targets[sentence_id].append(target)
         return sentence_targets
+
+    def avg_constituency_depth(self):
+        avg_depths = []
+        for data in self.values():
+            sentence_trees = constituency_parse(data['text'])
+            tree_depths = [tree.height() - 1 for tree in sentence_trees]
+            avg_depth = sum(tree_depths) / len(sentence_trees)
+            avg_depths.append(avg_depth)
+        return sum(avg_depths) / len(avg_depths)
+
+    def avg_sentence_length_per_target(self, tokeniser=whitespace):
+        all_sentence_lengths = []
+        for data in self.values():
+            all_sentence_lengths.append(len(tokeniser(data['text'])))
+        return sum(all_sentence_lengths) / len(all_sentence_lengths)
+
 
     @staticmethod
     def combine_collections(*args):
