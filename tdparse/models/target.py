@@ -89,7 +89,7 @@ class TargetInd():
             for i in c_scores.index:
                 c_result = c_scores.loc[i]
                 c_value = c_result['param_svm__C']
-                test_score = c_result['mean_test_score'] 
+                test_score = c_result['mean_test_score']
                 c_score[c_value] = test_score
             return c_score
 
@@ -316,14 +316,14 @@ class TargetInd():
         :param C: A list of floats which indicate the C value on the SVM classifier.
         :param random_state: A int which defines the random number to generate \
         to shuffle the data. Used to ensure reproducability.
-        :param scale: A list of one value which has to be None to indicate whether \
-        to test scaling and not scaling.
+        :param scale: Can only be the value None to not scale the data. Do not \
+        include this
         :type word_vectors: list
         :type tokenisers: list
         :type lowers: list
         :type C: list
         :type random_state: int
-        :type scale: list
+        :type scale: None
         :return: A list of dicts where each dict represents a different \
         parameter space to search. Used as the params attribute to grid_search \
         function.
@@ -349,8 +349,18 @@ class TargetInd():
             params_list = self._add_to_all_params(params_list, 'svm__random_state',
                                                   random_state)
         if scale is not None:
-            scale.append(MinMaxScaler())
-            params_list = self._add_to_all_params(params_list, 'scale', scale)
+            scale_params = []
+            if len(scale) > 2:
+                raise ValueError('Scale has to be a list, that can only '\
+                                 'contain two values False to not scale and '\
+                                 'True to scale your list contains more than '\
+                                 'two values {}'.format(scale))
+            for value in scale:
+                if value:
+                    scale_params.append(MinMaxScaler())
+                else:
+                    scale_params.append(None)
+            params_list = self._add_to_all_params(params_list, 'scale', scale_params)
         return params_list
 
     def fit(self, train_data, train_y, params=None):
