@@ -11,6 +11,7 @@ from networkx.algorithms import traversal
 
 from tdparse.helper import read_config, full_path
 from tdparse.dependency_tokens import DependencyToken
+from tdparse import stanford_tools
 
 def tweebo_install(tweebo_func):
     '''
@@ -226,3 +227,26 @@ def tweebo(texts):
             else:
                 raise SystemError('Could not run the Tweebo run script {}'\
                                   .format(run_script))
+
+def stanford(texts):
+
+    dep_texts = []
+    for text in texts:
+        dep_dicts, tokens_dicts = stanford_tools.dependency_parse(text)
+        token_dep = []
+        prev_sent_length = 0
+        for sentence, _ in enumerate(tokens_dicts):
+            tokens_dict = tokens_dicts[sentence]
+            dep_dict = dep_dicts[sentence]
+            for i in range(1, len(tokens_dict) + 1):
+                word = tokens_dict[i]['word']
+                # All the word indexs start at 1 not 0.
+                # Need to take into account the previous sentence words
+                dep_word_index = (dep_dict[i][1] - 1) + prev_sent_length
+                # If True then it is the root word
+                if dep_word_index + 1 == prev_sent_length:
+                    dep_word_index = -1
+                token_dep.append((word, dep_word_index))
+            prev_sent_length += len(tokens_dict)
+        dep_texts.append(get_tweebo_dependencies(token_dep))
+    return dep_texts
