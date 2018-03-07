@@ -8,7 +8,6 @@ Classes:
 '''
 from collections import defaultdict
 import copy
-import types
 
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
@@ -17,10 +16,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score
+from sklearn.externals import joblib
 
 from tdparse.tokenisers import ark_twokenize
 from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
+from tdparse.notebook_helper import get_json_data, write_json_data
 
 from tdparse.scikit_features.context import Context
 from tdparse.scikit_features.tokeniser import ContextTokeniser
@@ -61,7 +62,30 @@ class TargetInd():
             ('scale', MinMaxScaler()),
             ('svm', LinearSVC(C=0.01))
         ])
-    def find_best_c(self, train_data, train_y, grid_params, **kwargs):
+
+    def save_model(self, model_file, verbose=0):
+        if self.model is None:
+            raise ValueError('Model is not fitted please fit the model '\
+                             'using the fit function')
+        time_taken = time.time()
+        joblib.dump(self.model, model_file)
+        if verbose == 1:
+            time_taken = round(time.time() - time_taken, 2)
+            print('Model saved to {}. Save time {}'\
+                  .format(model_file, time_taken))
+
+    def load_model(self, model_file, verbose=0):
+        if verbose == 1:
+            time_taken = time.time()
+            print('Loading model from {}'.format(model_file))
+            self.model = joblib.load(model_file)
+            time_taken = round(time.time() - time_taken, 2)
+            print('Model successfully loaded. Load time {}'.format(time_taken))
+        else:
+            self.model = joblib.load(model_file)
+
+    def find_best_c(self, train_data, train_y, grid_params, save_file=None,
+                    dataset_name=None, re_write=False, **kwargs):
         '''
         :param train_data: Training instances to grid search over
         :param train_y: Training True values to grid search over
@@ -83,6 +107,15 @@ class TargetInd():
         :rtype: float
         '''
 
+        def best_c_value(c_scores):
+            best = 0
+            best_c = 0
+            for c_value, acc in c_scores.items():
+                if acc > best:
+                    best_c = c_value
+                    best = acc
+            return float(best_c)
+
         def grid_res_to_dict(grid_results):
             c_score = {}
             c_scores = grid_results[['param_svm__C', 'mean_test_score']]
@@ -93,9 +126,15 @@ class TargetInd():
                 c_score[c_value] = test_score
             return c_score
 
+        save_file_given = save_file is not None and dataset_name is not None
+
         # If C value given in grid_params remove it
         if 'C' in grid_params:
             del grid_params['C']
+        if save_file_given and not re_write:
+            c_scores = get_json_data(save_file, dataset_name)
+            if c_scores != {}:
+                return best_c_value(c_scores), c_scores
 
         # Coarse grain search
         coarse_range = []
@@ -125,7 +164,86 @@ class TargetInd():
                                         params=cv_params, **kwargs)
         c_scores = {**grid_res_to_dict(fine_results), **c_scores}
         best_c = self.model.best_params_['svm__C']
+        c_2_string = self.c_param_name(c_scores.keys())
+        c_scores = {c_2_string[c] : value for c, value in c_scores.items()}
+        if save_file_given:
+            write_json_data(save_file, dataset_name, c_scores)
         return best_c, c_scores
+
+    def c_param_name(self, c_values):
+        '''
+        :param c_values: A list of floats representing C values to be mapped to \
+        String values
+        :type c_values: list
+        :returns: A dict of float to String values where the float represents \
+        the true C value and the String is it's String representation.
+        :rtype: dict
+        '''
+        return {c_value : str(c_value) for c_value in c_values}
+
+    def senti_lexicon_param_name(self, senti_lexicons):
+        '''
+        :param all_word_vectors: A list of Lexicon instances
+        :type word_vectors: list
+        :returns: A dict mapping Lexicon instance with the String name of the \
+        lexicon
+        :rtype: dict
+        '''
+
+        return {senti_lexicon : senti_lexicon.name \
+                for senti_lexicon in senti_lexicons}
+
+    def word_vector_param_name(self, all_word_vectors):
+        '''
+        :param all_word_vectors: A list of a list of WordVector instances
+        :type word_vectors: list
+        :returns: A dict of tuples containing WordVector instances and there \
+        String representation found using their name attribute.
+        :rtype: dict
+        '''
+
+        word_vector_2_name = {}
+        for word_vectors in all_word_vectors:
+            word_vectors_tuple = tuple(word_vectors)
+            word_vectors_name = [word_vector.name for word_vector in word_vectors]
+            word_vectors_name = ' '.join(word_vectors_name)
+            word_vector_2_name[word_vectors_tuple] = word_vectors_name
+        return word_vector_2_name
+
+    def tokeniser_param_name(self, tokenisers):
+        '''
+        :param tokenisers: A list of tokeniser functions
+        :type tokenisers: list
+        :returns: A dict of tokeniser function to the name of the tokeniser \
+        function as a String
+        :rtype: dict
+        '''
+        return {tokeniser : tokeniser.__name__ for tokeniser in tokenisers}
+
+    def param_name_function(self, param_name):
+        '''
+        :param param_name: Name of the only parameter being searched for in \
+        the grid search
+        :type param_name: String
+        :returns: A function that can map the parameter values of the parameter \
+        name to meaningful String values
+        :rtype: function
+        '''
+        if param_name == 'word_vectors':
+            return self.word_vector_param_name
+        elif param_name == 'tokenisers':
+            return self.tokeniser_param_name
+        elif param_name == 'C':
+            return self.c_param_name
+        elif param_name == 'senti_lexicons':
+            return self.senti_lexicon_param_name
+        else:
+            raise ValueError('param_name has to be on of the following values:'\
+                             'word_vectors, tokenisers or C not {}'\
+                             .format(param_name))
+
+
+
 
 
 
@@ -345,6 +463,9 @@ class TargetInd():
         if C is not None:
             params_list = self._add_to_all_params(params_list, 'svm__C', C)
         if random_state is not None:
+            if not isinstance(random_state, int):
+                raise TypeError('random_state should be of type int and not {}'\
+                                .format(type(random_state)))
             random_state = [random_state]
             params_list = self._add_to_all_params(params_list, 'svm__random_state',
                                                   random_state)
@@ -360,27 +481,85 @@ class TargetInd():
                     scale_params.append(MinMaxScaler())
                 else:
                     scale_params.append(None)
-            params_list = self._add_to_all_params(params_list, 'scale', scale_params)
+            params_list = self._add_to_all_params(params_list,
+                                                  scale_params, ['scale'])
         return params_list
 
-    def fit(self, train_data, train_y, params=None):
-        if params is None:
-            raise ValueError('params attribute has to have at least a value for '\
-                             'the word vectors used')
+    def fit(self, train_data, train_y, params):
         temp_pipeline = copy.deepcopy(self.pipeline)
         temp_pipeline.set_params(**params)
         temp_pipeline.fit(train_data, train_y)
         self.model = temp_pipeline
 
-    def grid_search(self, train_data, train_y, params=None, **kwargs):
-        if params is None:
-            raise ValueError('params attribute is the `param_grid` attribute'\
-                             ' given to `sklearn.model_selection.GridSearchCV` '\
-                             'function.')
+    def grid_search(self, train_data, train_y, params, **kwargs):
+
         grid_search = GridSearchCV(self.pipeline, param_grid=params, **kwargs)
         self.model = grid_search.fit(train_data, train_y)
         cross_val_results = pd.DataFrame(grid_search.cv_results_)
         return cross_val_results
+
+    def save_grid_search(self, train_data, train_y, grid_params, save_param,
+                         dataset_name, file_name, re_write=False,
+                         **kwargs):
+        '''
+        write_json_data(word_vector_file_path, name, word_vector_results)
+        Saves the results of the grid search to json file where the result is
+        stored per dataset and then per parameter being searched. Note that
+        only one parameter type can be searched and saved per time e.g.
+        searching for different tokenisers but you cannot search for different
+        tokeniser and word vectors at the moment. If you would like those
+        results without saving and caching please use grid_search function.
+        '''
+
+        if save_param not in grid_params:
+            raise ValueError('save_param {} has to be a key in the grid_params'\
+                             ' dict {}'.fromat(save_param, grid_params))
+
+        param_values = grid_params[save_param]
+        param_name = self.param_name_function(save_param)(param_values)
+        name_score = {}
+        name_param = {}
+        if not re_write:
+            name_score = get_json_data(file_name, dataset_name)
+        temp_grid_params = copy.deepcopy(grid_params)
+        for param in param_values:
+            if isinstance(param, list):
+                param = tuple(param)
+            name = param_name[param]
+            name_param[name] = param
+            if not re_write:
+                if name in name_score:
+                    print('yes {} it has continued {}'.format(name, name_score))
+                    continue
+            temp_grid_params[save_param] = [param]
+            cv_params = self.get_cv_params(**temp_grid_params)
+            grid_res = self.grid_search(train_data, train_y, cv_params, **kwargs)
+            if grid_res.shape[0] != 1:
+                raise ValueError('Searching over more than one parameter this '\
+                                 'cannot be allowed as only one value can be '\
+                                 'can be associated to a search parameter at a '\
+                                 'time. Grid results {} parameter being searched'\
+                                 ' {}'.format(grid_res, save_param))
+            name_score[name] = grid_res['mean_test_score'][0]
+        write_json_data(file_name, dataset_name, name_score)
+        sorted_name_score = sorted(name_score.items(), key=lambda x: x[1],
+                                   reverse=True)
+        best_param = None
+        for name, score in sorted_name_score:
+            if name not in name_param:
+                continue
+            best_param = name_param[name]
+            break
+        if best_param is None:
+            raise ValueError('best_param cannot be None this should only happen'\
+                             ' if no parameters are being searched for. Param '\
+                             ' names that have been searched {}'\
+                             .formated(name_param))
+        print('best {} list {} stored {}'.format(best_param, name_param,
+                                                 sorted_name_score))
+        if isinstance(best_param, tuple):
+            return list(best_param)
+        return best_param
 
     def predict(self, test_data):
         if self.model is not None:
