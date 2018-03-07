@@ -157,8 +157,8 @@ class TDParseMinus(TargetInd):
         parameters.
         '''
         params_list = super().get_cv_params(word_vectors, tokenisers=tokenisers,
-                                            lowers=token_lowers, C=C,
-                                            scale=scale, random_state=random_state)
+                                            lowers=token_lowers, C=C, scale=scale,
+                                            random_state=random_state)
         if self.child_relations:
             if rel_depths is not None:
                 if not isinstance(rel_depths[0], tuple):
