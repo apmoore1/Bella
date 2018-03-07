@@ -622,3 +622,104 @@ class GloveCommonCrawl(WordVectors):
         '''
 
         return np.zeros(self.vector_size, dtype=np.float32)
+
+class GloveWikiGiga(WordVectors):
+
+    def download(self, skip_conf):
+        '''
+        This method checks if the
+        `Glove Wikipedia Gigaword word vectors
+        <https://nlp.stanford.edu/projects/glove/>`_
+        are already in the repoistory if not it downloads and unzips the word
+        vectors if permission is granted and converts them into a gensim
+        KeyedVectors binary representation.
+
+        :param skip_conf: Whether to skip the permission step as it requires \
+        user input. True to skip permission.
+        :type skip_conf: bool
+        :returns: A dict containing word vector dimension as keys and the \
+        absolute path to the vector file.
+        :rtype: dict
+        '''
+
+        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
+                                    'glove_wiki_giga')
+        os.makedirs(glove_folder, exist_ok=True)
+        current_glove_files = set(os.listdir(glove_folder))
+        all_glove_files = set(['glove.6B.50d.binary',
+                               'glove.6B.100d.binary',
+                               'glove.6B.200d.binary',
+                               'glove.6B.300d.binary'])
+        interset = all_glove_files.intersection(current_glove_files)
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if interset != all_glove_files:
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the glove vectors this is '\
+                               'a large download of ~900MB and takes ~2.1GB of disk '\
+                               'space after being unzipped. Would you like to '\
+                               'continue? If so type `yes`\n'
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'http://nlp.stanford.edu/data/glove.6B.zip'
+                glove_zip_path = os.path.join(glove_folder, 'glove_zip.zip')
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with open(glove_zip_path, 'wb') as glove_zip_file:
+                    glove_requests = requests.get(download_link, stream=True)
+                    for chunk in glove_requests.iter_content(chunk_size=128):
+                        glove_zip_file.write(chunk)
+                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
+                    glove_zip_file.extractall(path=glove_folder)
+            else:
+                raise Exception('Glove Twitter vectors not downloaded therefore'\
+                                ' cannot load them')
+
+        def add_full_path(file_name):
+            file_path = os.path.join(glove_folder, file_name)
+            return self.glove_txt_binary(file_path)
+
+        return {50 : add_full_path('glove.6B.50d.txt'),
+                100 : add_full_path('glove.6B.100d.txt'),
+                200 : add_full_path('glove.6B.200d.txt'),
+                300 : add_full_path('glove.6B.300d.txt')}
+
+
+
+    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False):
+        '''
+        :param dimension: Dimension size of the word vectors you would like to \
+        use. Choice: 50, 100, 200, 300
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type dimension: int
+        :type skip_conf: bool. Default False
+        '''
+
+        dimension_file = self.download(skip_conf)
+        if not isinstance(dimension, int):
+            raise TypeError('Type of dimension has to be int not {}'\
+                            .format(type(dimension)))
+        if dimension not in dimension_file:
+            raise ValueError('Dimension avliable are the following {}'\
+                             .format(list(dimension_file.keys())))
+        if name is None:
+            name = 'glove wiki giga {}d'.format(dimension)
+        vector_file = dimension_file[dimension]
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size, dtype=np.float32)
