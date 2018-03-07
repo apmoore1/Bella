@@ -1,6 +1,7 @@
 import random as rn
 import os
 import tempfile
+import time
 from multiprocessing import Pool
 
 import numpy as np
@@ -10,6 +11,7 @@ from keras import backend as K
 from keras import preprocessing, models, optimizers, initializers, layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.utils import to_categorical
+from keras.models import model_from_yaml
 
 # Displaying the Neural Network models
 from keras.utils.vis_utils import model_to_dot, plot_model
@@ -19,6 +21,7 @@ from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
 from tdparse.contexts import context
 from tdparse.neural_pooling import matrix_median
+from tdparse.notebook_helper import get_json_data, write_json_data
 
 class LSTM():
     def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False):
@@ -52,6 +55,41 @@ class LSTM():
         self.test_pad_size = 0
         self.lower = lower
         self.model = None
+
+    def save_model(self, model_arch_fp, model_weights_fp, verbose=0):
+        model_arch_fp += '.yaml'
+        model_weights_fp += '.h5'
+        if self.model is None:
+            raise ValueError('Model is not fitted please fit the model '\
+                             'using the fit function')
+        time_taken = time.time()
+        with open(model_arch_fp, 'w') as model_arch_file:
+            model_arch_file.write(self.model.to_yaml())
+        self.model.save_weights(model_weights_fp)
+        if verbose == 1:
+            time_taken = round(time.time() - time_taken, 2)
+            print('Model architecture saved to: {}\nModel weights saved to {}\n'\
+                  'Save time {}'\
+                  .format(model_arch_fp, model_weights_fp, time_taken))
+
+    def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
+        time_taken = time.time()
+        loaded_model = None
+        model_arch_fp += '.yaml'
+        model_weights_fp += '.h5'
+        with open(model_arch_fp, 'r') as model_arch_file:
+            loaded_model = model_from_yaml(model_arch_file)
+        if loaded_model is None:
+            raise ValueError('The model architecture was not loaded')
+        # load weights into new model
+        loaded_model.load_weights(model_weights_fp)
+        self.model = loaded_model
+        if verbose == 1:
+            time_taken = round(time.time() - time_taken, 2)
+            print('Model architecture loaded {}\nModel weights saved to {}\n'\
+                  'Load time {}'\
+                  .format(model_arch_fp, model_weights_fp, time_taken))
+        self.test_pad_size = self.pad_size
 
     def process_text(self, texts, max_length, padding='pre', truncate='pre'):
         '''
@@ -156,6 +194,7 @@ class LSTM():
         else:
             _, sequence_data = self.process_text(text_data, self.test_pad_size)
             return sequence_data
+
     def create_training_text(self, train_data, validation_data):
         '''
         :param train_data: Training features. Specifically a list of dict like \
@@ -183,81 +222,127 @@ class LSTM():
         all_text = np.vstack((sequence_train_data, sequence_val_data))
         return all_text
 
-    @staticmethod
-    def _train_test_score(train_data, train_y, test_data, test_y,
-                         lstm_model, model_params, score_func):
+
+    def fit_predict(self, train_data, train_y, test_data, test_y,
+                    fit_params, score_func, score_args=None, score_kwargs=None):
         '''
         Function to train, test, and return the scores and predictions.
         '''
-        lstm_model.fit(train_data, train_y, **model_params)
-        predictions = lstm_model.predict(test_data)
-        score = lstm_model.score(test_y, predictions, score_func)
+        self.fit(train_data, train_y, **fit_params)
+        predictions = self.predict(test_data)
+        if score_args is None:
+            score_args = []
+        if score_kwargs is None:
+            score_kwargs = {}
+        score = self.score(test_y, predictions, score_func, *score_args,
+                           **score_kwargs)
         return score, predictions
 
-    @staticmethod
-    def cross_val(train_data, train_y, lstm_model, scorer, cv=5,
-                  reproducible=True, multiprocess=False, n_jobs=-1,
-                  **fit_kwargs):
+    def repeated_results(self, train, test, n_results, score_func, dataset_name,
+                         score_args=None, score_kwargs=None,
+                         results_file=None, re_write=False, **fit_kwargs):
+        if results_file is not None:
+            all_scores = get_json_data(results_file, dataset_name)
+            if len(all_scores) != 0  and not re_write:
+                return all_scores
+        train_data = train.data_dict()
+        train_y = train.sentiment_data()
+        test_data = test.data_dict()
+        test_y = test.sentiment_data()
+        scores = []
+        for i in range(n_results):
+            score, _ = self.fit_predict(train_data, train_y, test_data,
+                                        test_y, fit_kwargs, score_func,
+                                        score_args, score_kwargs)
+            print(score)
+            scores.append(score)
+            if results_file is not None:
+                write_json_data(results_file, dataset_name, scores)
+        return scores
+
+
+
+
+    def cross_val(self, train_data, train_y, scorer, dataset_name, search_param,
+                  cv=5, kfold_reproducible=True, results_file=None,
+                  re_write=False, **fit_kwargs):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
         :param train_y: Target values of the training data
-        :param lstm_model: Model that has a fit and predict function
+        :param dataset_name: Name of the dataset being analyzed
+        :param search_param: Name of the parameter being analyzed
         :param cv: Number of folds the cross validation performs
         :param scorer: The scoring function to perform each fold. \
         The function must take the true targets as the first parameter and \
         predicted targets as the second parameter. e.g sklearn.metrics.f1_score
-        :param reproducible: Whether the train and validation splits are random \
+        :param kfold_reproducible: Whether the train and validation splits are random \
         or not.
-        :param multiprocess: Whether it should be parralised
-        :param n_jobs: if it is parralised, defines the nnumber of cores to \
-        parralise accross. -1 value states to use all cores.
+        :param results_file: Path to the file that the results will be saved to \
+        if results do not need saving keep default value None.
+        :param re_write: If saving data determines if to re-write over previous \
+        results
         :param fit_kwargs: key word arguments to pass to the fit function.
         :type train_data: list
         :type train_y: list
-        :type lstm_model: Instance of LSTM
+        :type dataset_name: String
+        :type search_param: String
         :type cv: int. Default 5
         :type scorer: function
-        :type reproducible: bool. Default True
-        :type multiprocess: bool. Default False
-        :type n_jobs: int. Default -1
+        :type kfold_reproducible: bool. Default True
+        :type results_file: String. Default None
+        :type re_write: bool. Default False
         :type fit_kwargs: dict
         :returns: A tuple of length 2 where the 1. list of raw prediction values \
         2. list of scores produced from the scorer.
         :rtype: tuple
         '''
 
-
+        results = {}
+        if results_file is not None:
+            results = get_json_data(results_file, dataset_name)
+            if search_param in results and not re_write:
+                return results[search_param]
 
         splitter = StratifiedKFold(n_splits=cv)
-        if not reproducible:
+        if not kfold_reproducible:
             splitter = StratifiedKFold(n_splits=cv, shuffle=True)
         train_data = np.asarray(train_data)
         train_y = np.asarray(train_y)
         all_predictions = []
         scores = []
-        train_test_params = []
         for train_index, test_index in splitter.split(train_data, train_y):
             sub_train_data = train_data[train_index]
             sub_train_y = train_y[train_index]
             sub_test_data = train_data[test_index]
             sub_test_y = train_y[test_index]
             train_test_param = (sub_train_data, sub_train_y, sub_test_data,
-                                sub_test_y, lstm_model, fit_kwargs, scorer)
-            if multiprocess:
-                train_test_params.append(train_test_param)
-                continue
-            score, predictions = lstm_model._train_test_score(*train_test_param)
+                                sub_test_y, fit_kwargs, scorer)
+            score, predictions = self.fit_predict(*train_test_param)
             scores.append(score)
-            all_predictions.append(predictions)
-        if multiprocess:
-            with Pool(n_jobs) as pool:
-                results = pool.starmap(lstm_model._train_test_score,
-                                       train_test_params)
-            for result in results:
-                scores.append(result[0])
-                all_predictions.append(result[1])
-        return scores, all_predictions
+            all_predictions.append(predictions.tolist())
+        self.model = None
+        result = (scores, all_predictions)
+        results[search_param] = result
+        if results_file is not None:
+            write_json_data(results_file, dataset_name, results)
+        return result
+
+    @staticmethod
+    def prediction_to_cats(true_values, pred_values):
+        num_classes = pred_values.shape[1]
+        if num_classes != len(set(true_values)):
+            raise ValueError('The number of classes in the test data {} is '\
+                             'is different to the number of classes in the '\
+                             'train data {}'\
+                             .format(len(set(true_values)), num_classes))
+        # Convert the true values to the same format as the predicted values
+        norm_true_values = to_categorical(true_values, num_classes=num_classes)
+        # Converted both the true and predicted values from one hot encoded
+        # matrix to single value vector
+        norm_true_values = np.argmax(norm_true_values, axis=1)
+        pred_values = np.argmax(pred_values, axis=1)
+        return pred_values
 
     @staticmethod
     def score(true_values, pred_values, scorer, *args, **kwargs):
@@ -493,6 +578,9 @@ class LSTM():
         plot_model(self.model, to_file=file_path, show_shapes=True,
                    show_layer_names=True, rankdir=rankdir)
 
+    def __repr__(self):
+        return 'LSTM'
+
 class TDLSTM(LSTM):
 
     def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
@@ -509,6 +597,11 @@ class TDLSTM(LSTM):
         self.right_pad_size = pad_size
         self.right_test_pad_size = 0
         self.inc_target = inc_target
+
+    def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
+        super().load_model(model_arch_fp, model_weights_fp, verbose=verbose)
+        self.left_test_pad_size = self.pad_size
+        self.right_test_pad_size = self.pad_size
 
     def predict(self, test_data):
         '''
@@ -752,6 +845,9 @@ class TDLSTM(LSTM):
             if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
+
+    def __repr__(self):
+        return 'TDLSTM'
 
 class TCLSTM(TDLSTM):
 
@@ -1003,3 +1099,6 @@ class TCLSTM(TDLSTM):
             if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
+
+    def __repr__(self):
+        return 'TCLSTM'
