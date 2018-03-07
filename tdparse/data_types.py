@@ -420,6 +420,16 @@ class TargetCollection(MutableMapping):
 
         return [target_data[sentiment_field] for target_data in self.values()]
 
+    def add_id_pred(self, id_pred):
+        count = 0
+        for targ_id in self:
+            if targ_id in id_pred:
+                self[targ_id]['predicted'] = id_pred[targ_id]
+                count += 1
+        if count != len(self):
+            raise ValueError('We have only added {} predictions to {} targets'\
+                             .format(count, len(self)))
+
     def add_pred_sentiment(self, sent_preds, mapper=None):
         '''
         :param sent_preds: A list of predicted sentiments for all Target \
@@ -501,6 +511,15 @@ class TargetCollection(MutableMapping):
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
+        return TargetCollection(all_relevent_targets)
+
+    def subset_by_sentence_length(self, length_condition):
+
+        all_relevent_targets = []
+        for target in self.data():
+            target_text = target['text']
+            if length_condition(target_text):
+                all_relevent_targets.append(target)
         return TargetCollection(all_relevent_targets)
 
     # Not tested
