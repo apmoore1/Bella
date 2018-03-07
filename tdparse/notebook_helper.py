@@ -10,6 +10,7 @@ def get_json_data(result_path, dataset_name):
             data_dict = json.load(result_file)
             if dataset_name in data_dict:
                 return data_dict[dataset_name]
+    return {}
 
 def write_json_data(result_path, dataset_name, data):
     data_dict = {}
