@@ -147,9 +147,11 @@ def get_results(file_name, dataset_name):
         results_dataframe = pd.read_csv(file_name, '\t')
         results_dataframe = results_dataframe.set_index('dataset')
         if dataset_name in results_dataframe.index:
+            #import code
+            #code.interact(local=locals())
             dataset_results = results_dataframe.loc[dataset_name]
             method_name, _ = os.path.splitext(os.path.basename(file_name))
-            dataset_results.columns = [method_name]
+            #dataset_results.columns = [method_name]
             return dataset_results
     return None
 
@@ -246,10 +248,15 @@ def evaluation_results(y_pred, test, dataset_name, file_name=None,
             all_test_scores.extend([0, 0, 0, 0])
         else:
             sub_test_collection = test.subset_by_sentiment(i)
-            sub_y_true = sub_test_collection.sentiment_data()
-            sub_y_pred = sub_test_collection.sentiment_data(sentiment_field='predicted')
-            subset_num_classes = len(sub_test_collection.stored_sentiments())
-            all_test_scores.extend(scores(sub_y_true, sub_y_pred, subset_num_classes))
+            if len(sub_test_collection) == 0:
+                all_test_scores.extend([0, 0, 0, 0])
+            else:
+                sub_y_true = sub_test_collection.sentiment_data()
+                sub_y_pred = sub_test_collection.\
+                             sentiment_data(sentiment_field='predicted')
+                subset_num_classes = len(sub_test_collection.stored_sentiments())
+                all_test_scores.extend(scores(sub_y_true, sub_y_pred,
+                                              subset_num_classes))
 
         acc_text = 'Accuracy for text with {} distinct sentiments'.format(i)
         f1_3_text = '3 Class Macro F1 for text with {} distinct sentiments'.format(i)
