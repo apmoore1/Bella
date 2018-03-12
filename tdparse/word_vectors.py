@@ -44,8 +44,20 @@ class WordVectors(object):
     for the index=0.
     7. unknown_word - The word that is returned for the 0 index. Default is \
     `<unk>`
-    6. unit_length - If the vectors when returned are their unit norm value \
+    8. unit_length - If the vectors when returned are their unit norm value \
     instead of their raw values.
+    9. unknown_index - The index of the unknown word normally 0
+    10. padding_word - The word (<pad>) that defines padding indexs.
+    11. padding_index - index of the padding word
+    12. padding vector - padding vector for the padding word.
+
+    padding index, word and vector are equal to the unknown equilavents if
+    padding_value = None in the constructor. Else padding index = 0, word = <pad>
+    and vector is what you have defined, this then moves the unknown index to
+    vocab size + 1 and the everything else is the same. The idea behind the 2
+    are that pad is used for padding and unknown is used for words that are
+    truely unknown therefore allowing you to only skip the pad vectors when
+    training a model by using a masking function in keras.
 
     The index 0 is used as a special index to map to unknown words. Therefore \
     the size of the vocabularly is len(index2word) - 1.
@@ -54,7 +66,8 @@ class WordVectors(object):
 
     1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
     '''
-    def __init__(self, word2vector, name=None, unit_length=False):
+    def __init__(self, word2vector, name=None, unit_length=False,
+                 padding_value=None):
         size_vector_list = self._check_vector_size(word2vector)
         self.vector_size, self._word2vector, self._word_list = size_vector_list
         self.name = '{}'.format(name)
@@ -62,6 +75,17 @@ class WordVectors(object):
         # Method attributes
         self.unknown_word = self._unknown_word()
         self.unknown_vector = self._unknown_vector()
+        self.unknown_index = 0
+        self.padding_word = self.unknown_word
+        self.padding_vector = None
+        if padding_value is not None:
+            self.unknown_index = len(self._word_list) + 1
+            self.padding_vector = np.asarray([padding_value] * self.vector_size)
+            self.padding_word = '<pad>'
+        else:
+            self.padding_vector = self.unknown_vector
+        if self.padding_vector is None:
+            raise ValueError('Padding Vector is None')
         self.index2word = self._index2word()
         self.word2index = self._word2index()
         self.index2vector = self._index2vector()
@@ -143,13 +167,86 @@ class WordVectors(object):
     def lookup_vector(self, word):
         '''
         Given a word returns the vector representation of that word. If the model
-        does not have a representation for that word returns a vector of zeros.
+        does not have a representation for that word it returns word vectors
+        unknown word vector (most models this is zeors)
 
         :param word: A word
         :type word: String
         :returns: The word vector for that word. If no word vector can be found
         returns a vector of zeros.
         :rtype: numpy.ndarray
+        '''
+
+        if isinstance(word, str):
+            word_index = self.word2index[word]
+            return self.index2vector[word_index]
+        raise ValueError('The word parameter must be of type str not {}'\
+                         .format(type(word)))
+
+    def _index2word(self):
+        '''
+        The index starts at one as zero is a special value assigned to words that
+        are padded. The word return for zero is defined by `padded_word` attribute.
+        If the padded value is different to the unknown word value then the index
+        will contain an extra index for the unknown word index which is the
+        vocab size + 1 index.
+
+        :returns: A dictionary matching word indexs to there corresponding words.
+        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.word2index`
+        :rtype: dict
+        '''
+
+
+        index_word = {}
+        index_word[0] = self.padding_word
+        index = 1
+        for word in self._word_list:
+            if word == self.unknown_word:
+                continue
+            index_word[index] = word
+            index += 1
+        # Required as the unknown word might have been learned and in 
+        # self._word_list
+        if self.unknown_index != 0:
+            self.unknown_index = len(index_word)
+        index_word[self.unknown_index] = self.unknown_word
+        return index_word
+
+    def _return_unknown_index(self):
+        '''
+        :returns: zero. Used as lambda is not pickleable
+        :rtype: int
+        '''
+        return self.unknown_index
+
+    def _word2index(self):
+        '''
+        If you have specified a special padded index vector then the <pad> word
+        would match to index 0 and the vocab + 1 index will be <unk> else if
+        no special pad index vector then vocab + 1 won't exist and <unk> will be
+        0
+
+        :returns: A dictionary matching words to there corresponding index.
+        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.index2word`
+        :rtype: dict
+        '''
+
+        # Cannot use lambda function as it cannot be pickled
+        word2index_dict = defaultdict(self._return_unknown_index)
+        for index, word in self.index2word.items():
+            word2index_dict[word] = index
+        return word2index_dict
+
+    def _index2vector(self):
+        '''
+        NOTE: the zero index is mapped to the unknown index unless padded vector
+        is specified then zero index is padded index and vocab + 1 index is
+        unknown index
+
+        :returns: A dictionary of word index to corresponding word vector. Same
+        as :py:func:`tdparse.word_vectors.GensimVectors.lookup_vector` but
+        instead of words that are looked up it is the words index.
+        :rtype: dict
         '''
 
         def unit_norm(vector):
@@ -166,70 +263,20 @@ class WordVectors(object):
             l2_norm = np.linalg.norm(vector)
             return vector / l2_norm
 
-        if isinstance(word, str):
-            try:
-                word_vector = self._word2vector[word]
-                if self.unit_length:
-                    return unit_norm(word_vector)
-                return word_vector
-            except KeyError:
-                unknown_vector = self.unknown_vector
-                if self.unit_length:
-                    return unit_norm(unknown_vector)
-                return unknown_vector
-        raise ValueError('The word parameter must be of type str not {}'\
-                         .format(type(word)))
-
-    def _index2word(self):
-        '''
-        The index starts at one as zero is a special value assigned to words that
-        are unknown. The word return for zero is defined by `unknown_word` property.
-
-        :returns: A dictionary matching word indexs to there corresponding words.
-        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.word2index`
-        :rtype: dict
-        '''
-
-        index_word = {}
-        for index, word in enumerate(self._word_list):
-            index_word[index + 1] = word
-        index_word[0] = self.unknown_word
-        return index_word
-
-    @staticmethod
-    def _return_zero():
-        '''
-        :returns: zero. Used as lambda is not pickleable
-        :rtype: int
-        '''
-        return 0
-
-    def _word2index(self):
-        '''
-        :returns: A dictionary matching words to there corresponding index.
-        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.index2word`
-        :rtype: dict
-        '''
-
-        # Cannot use lambda function as it cannot be pickled
-        word2index_dict = defaultdict(self._return_zero)
-        for index, word in self.index2word.items():
-            word2index_dict[word] = index
-        return word2index_dict
-
-    def _index2vector(self):
-        '''
-        NOTE: the zero index is mapped to the unknown index
-        :returns: A dictionary of word index to corresponding word vector. Same
-        as :py:func:`tdparse.word_vectors.GensimVectors.lookup_vector` but
-        instead of words that are looked up it is the words index.
-        :rtype: dict
-        '''
-
         index_vector = {}
+        if self.unit_length:
+            index_vector[0] = unit_norm(self.padding_vector)
+            index_vector[self.unknown_index] = unit_norm(self.unknown_vector)
+        else:
+            index_vector[0] = self.padding_vector
+            index_vector[self.unknown_index] = self.unknown_vector
         for index, word in self.index2word.items():
-            index_vector[index] = self.lookup_vector(word)
-        index_vector[0] = self.unknown_vector
+            if index == 0 or index == self.unknown_index:
+                continue
+            if self.unit_length:
+                index_vector[index] = unit_norm(self._word2vector[word])
+            else:
+                index_vector[index] = self._word2vector[word]
         return index_vector
 
     def __repr__(self):
@@ -272,7 +319,7 @@ class WordVectors(object):
                 matrix[index] = vector
             except Exception as e:
                 word = self.index2word[index]
-                print('{} {} {}'.format(word, index, vector))
+                print('{} {} {} {}'.format(word, index, vector, e))
         return matrix
 
 
@@ -290,7 +337,7 @@ class GensimVectors(WordVectors):
     '''
 
     def __init__(self, file_path, train_data, name=None, model=None,
-                 unit_length=False, **kwargs):
+                 unit_length=False, padding_value=None, **kwargs):
         '''
         Trains or loads the model specified.
 
@@ -347,7 +394,8 @@ class GensimVectors(WordVectors):
                             'a model from {} or any data to train on which has '\
                             'to have the __iter__ function {}'\
                             .format(file_path, train_data))
-        super().__init__(self._model.wv, name=name, unit_length=unit_length)
+        super().__init__(self._model.wv, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
 class PreTrained(WordVectors):
     '''
@@ -364,7 +412,7 @@ class PreTrained(WordVectors):
     '''
 
     def __init__(self, file_path, name=None, unit_length=False,
-                 delimenter='\t'):
+                 delimenter='\t', padding_value=None):
         '''
         :param file_path: The file path to load the word vectors from
         :param name: The name given to the instance.
@@ -409,7 +457,8 @@ class PreTrained(WordVectors):
                                    .format(word, dict_vector, word_vector))
                 else:
                     word2vector[word] = word_vector
-        super().__init__(word2vector, name=name, unit_length=unit_length)
+        super().__init__(word2vector, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
     def _unknown_vector(self):
         '''
@@ -486,7 +535,8 @@ class GloveTwitterVectors(WordVectors):
 
 
 
-    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False):
+    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
+                 padding_value=None):
         '''
         :param dimension: Dimension size of the word vectors you would like to \
         use. Choice: 25, 50, 100, 200
@@ -508,7 +558,8 @@ class GloveTwitterVectors(WordVectors):
         vector_file = dimension_file[dimension]
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
-        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
     def _unknown_vector(self):
         '''
@@ -588,7 +639,7 @@ class GloveCommonCrawl(WordVectors):
         return self.glove_txt_binary(glove_file_txt_path)
 
     def __init__(self, version=42, name=None, unit_length=False,
-                 skip_conf=False):
+                 skip_conf=False, padding_value=None):
         '''
         :param version: Choice of either the 42 or 840 Billion token 300 \
         dimension common crawl glove vectors. The values can be only 42 or \
@@ -609,7 +660,8 @@ class GloveCommonCrawl(WordVectors):
         vector_file = self.download(skip_conf, version)
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
-        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
     def _unknown_vector(self):
         '''
@@ -688,7 +740,8 @@ class GloveWikiGiga(WordVectors):
 
 
 
-    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False):
+    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
+                 padding_value=None):
         '''
         :param dimension: Dimension size of the word vectors you would like to \
         use. Choice: 50, 100, 200, 300
@@ -710,7 +763,8 @@ class GloveWikiGiga(WordVectors):
         vector_file = dimension_file[dimension]
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
-        super().__init__(glove_key_vectors, name=name, unit_length=unit_length)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
     def _unknown_vector(self):
         '''

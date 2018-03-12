@@ -5,6 +5,7 @@ import os
 from unittest import TestCase
 import tempfile
 
+import pytest
 import numpy as np
 
 from tdparse.helper import read_config
@@ -114,6 +115,58 @@ class TestWordVectors(TestCase):
                          msg='The embedding matrix is not applying the unit '\
                          'normalization {} should be {}'\
                          .format(hello_embedding, unit_hello_vec))
+
+    def test_padded_vector(self):
+        hello_vec = np.asarray([0.5, 0.3, 0.4], dtype=np.float32)
+        another_vec = np.asarray([0.3333, 0.2222, 0.1111])
+        test_vectors = {'hello' : hello_vec,
+                        'another' : another_vec}
+
+        pad_vec = np.asarray([-1, -1, -1], dtype=np.float32)
+        word_vector = WordVectors(test_vectors, padding_value=-1)
+        self.assertEqual('<pad>', word_vector.index2word[0])
+        self.assertEqual('<unk>', word_vector.index2word[3])
+        anno_unk_vec = np.array_equal(np.zeros(3),
+                                      word_vector.lookup_vector('anno'))
+        self.assertEqual(3, word_vector.word2index['anno'])
+        self.assertEqual(True, anno_unk_vec)
+        embedding_matrix = word_vector.embedding_matrix
+        pad_emb_vec = np.array_equal(pad_vec, embedding_matrix[0])
+        unk_emb_vec = np.array_equal(np.zeros(3), embedding_matrix[3])
+        hello_emb_vec = np.array_equal(hello_vec, embedding_matrix[1])
+        self.assertEqual(True, pad_emb_vec)
+        self.assertEqual(True, unk_emb_vec)
+        self.assertEqual(True, hello_emb_vec)
+        self.assertEqual('<pad>', word_vector.index2word[0])
+        self.assertEqual('<unk>', word_vector.index2word[3])
+        self.assertEqual(3, word_vector.unknown_index)
+
+        pad_vec = np.asarray([-1]*100, dtype=np.float32)
+        vo_zhang_path = read_config('word2vec_files')['vo_zhang']
+        vo_zhang = GensimVectors(vo_zhang_path, None, model='word2vec',
+                                 padding_value=-1)
+        vo_zhang_unk_index = vo_zhang.unknown_index
+        embedding_matrix = vo_zhang.embedding_matrix
+        pad_emb_vec = np.array_equal(pad_vec, embedding_matrix[0])
+        unk_emb_vec = np.array_equal(vo_zhang.unknown_vector, embedding_matrix[vo_zhang_unk_index])
+        unk_not_equal_pad = np.array_equal(embedding_matrix[0], vo_zhang.unknown_vector)
+        self.assertEqual(True, pad_emb_vec, msg='{} {}'.format(pad_vec, embedding_matrix[0]))
+        self.assertEqual(True, unk_emb_vec)
+        self.assertEqual(True, hello_emb_vec)
+        self.assertEqual(True, vo_zhang_unk_index != 0)
+        self.assertEqual(True, vo_zhang_unk_index != 0)
+        self.assertEqual(False, unk_not_equal_pad)
+        self.assertEqual('<pad>', vo_zhang.index2word[0])
+        self.assertEqual('<unk>', vo_zhang.index2word[vo_zhang_unk_index])
+
+        # Ensure that padding does not affect word vectors that do not state 
+        # it is required
+        word_vector = WordVectors(test_vectors)
+        self.assertEqual('<unk>', word_vector.index2word[0])
+        self.assertEqual('<unk>', word_vector.index2word[word_vector.unknown_index])
+        self.assertEqual('<unk>', word_vector.padding_word)
+
+
 
     def test_gensim_word2vec(self):
         '''
@@ -232,6 +285,8 @@ class TestWordVectors(TestCase):
         is_zero = np.array_equal(sswe_model.index2vector[0], np.zeros(sswe_vec_size))
         self.assertEqual(False, is_zero, msg='The unknwon vector should not be '\
                          'zeros')
+
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_glove_twitter_download(self):
         '''
         Tests that the Glove Twitter word vectors are downloaded correctly
@@ -256,6 +311,7 @@ class TestWordVectors(TestCase):
                              'Twitter vector file {} should be here {}'\
                              .format(glove_twitter_file, glove_file_path))
 
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_glove_common_download(self):
         '''
         Tests that the Glove Common Crawl 840 and 42 Billion token vectors are
