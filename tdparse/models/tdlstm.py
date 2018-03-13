@@ -151,22 +151,29 @@ class LSTM():
                                                      dtype='int32', padding=padding,
                                                      truncating=truncate))
     @staticmethod
-    def validation_split(train_data, train_y, validation_size=0.2):
+    def validation_split(train_data, train_y, validation_size=0.2,
+                         reproducible=False):
         '''
         :param train_data: Training features. Specifically a list of dict like \
         structures that contain `text` key.
         :param train_y: Target values
         :validation_size: The fraction of the training data to be set aside \
         for validation data
+        :param reproducible: Whether the validation split should be determinstic
         :type train_data: list
         :type train_y: list
         :type validation_size: float Default 0.2
+        :type reproducible: bool. Default False
         :returns: A tuple of length 4 which contains: 1. Training features, \
         2. Training Target Values, 3. Validation features, 4. Validation Targets
         :rtype: tuple
         '''
 
         splitter = StratifiedShuffleSplit(n_splits=1, test_size=validation_size)
+        if reproducible:
+            splitter = StratifiedShuffleSplit(n_splits=1,
+                                              test_size=validation_size,
+                                              random_state=42)
         train_data = np.asarray(train_data)
         train_y = np.asarray(train_y)
         for train_indexs, validation_index in splitter.split(train_data, train_y):
@@ -447,7 +454,8 @@ class LSTM():
 
         # Data pre-processing
         data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size)
+                                     validation_size=validation_size,
+                                     reproducible=reproducible)
         temp_train, temp_train_y, validation_data, validation_y = data
         all_data = self.create_training_text(temp_train, validation_data)
         all_y = self.create_training_y(temp_train_y, validation_y)
@@ -746,7 +754,8 @@ class TDLSTM(LSTM):
 
         # Data pre-processing
         data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size)
+                                     validation_size=validation_size,
+                                     reproducible=reproducible)
         temp_train, temp_train_y, validation_data, validation_y = data
         left_data, right_data = self.create_training_text(temp_train, validation_data)
         all_y = self.create_training_y(temp_train_y, validation_y)
@@ -981,7 +990,8 @@ class TCLSTM(TDLSTM):
 
         # Data pre-processing
         data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size)
+                                     validation_size=validation_size,
+                                     reproducible=reproducible)
         temp_train, temp_train_y, validation_data, validation_y = data
         sequence_targets = self.create_training_data(temp_train, validation_data)
         left_data, left_targets, right_data, right_targets = sequence_targets
