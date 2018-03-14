@@ -5,10 +5,11 @@ syntactic parsing. Or functions that create
 import re
 
 from tdparse.data_types import Target
+from tdparse.dependency_parsers import stanford
 
 
-
-def normalise_target(target, text, sorted_target_spans, renormalise=False):
+def normalise_target(target, text, sorted_target_spans, renormalise=False,
+                     parser=None):
 
     def add_target_to_text(target):
         target_added_text = text
@@ -39,6 +40,19 @@ def normalise_target(target, text, sorted_target_spans, renormalise=False):
     # parser won't keep a word as a word if it is LG_Flat_Screen
     if renormalise:
         norm_target = ''.join(split_target)
+        if norm_target[0] == '#' or norm_target[0] == '@':
+            if '#' in norm_target[1:]:
+                norm_target = norm_target.replace('#', '')
+                norm_target = '#{}'.format(norm_target)
+            elif '@' in norm_target[1:]:
+                norm_target = norm_target.replace('@', '')
+                norm_target = '@{}'.format(norm_target)
+
+            if parser == stanford:
+                norm_target = norm_target.replace('@', '')
+        if norm_target[-1] == '#':
+            norm_target = norm_target.replace('#', '')
+
     elif num_spaces_in_target > 2:
         first_word = split_target[0]
         joined_rest_words = ''.join(split_target[1:])
@@ -57,17 +71,34 @@ def normalise_target(target, text, sorted_target_spans, renormalise=False):
     # Put the normalised targets into the text
     norm_text = add_target_to_text(norm_target)
 
+    #if parser == stanford:
+    #  norm_target = norm_target.replace('@', '')  
 
     # Checks a word that is the normalised target word exists in the text and
     # if so changes it to a word that is not by putting dollar signs around it.
     if not check_target_unique(norm_target, norm_text, num_target_spans):
-        if '@' in norm_target:
+        if parser == stanford:
+            norm_target = norm_target.replace('@', '')
+            norm_target = norm_target.replace('#', '')
+        elif '@' in norm_target:
             norm_target = norm_target.replace('@', '')
         else:
-            norm_target = '${}$'.format(norm_target)
+            if renormalise and len(split_target) == 1:
+                if norm_target[0] == '#':
+                    norm_target = '${}$'.format(norm_target[1:])
+            else:
+                norm_target = '${}$'.format(norm_target)
+
+
         norm_text = add_target_to_text(norm_target)
         if not check_target_unique(norm_target, norm_text, num_target_spans):
-            if '$' not in norm_target:
+            if parser == stanford:
+                norm_target = '<{}>'.format(norm_target)
+                norm_text = add_target_to_text(norm_target)
+                if check_target_unique(norm_target,
+                                       norm_text, num_target_spans):
+                    return norm_target
+            elif '$' not in norm_target:
                 norm_target = '${}$'.format(norm_target)
                 norm_text = add_target_to_text(norm_target)
                 if check_target_unique(norm_target,
@@ -76,9 +107,13 @@ def normalise_target(target, text, sorted_target_spans, renormalise=False):
             raise Exception('Normalised word {} occurs in the text more times '\
                             'than it spans {}. Text {}'\
                             .format(norm_target, num_target_spans, norm_text))
+    elif parser == stanford:
+        if '@' in norm_target:
+            norm_target
+
     return norm_target
 
-def target_normalisation(target_dict, renormalise=False):
+def target_normalisation(target_dict, renormalise=False, parser=None):
     '''
     Given a target instance it normalises the target by removing whitespaces
     between target words and inserting `_`. Then inserting the normalised word
@@ -103,7 +138,8 @@ def target_normalisation(target_dict, renormalise=False):
     target = target_dict['target']
 
 
-    target = normalise_target(target, org_text, sorted_spans, renormalise)
+    target = normalise_target(target, org_text, sorted_spans, renormalise,
+                              parser=parser)
     for start_index, end_index in sorted_spans:
         start_text = org_text[: start_index]
         end_text = org_text[end_index :]
@@ -113,7 +149,7 @@ def target_normalisation(target_dict, renormalise=False):
 
     return org_text, target
 
-def normalise_context(target_dicts, lower, renormalise=False):
+def normalise_context(target_dicts, lower, renormalise=False, parser=None):
     '''
     Given a list of target dicts and if the text should be lower cased returns
     all of the text and targets within those target dicts as lists where the
@@ -133,7 +169,8 @@ def normalise_context(target_dicts, lower, renormalise=False):
     all_text = []
     all_norm_targets = []
     for target_dict in target_dicts:
-        norm_text, norm_target = target_normalisation(target_dict, renormalise)
+        norm_text, norm_target = target_normalisation(target_dict, renormalise,
+                                                      parser=parser)
         if lower:
             norm_text = norm_text.lower()
             norm_target = norm_target.lower()
@@ -173,7 +210,8 @@ def dependency_relation_context(target_dicts, parser, lower=False,
 
     # Normalise the target and text
     targets = [target_dict['target'] for target_dict in target_dicts]
-    norm_texts, norm_targets = normalise_context(target_dicts, lower)
+    norm_texts, norm_targets = normalise_context(target_dicts, lower,
+                                                 parser=parser)
     # Get contexts
     all_dependency_tokens = parser(norm_texts)
     all_contexts = []
@@ -185,7 +223,7 @@ def dependency_relation_context(target_dicts, parser, lower=False,
             # This only happens if the first normalization does not work
             if attempts == 2:
                 text, norm_target = normalise_context([target_dicts[index]],
-                                                      lower=lower,
+                                                      lower=lower, parser=parser,
                                                       renormalise=True)
                 norm_target = norm_target[0]
                 dependency_tokens = parser(text)[0]
@@ -198,7 +236,6 @@ def dependency_relation_context(target_dicts, parser, lower=False,
                     related_text = ' '.join(all_related_words)
                     related_text = related_text.replace(current_token, norm_target)
                     contexts.append(related_text)
-                    print('NORM TARGET {} {}'.format(norm_target, all_related_words))
 
             rel_target = target_dicts[index]
             valid_num_targets = len(rel_target['spans'])
@@ -215,64 +252,6 @@ def dependency_relation_context(target_dicts, parser, lower=False,
             all_contexts.append(contexts)
             break
     return all_contexts
-
-
-
-
-def text_and_span(text, norm_target, target, norm_target_span):
-
-    def remove_duplicate_spans(sorted_spans):
-        de_dup_spans = []
-        for start_0, end_0 in sorted_spans:
-            for start_1, end_1 in sorted_spans:
-                if start_0 == start_1 and end_0 == end_1:
-                    continue
-                # Do not allow spans through that are within other spans
-                elif start_0 > start_1 and end_0 < end_1:
-                    break
-            else:
-                de_dup_spans.append((start_0, end_0))
-        return de_dup_spans
-
-    all_norm_match_spans = []
-    norm_target = re.escape(norm_target)
-    escaped_target = re.escape(target)
-    real_target_span = None
-    for norm_target_match in re.finditer(norm_target, text):
-        match_span = norm_target_match.span()
-        all_norm_match_spans.append(match_span)
-        if match_span == norm_target_span:
-            real_target_span = norm_target_span
-    if real_target_span is None:
-        raise Exception('Cannot find the normalised Target {} at span {} in '\
-                        'the following text {}'\
-                        .format(norm_target, norm_target_span, text))
-    # Get all the unique spans of the normalised target and the actually target
-    target_match_spans = [target_match.span() \
-                          for target_match in re.finditer(escaped_target, text)]
-    all_spans = sorted(set(all_norm_match_spans + target_match_spans),
-                       key=lambda span: span[0])
-    all_spans = remove_duplicate_spans(all_spans)
-    index_real_target = [index for index, span in enumerate(all_spans) \
-                         if span == real_target_span]
-    num_real_target_spans = len(index_real_target)
-    if num_real_target_spans != 1:
-        raise Exception('There can only be one Target span and {} were found '\
-                        'for target {} normalised {} in text {} with spans {}'\
-                        .found(target, norm_target, text, norm_target_span))
-    index_real_target = index_real_target[0]
-    # Convert all of the normalised targets to targets
-    original_text = re.sub(norm_target, target, text)
-    if len(re.findall(escaped_target, original_text)) != len(all_spans):
-        raise Exception('The number of targets converted is more or less than '\
-                        'the number found in the normailsed text {}. Converted '\
-                        'text {}. Target {}, Normalised target {}, all spans {}'\
-                        .format(text, original_text, target, norm_target, all_spans))
-    target_match_spans = [target_match.span() \
-                          for target_match in re.finditer(escaped_target, original_text)]
-    target_match_spans = sorted(target_match_spans, key=lambda span: span[0])
-    real_target_span = target_match_spans[index_real_target]
-    return original_text, real_target_span
 
 def dependency_context(target_dicts, parser, lower=False):
     '''
@@ -302,11 +281,11 @@ def dependency_context(target_dicts, parser, lower=False):
 
     # Normalise the target and text
     targets = [target_dict['target'] for target_dict in target_dicts]
-    norm_texts, norm_targets = normalise_context(target_dicts, lower)
+    norm_texts, norm_targets = normalise_context(target_dicts, lower,
+                                                 parser=parser)
     # Get contexts
     all_dependency_tokens = parser(norm_texts)
     all_contexts = []
-
     for index, dependency_tokens in enumerate(all_dependency_tokens):
         for attempts in range(1, 3):
             contexts = []
@@ -314,7 +293,7 @@ def dependency_context(target_dicts, parser, lower=False):
             # This only happens if the first normalization does not work
             if attempts == 2:
                 text, norm_target = normalise_context([target_dicts[index]],
-                                                      lower=lower,
+                                                      lower=lower, parser=parser,
                                                       renormalise=True)
                 norm_target = norm_target[0]
                 dependency_tokens = parser(text)[0]
@@ -323,13 +302,14 @@ def dependency_context(target_dicts, parser, lower=False):
                 current_target = targets[index]
                 if lower:
                     current_target = current_target.lower()
+
                 if dependency_token.token == norm_target:
-                    connected_text, target_span = dependency_token\
-                                                  .connected_target_span()
-                    text_span = text_and_span(connected_text, norm_target,
-                                              current_target, target_span)
-                    contexts.append({'text' : text_span[0],
-                                     'span' : text_span[1]})
+                    norm_org = (norm_target, current_target)
+                    text_span = dependency_token\
+                                .connected_target_span(renormalise=norm_org)
+                    connected_text, target_span = text_span
+                    contexts.append({'text' : connected_text,
+                                     'span' : target_span})
             rel_target = target_dicts[index]
             valid_num_targets = len(rel_target['spans'])
             if valid_num_targets != len(contexts):
