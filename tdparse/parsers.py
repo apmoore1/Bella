@@ -10,6 +10,8 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
+import ftfy
+
 from tdparse.data_types import Target, TargetCollection
 
 def dong(file_path):
@@ -331,7 +333,7 @@ def election(folder_path, include_dnr=False, include_additional=False):
             data_dict['sentiment'] = anno_data['items'][entity_id]
             if data_dict['sentiment'] == 'doesnotapply' and not include_dnr:
                 continue
-            # Convert from Strings to Integer 
+            # Convert from Strings to Integer
             data_dict['sentiment'] = sentiment_mapper[data_dict['sentiment']]
             data_dict['text'] = tweet_text
             target_instances.append(Target(**data_dict))
@@ -453,4 +455,140 @@ def hu_liu(file_path):
                 data_dict['sentence_id'] = sentence_id
                 data_dict['target_id'] = target_id
                 sentiment_data.add(Target(**data_dict))
+    return sentiment_data
+
+
+def mitchel(file_name):
+    '''
+    Parser for the dataset introduced by `Mitchel et al. \
+    <https://www.aclweb.org/anthology/D13-1171>`_. The dataset can be downloaded
+    from `<here http://www.m-mitchell.com/code/MitchellEtAl-13-OpenSentiment.tgz>`_
+    the dataset can be found within the tarball under /en/10-fold and then
+    choose one of the folds e.g. train_1 and test_1 to get the full dataset.
+
+    :param file_path: path to either the train or test data.
+    :type file_path: String
+    :returns: A TargetCollection containing Target instances.
+    :rtype: TargetCollection
+    '''
+
+    def extract_targets(current_target, end_span, start_span, targets,
+                        target_spans, target_index, tweet_text, sentiment_data,
+                        tweet_id, target_sentiments):
+        if current_target != []:
+            target_word = ' '.join(current_target)
+            end_span = start_span + len(target_word)
+            targets.append(target_word)
+            target_spans.append((start_span, end_span))
+            start_span, end_span = None, None
+            current_target = []
+            target_index += 1
+        tweet_text = ' '.join(tweet_text)
+        for index, target in enumerate(targets):
+            target_id = '{}#{}'.format(tweet_id, index)
+            target_sentiment = target_sentiments[index]
+            target_span = target_spans[index]
+            if tweet_text[target_span[0] : target_span[1]] != target:
+                raise Exception('The target span {} does not match the '\
+                                'target word {} in {}'\
+                                .format(target_span, target, tweet_text))
+            target_data = {'spans' : [target_span], 'target_id' : target_id,
+                           'target' : target, 'text' : tweet_text,
+                           'sentiment' : target_sentiment,
+                           'sentence_id' : tweet_id}
+            target_data = Target(**target_data)
+            sentiment_data.add(target_data)
+
+        return sentiment_data
+
+    sentiment_mapper = {'negative' : -1, 'neutral' : 0, 'positive' : 1}
+    sentiment_data = TargetCollection()
+
+    with open(file_name, 'r') as fp:
+        tweet_id = None
+        tweet_text = []
+        targets = []
+        current_target = []
+        target_sentiments = []
+        target_spans = []
+        start_span = None
+        end_span = None
+        target_index = 0
+
+        for line in fp:
+            line = line.strip()
+            tweet_id_line = re.match(r'## Tweet (\d+)', line)
+            if tweet_id_line is not None:
+
+                if tweet_text != []:
+                    sentiment_data = extract_targets(current_target, end_span,
+                                                     start_span, targets,
+                                                     target_spans,
+                                                     target_index, tweet_text,
+                                                     sentiment_data, tweet_id,
+                                                     target_sentiments)
+                    tweet_text = []
+                    targets = []
+                    current_target = []
+                    target_sentiments = []
+                    target_spans = []
+                    target_index = 0
+                    start_span = None
+                    end_span = None
+                    target_index = 0
+                tweet_id = tweet_id_line.group(1)
+                continue
+
+            if line == '':
+                continue
+
+            line_data = line.split('\t')
+            if len(line_data) != 3:
+                if len(line_data) == 4:
+                    if line_data[2] == 'NUMBER':
+                        line_data = line_data[0], line_data[1], line_data[3]
+                    else:
+                        raise Exception('Cannot parse line {} in Tweet ID {}'\
+                                        .format(line, tweet_id))
+                else:
+                    raise Exception('Cannot parse line {} in Tweet ID {}'.format(line, tweet_id))
+            word, ner_data, sentiment = line_data
+            if len(word.split()) != 1:
+                raise Exception('Why is the word got a space in it: {}'.format(word))
+            word = ftfy.fix_encoding(word)
+            tweet_text.append(word)
+
+            # Contains sentiment
+            if sentiment != '_':
+                if len(current_target) != 0:
+                    if ner_data[0] == 'B':
+                        target_word = ' '.join(current_target)
+                        end_span = start_span + len(target_word)
+                        targets.append(target_word)
+                        target_spans.append((start_span, end_span))
+                        start_span, end_span = None, None
+                        current_target = []
+                        target_index += 1
+                    else:
+                        raise Exception('Contains the following target {} id {}'\
+                                        .format(current_target, tweet_id))
+                current_target.append(word)
+                sentiment = sentiment_mapper[sentiment]
+                target_sentiments.append(sentiment)
+                start_span = len(' '.join(tweet_text)) - len(word)
+            elif len(current_target) != 0:
+                if ner_data[0] == 'I':
+                    current_target.append(word)
+                else:
+                    target_word = ' '.join(current_target)
+                    end_span = start_span + len(target_word)
+                    targets.append(target_word)
+                    target_spans.append((start_span, end_span))
+                    start_span, end_span = None, None
+                    current_target = []
+                    target_index += 1
+        sentiment_data = extract_targets(current_target, end_span, start_span,
+                                         targets, target_spans, target_index,
+                                         tweet_text, sentiment_data, tweet_id,
+                                         target_sentiments)
     return sentiment_data
