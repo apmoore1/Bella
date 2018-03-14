@@ -336,7 +336,7 @@ class LSTM():
         return result
 
     @staticmethod
-    def prediction_to_cats(true_values, pred_values):
+    def prediction_to_cats(true_values, pred_values, mapper=None):
         num_classes = pred_values.shape[1]
         if num_classes != len(set(true_values)):
             raise ValueError('The number of classes in the test data {} is '\
@@ -349,6 +349,8 @@ class LSTM():
         # matrix to single value vector
         norm_true_values = np.argmax(norm_true_values, axis=1)
         pred_values = np.argmax(pred_values, axis=1)
+        if mapper is not None:
+            pred_values = [mapper[pred_value] for pred_value in pred_values]
         return pred_values
 
     @staticmethod
@@ -521,13 +523,14 @@ class LSTM():
                 early_stopping = EarlyStopping(monitor='val_loss', mode='min',
                                                patience=patience)
                 callbacks = [early_stopping, model_checkpoint]
-            model.fit(all_data, all_y, validation_split=validation_size,
-                      epochs=epochs, callbacks=callbacks,
-                      verbose=verbose, batch_size=batch_size)
+            history = model.fit(all_data, all_y, validation_split=validation_size,
+                                epochs=epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=batch_size)
             # Load the best model from the saved weight file
             if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
+        return history
 
     def predict(self, test_data):
         '''
@@ -847,13 +850,15 @@ class TDLSTM(LSTM):
                 early_stopping = EarlyStopping(monitor='val_loss', mode='min',
                                                patience=patience)
                 callbacks = [early_stopping, model_checkpoint]
-            model.fit([left_data, right_data], all_y, validation_split=validation_size,
-                      epochs=epochs, callbacks=callbacks,
-                      verbose=verbose, batch_size=batch_size)
+            history = model.fit([left_data, right_data], all_y,
+                                validation_split=validation_size,
+                                epochs=epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=batch_size)
             # Load the best model from the saved weight file
             if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
+        return history
 
     def __repr__(self):
         return 'TDLSTM'
@@ -1102,13 +1107,14 @@ class TCLSTM(TDLSTM):
                           'left_target' : left_targets,
                           'right_text_input' : right_data,
                           'right_target' : right_targets}
-            model.fit(input_data, all_y, validation_split=validation_size,
-                      epochs=epochs, callbacks=callbacks,
-                      verbose=verbose, batch_size=batch_size)
+            history = model.fit(input_data, all_y, validation_split=validation_size,
+                                epochs=epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=batch_size)
             # Load the best model from the saved weight file
             if patience is not None:
                 model.load_weights(weight_file.name)
         self.model = model
+        return history
 
     def __repr__(self):
         return 'TCLSTM'
