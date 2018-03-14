@@ -220,10 +220,8 @@ def evaluation_results(y_pred, test, dataset_name, file_name=None,
 
     # Check if the data already exists
     if file_name is not None and not re_write:
-        print('in here {}'.format(file_name))
         # Check if the results have been saved previously
         results_df = get_results(file_name, dataset_name)
-        print('Results {}'.format(results_df))
         if results_df:
             return results_df
 
