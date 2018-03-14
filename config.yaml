@@ -16,6 +16,10 @@ product_test: ../aspect datasets/product_reviews/test.xml
 youtubean: ../aspect datasets/youtubean/samsung_galaxy_s5.xml
 youtubean_train: ../aspect datasets/youtubean/train.xml
 youtubean_test: ../aspect datasets/youtubean/test.xml
+mitchel_org_train: ../aspect datasets/mitchel/train.1
+mitchel_org_test: ../aspect datasets/mitchel/test.1
+mitchel_train: ../aspect datasets/mitchel/train.xml
+mitchel_test: ../aspect datasets/mitchel/test.xml
 
 
 #
