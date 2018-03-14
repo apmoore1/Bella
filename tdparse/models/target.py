@@ -8,6 +8,7 @@ Classes:
 '''
 from collections import defaultdict
 import copy
+import time
 
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
@@ -531,7 +532,6 @@ class TargetInd():
             name_param[name] = param
             if not re_write:
                 if name in name_score:
-                    print('yes {} it has continued {}'.format(name, name_score))
                     continue
             temp_grid_params[save_param] = [param]
             cv_params = self.get_cv_params(**temp_grid_params)
@@ -557,8 +557,6 @@ class TargetInd():
                              ' if no parameters are being searched for. Param '\
                              ' names that have been searched {}'\
                              .formated(name_param))
-        print('best {} list {} stored {}'.format(best_param, name_param,
-                                                 sorted_name_score))
         if isinstance(best_param, tuple):
             return list(best_param)
         return best_param
