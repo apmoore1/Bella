@@ -237,6 +237,8 @@ class TargetInd():
             return self.c_param_name
         elif param_name == 'senti_lexicons':
             return self.senti_lexicon_param_name
+        elif param_name == 'parsers':
+            return self.tokeniser_param_name
         else:
             raise ValueError('param_name has to be on of the following values:'\
                              'word_vectors, tokenisers or C not {}'\
