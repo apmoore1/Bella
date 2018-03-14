@@ -217,8 +217,12 @@ class DependencyToken():
                 all_related_words.extend(related_words)
         return all_related_words
 
-    def connected_target_span(self):
+    def connected_target_span(self, renormalise=None):
         '''
+        :param renormalise: A tuple containing the normalised target and the \
+        real target word e.g. (Samsung_S5, Samsung S5). If you do not require \
+        this leave as default parameter None.
+        :type renormalise: tuple. Default None
         :returns: It returns connected words as a String and the span of the current \
         token within that String as a tuple of length 2.
         :rtype: tuple
@@ -229,6 +233,10 @@ class DependencyToken():
         target_index = -1
         for index, word_relation in enumerate(self.connected_words):
             word, relation = word_relation
+            if renormalise is not None:
+                normalised_target, real_word = renormalise
+                if word == normalised_target:
+                    word = real_word
             connected_words.append(word)
             if relation == 'CURRENT':
                 target_index = index
@@ -240,6 +248,8 @@ class DependencyToken():
         num_previous_chars = word_length.get(target_index - 1, 0)
         if target_index != 0:
             num_previous_chars += target_index
+        if renormalise is not None:
+            self.token = renormalise[1]
         target_word = self.token
         target_span = (num_previous_chars, num_previous_chars + len(target_word))
         if connected_text[target_span[0] : target_span[1]] != target_word:
