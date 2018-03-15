@@ -25,7 +25,9 @@ We test this method on the following datasets:
 ### Requirements
 1. Python Tested with 3.6 and known to not work with anything less than 3.5.
 2. pip3 install -r requirements.txt
-3. To use the [Tweebo Parser](./tools/TweeboParser) requires *gcc* and *cmake*
+3. To use the [Tweebo Parser](./tools/TweeboParser) requires *gcc* and *cmake*. Tweebo will also automatically install when you first import the dependency_parsers module. Therefore to install it before run the script [./tools/TweeboParser/install.sh](./tools/TweeboParser/install.sh). This will take at least 15 minutes and depends on your Internet connection.
+4. Docker - This is required to run Stanford CoreNLP. To install docker on Ubuntu run [docker_install](./docker_install.sh)
+5. To get Stanford CoreNLP running use this docker image
 
 ## Word vectors
 There are a number of word vectors stored in this repository they are listed below:
