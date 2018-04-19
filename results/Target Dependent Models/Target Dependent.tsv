@@ -1,0 +1,7 @@
+	2 Class F1	2 Class Macro F1 for text with 1 distinct sentiments	2 Class Macro F1 for text with 2 distinct sentiments	2 Class Macro F1 for text with 3 distinct sentiments	3 Class Macro F1	3 Class Macro F1 for text with 1 distinct sentiments	3 Class Macro F1 for text with 2 distinct sentiments	3 Class Macro F1 for text with 3 distinct sentiments	Accuracy	Accuracy for text with 1 distinct sentiments	Accuracy for text with 2 distinct sentiments	Accuracy for text with 3 distinct sentiments	Macro Recall	Macro Recall for text with 1 distinct sentiments	Macro Recall for text with 2 distinct sentiments	Macro Recall for text with 3 distinct sentiments	Unnamed: 0	Unnamed: 0.1	Unnamed: 0.1.1	Unnamed: 0.1.1.1	Unnamed: 0.1.1.1.1	dataset
+0	67.9	70.4	52.8	34.3	57.3	59.5	45.9	34.0	66.3	70.3	46.8	33.3	60.1	61.4	54.3	33.3	0.0	0.0	0.0	0.0	0.0	SemEval 14 Laptop
+1	72.4	74.4	61.8	25.0	59.9	61.1	53.1	16.7	74.8	79.7	56.0	33.3	57.6	58.2	55.6	33.3	1.0	1.0	1.0	0.0		SemEval 14 Restaurant
+2	61.0	61.0	0.0	0.0	65.6	65.6	0.0	0.0	68.4	68.4	0.0	0.0	64.5	64.5	0.0	0.0	2.0	2.0	0.0			Dong Twitter
+3	40.1	44.6	37.4	34.5	45.6	50.3	42.2	41.4	57.9	63.1	53.9	50.8	46.6	50.0	43.6	48.0	3.0	0.0				Election Twitter
+4	39.0	40.2	20.0	0.0	53.1	54.2	31.5	0.0	70.8	71.9	44.4	0.0	51.1	52.1	36.1	0.0	0.0					YouTuBean
+0	19.2	19.8	16.0	0.0	40.8	41.5	31.6	0.0	72.6	74.2	49.2	0.0	40.8	41.2	36.7	0.0						Mitchel
