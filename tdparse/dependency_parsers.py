@@ -7,32 +7,28 @@ import subprocess
 import tempfile
 
 import networkx as nx
-from networkx.algorithms import traversal
 
 from tdparse.helper import read_config, full_path
 from tdparse.dependency_tokens import DependencyToken
 from tdparse import stanford_tools
 
-def tweebo_install(tweebo_func):
+
+def tweebo_install():
     '''
     Python decorator that ensures that
     `TweeboParser <https://github.com/ikekonglp/TweeboParser>`_ is installed,
     before running the function it wraps. Returns the given function.
-
-    :param tweebo_func: A function that uses the Tweebo Parser.
-    :type tweebo_func: function
-    :returns: The given function
-    :rtype: function
     '''
 
-    tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
+    # tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
+    tweebo_dir = os.path.abspath(read_config('depdency_parsers')['tweebo_dir'])
     # If the models file exists then Tweebo has been installed or failed to
     # install
-    tweebo_models = os.path.join(tweebo_dir, 'pretrained_models.tar.gz')
-    if not os.path.isfile(tweebo_models):
+    tweebo_models = os.path.join(tweebo_dir, 'pretrained_models')
+    if not os.path.isdir(tweebo_models):
         install_script = os.path.join(tweebo_dir, 'install.sh')
         subprocess.run(['bash', install_script])
-    return tweebo_func
+
 
 def get_tweebo_dependencies(token_dep_sentence):
     '''
@@ -55,16 +51,17 @@ def get_tweebo_dependencies(token_dep_sentence):
 
         :param dep_index: The index of the token whos dependecies are being \
         collected
-        :param sentence: List of tuples which contain (token, index of head word)
+        :param sentence: List of tuples which contain (token, index of \
+        head word)
         :param dep_info: default dict whose keys are indexs from the sentence \
-        and value is a default dict whose keys are dependency depths and value \
-        is the sentence index related to that dependency depth.
+        and value is a default dict whose keys are dependency depths and \
+        value is the sentence index related to that dependency depth.
         :type dep_index: int
         :type sentence: list
         :type dep_info: defaultdict
-        :returns: Default dictionary whose keys are sentence indexs, values are \
-        default dictionaries whose keys are dependency depths and value is the \
-        associated sentence index to that depth.
+        :returns: Default dictionary whose keys are sentence indexs, values \
+        are default dictionaries whose keys are dependency depths and value \
+        is the associated sentence index to that depth.
         :rtype: defaultdict
 
         :Example:
@@ -130,7 +127,8 @@ def get_tweebo_dependencies(token_dep_sentence):
             for related_token_index in related_tokens_index:
                 related_token = token_dep_sentence[related_token_index][0]
                 token_relations[depth].append(related_token)
-        dep_tokens.append(DependencyToken(token, token_relations, connected_words))
+        dep_tokens.append(DependencyToken(token, token_relations,
+                                          connected_words))
     return dep_tokens
 
 
@@ -175,7 +173,7 @@ def tweebo_post_process(processed_text):
         last_token = token
     return sentences
 
-@tweebo_install
+
 def tweebo(texts):
     '''
     Given a list of Strings will tokenise, pos tag and then dependecy parse
@@ -190,10 +188,12 @@ def tweebo(texts):
 
     :param texts: The texts that are to be parsed
     :type text: list
-    :returns: A list of of a list of DependencyToken instances. A list per text \
-    in the texts argument.
+    :returns: A list of of a list of DependencyToken instances. A list per \
+    text in the texts argument.
     :rtype: list
     '''
+
+    tweebo_install()
 
     def no_text(text):
         '''
@@ -214,19 +214,23 @@ def tweebo(texts):
         with tempfile.TemporaryDirectory() as temp_dir:
             text_file_path = os.path.join(temp_dir, 'text_file.txt')
             result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
-            tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
+            tweebo_dir = full_path(read_config('depdency_parsers')
+                                   ['tweebo_dir'])
             with open(text_file_path, 'w+') as text_file:
                 for text in texts:
                     text = no_text(text)
                     text_file.write(text)
                     text_file.write('\n')
             run_script = os.path.join(tweebo_dir, 'python_run.sh')
-            if subprocess.run(['bash', run_script, text_file_path, working_dir]):
+            sub_process_params = ['bash', run_script,
+                                  text_file_path, working_dir]
+            if subprocess.run(sub_process_params):
                 with open(result_file_path, 'r') as result_file:
                     return tweebo_post_process(result_file.read())
             else:
-                raise SystemError('Could not run the Tweebo run script {}'\
+                raise SystemError('Could not run the Tweebo run script {}'
                                   .format(run_script))
+
 
 def stanford(texts):
 
