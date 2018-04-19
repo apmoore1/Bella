@@ -1,9 +1,15 @@
+addons:
+  apt:
+    packages:
+      - cmake
+      - gcc
 language: python
 python:
   - "3.6"
 install:
   - pip install -r requirements.txt
 script:
+  - bash jupyter_extensions.sh
   - python -m pytest
   - cd docs
   - sphinx-apidoc -o source/ ../tdparse

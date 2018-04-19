@@ -4,9 +4,11 @@ Unit test suite for the :py:mod:`tdparse.contexts` module.
 from unittest import TestCase
 
 
-from tdparse.contexts import right_context
-from tdparse.contexts import left_context
-from tdparse.contexts import _context
+#from tdparse.contexts import right_context
+#from tdparse.contexts import left_context
+#from tdparse.contexts import target_context
+#from tdparse.contexts import full_context
+from tdparse.contexts import context
 
 class TestContexts(TestCase):
     '''
@@ -33,9 +35,9 @@ class TestContexts(TestCase):
         '''
         Tests :py:func:`tdparse.contexts._context`
         '''
-        with self.assertRaises(ValueError, msg='Should only accept left and right '\
-                               'context words for parameters'):
-            _context(self.single_context[0], 'itself')
+        with self.assertRaises(ValueError, msg='Should only accept left, right '\
+                               'or target context words for parameters'):
+            context(self.single_context[0], 'itself')
 
     def test_left_context(self):
         '''
@@ -47,7 +49,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_left[index]
-            left_string = left_context(test_context, inc_target=False)
+            left_string = context(test_context, 'left', inc_target=False)
             msg = 'Cannot get the left context of target {} text {} which should be {}'\
                   ' and not {}'.format(test_target, test_text, correct_context, left_string)
             self.assertEqual(correct_context, left_string, msg=msg)
@@ -58,7 +60,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_left[index]
-            left_string = left_context(test_context, inc_target=True)
+            left_string = context(test_context, 'left', inc_target=True)
             msg = 'Cannot get the left context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, left_string)
@@ -72,7 +74,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_left[index]
-            left_string = left_context(test_context, inc_target=False)
+            left_string = context(test_context, 'left', inc_target=False)
             msg = 'Cannot get the left context of target {} text {} which should be {}'\
                   ' and not {}'.format(test_target, test_text, correct_context, left_string)
             self.assertEqual(correct_context, left_string, msg=msg)
@@ -85,7 +87,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_left[index]
-            left_string = left_context(test_context, inc_target=True)
+            left_string = context(test_context, 'left', inc_target=True)
             msg = 'Cannot get the left context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, left_string)
@@ -104,14 +106,11 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_right[index]
-            right_string = right_context(test_context, inc_target=False)
+            right_string = context(test_context, 'right', inc_target=False)
             msg = 'Cannot get the right context of target {} text {} '\
                   'which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
-            self.assertEqual(correct_context, right_string, msg='Cannot get the '\
-                             'right context of target {} text {} which should be {}'\
-                             ' and not {}'.format(test_target, test_text,
-                                                  correct_context, right_string))
+            self.assertEqual(correct_context, right_string, msg=msg)
         # Handle including targets
         single_right = [['news article that is to represent a Tweet!!!!'],
                         ['day however I did not get much work done'],
@@ -120,7 +119,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = single_right[index]
-            right_string = right_context(test_context, inc_target=True)
+            right_string = context(test_context, 'right', inc_target=True)
             msg = 'Cannot get the right context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -133,7 +132,7 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_right[index]
-            right_string = right_context(test_context, inc_target=False)
+            right_string = context(test_context, 'right', inc_target=False)
             msg = 'Cannot get the right context of target {} text {} which should be {}'\
                   ' and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
@@ -146,8 +145,60 @@ class TestContexts(TestCase):
             test_text = test_context['text']
             test_target = test_context['target']
             correct_context = multi_right[index]
-            right_string = right_context(test_context, inc_target=True)
+            right_string = context(test_context, 'right', inc_target=True)
             msg = 'Cannot get the right context of target {} text {} including the '\
                   'target which should be {} and not {}'\
                   .format(test_target, test_text, correct_context, right_string)
             self.assertEqual(correct_context, right_string, msg=msg)
+
+    def test_target_context(self):
+        '''
+        Tests :py:func:`tdparse.contexts.target_context`
+        '''
+        single_targets = [['news article'], ['day'], ['cycled']]
+        for index, test_context in enumerate(self.single_context):
+            test_text = test_context['text']
+            correct_target = single_targets[index]
+            target_string = context(test_context, 'target')
+            msg = 'Cannot get the target for text {}, target found {} correct {}'\
+                  .format(test_text, target_string, correct_target)
+            self.assertEqual(correct_target, target_string, msg=msg)
+
+        multi_targets = [['news article', 'News Article'], ['Day', 'day']]
+        for index, test_context in enumerate(self.multi_contexts):
+            test_text = test_context['text']
+            correct_targets = multi_targets[index]
+            target_strings = context(test_context, 'target')
+            msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
+                  .format(test_text, target_strings, correct_targets)
+            self.assertEqual(correct_targets, target_strings, msg=msg)
+
+    def test_full_context(self):
+        '''
+        Tests :py:func:`tdparse.contexts.full_context`
+        '''
+        single_targets = [['This is a fake news article that is to represent a Tweet!!!!'],
+                          ['I had a great day however I did not get much work done'],
+                          ['I cycled in today and it was ok as it was not raining.']]
+        multi_targets = [['This is a fake news article that is to represent a '\
+                          'Tweet!!!! and it was an awful News Article I think.',
+                          'This is a fake news article that is to represent a '\
+                          'Tweet!!!! and it was an awful News Article I think.'],
+                         ['I had a great Day however I did not get much '\
+                          'work done in the day',
+                          'I had a great Day however I did not get much '\
+                          'work done in the day']]
+        for index, test_context in enumerate(self.single_context):
+            test_text = test_context['text']
+            correct_target = single_targets[index]
+            target_string = context(test_context, 'full')
+            msg = 'Cannot get the target for text {}, target found {} correct {}'\
+                  .format(test_text, target_string, correct_target)
+            self.assertEqual(correct_target, target_string, msg=msg)
+        for index, test_context in enumerate(self.multi_contexts):
+            test_text = test_context['text']
+            correct_targets = multi_targets[index]
+            target_strings = context(test_context, 'full')
+            msg = 'Cannot get the targets for text {}, targets found {} correct {}'\
+                  .format(test_text, target_strings, correct_targets)
+            self.assertEqual(correct_targets, target_strings, msg=msg)

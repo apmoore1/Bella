@@ -5,8 +5,11 @@ Strings.
 1. Whitespace - :py:func:`tdparse.tokenisers.whitespace`
 2. Twitter tokeniser - :py:func:`tdparse.tokenisers.ark_twokenize`
 '''
+import time
 
 import twokenize
+
+from tdparse import stanford_tools
 
 def whitespace(text):
     '''
@@ -38,3 +41,6 @@ def ark_twokenize(text):
     if isinstance(text, str):
         return twokenize.tokenizeRawTweetText(text)
     raise ValueError('The paramter must be of type str not {}'.format(type(text)))
+
+def stanford(text):
+    return stanford_tools.tokenise(text)

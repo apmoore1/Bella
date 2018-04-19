@@ -1,51 +1,174 @@
 '''
-Contains classes that train and/or load semantic vectors.
+Contains classes that train and/or load semantic vectors. All classes are sub
+classes of WordVectors
 
 Classes:
-1. GensimVectors - Creates `Word2Vec <https://arxiv.org/pdf/1301.3781.pdf>`_
+
+1. WordVectors - Base class of all classes within this module. Ensures
+consistent API for all word vectors classes.
+2. GensimVectors - Creates `Word2Vec <https://arxiv.org/pdf/1301.3781.pdf>`_
 and `FastText <https://arxiv.org/abs/1607.04606>`_ vectors.
+3. PreTrained - Creates a Wordembedding for those that are stored in TSV files
+where the first item in the line is the word and the rest of the tab sep values
+are its vector representation. Currently loads the Tang et al. vectors
+`from <https://github.com/bluemonk482/tdparse/tree/master/resources/wordemb/sswe>`_
 '''
 
+from collections import defaultdict
 import os
 import types
+import tempfile
+import zipfile
 
 import numpy as np
-
+import requests
+from gensim.models.keyedvectors import KeyedVectors
 from gensim.models import word2vec
 from gensim.models.wrappers import FastText
+from gensim.scripts.glove2word2vec import glove2word2vec
+
+from tdparse import helper
 
 class WordVectors(object):
     '''
     Base class for all WordVector classes. Contains the following instance
     attributes:
+
     1. vector_size - Size of the word vectors e.g. 100
     2. index2word - Mapping between index number and associated word
     3. index2vector - mapping between index and vector
     4. word2index - Mapping between word and associated index
+    5. name - This is used to identify the model when reading cross validation \
+    results from models, used mainly for debugging. Default is None. Used
+    6. unknown_vector - The vector that is returned for any unknwon words and \
+    for the index=0.
+    7. unknown_word - The word that is returned for the 0 index. Default is \
+    `<unk>`
+    8. unit_length - If the vectors when returned are their unit norm value \
+    instead of their raw values.
+    9. unknown_index - The index of the unknown word normally 0
+    10. padding_word - The word (<pad>) that defines padding indexs.
+    11. padding_index - index of the padding word
+    12. padding vector - padding vector for the padding word.
+
+    padding index, word and vector are equal to the unknown equilavents if
+    padding_value = None in the constructor. Else padding index = 0, word = <pad>
+    and vector is what you have defined, this then moves the unknown index to
+    vocab size + 1 and the everything else is the same. The idea behind the 2
+    are that pad is used for padding and unknown is used for words that are
+    truely unknown therefore allowing you to only skip the pad vectors when
+    training a model by using a masking function in keras.
+
+    The index 0 is used as a special index to map to unknown words. Therefore \
+    the size of the vocabularly is len(index2word) - 1.
 
     Following methods:
+
     1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
     '''
-    def __init__(self, word2vector, word_list):
-        if not isinstance(word_list, list):
-            raise TypeError('word_list should be of type list not {}'\
-                            .format(type(word_list)))
-        try:
-            word2vector[word_list[0]]
-            if isinstance(word2vector, list):
-                raise Exception('word2vector cannot be a list')
-        except Exception as exception:
-            raise TypeError('Exception {}: word2vector parameter should be a dict'\
-                  ' type Structure that has word list values as keys'\
-                  .format(exception))
-        self._word2vector = word2vector
-        self._word_list = word_list
-        self.vector_size = word2vector[word_list[0]].shape[0]
+    def __init__(self, word2vector, name=None, unit_length=False,
+                 padding_value=None):
+        size_vector_list = self._check_vector_size(word2vector)
+        self.vector_size, self._word2vector, self._word_list = size_vector_list
+        self.name = '{}'.format(name)
+        self.unit_length = unit_length
+        # Method attributes
+        self.unknown_word = self._unknown_word()
+        self.unknown_vector = self._unknown_vector()
+        self.unknown_index = 0
+        self.padding_word = self.unknown_word
+        self.padding_vector = None
+        if padding_value is not None:
+            self.unknown_index = len(self._word_list) + 1
+            self.padding_vector = np.asarray([padding_value] * self.vector_size)
+            self.padding_word = '<pad>'
+        else:
+            self.padding_vector = self.unknown_vector
+        if self.padding_vector is None:
+            raise ValueError('Padding Vector is None')
+        self.index2word = self._index2word()
+        self.word2index = self._word2index()
+        self.index2vector = self._index2vector()
+        self.embedding_matrix = self._embedding_matrix()
+    @staticmethod
+    def _check_vector_size(word2vector):
+        '''
+        This finds the most common vector size in the word 2 vectors dictionary
+        mapping. Normally they should all have the same mapping but it has been
+        found that their could be some mistakes in pre-compiled word vectors
+        therefore this function removes all words and vectors that do not conform
+        to the majority vector size. An example of this would be if all the
+        word to vector mappings are on dimension 50 but one word that one word
+        would be removed from the dictionary mapping and not included in the
+        word list returned.
+
+        :param word2vector: A dictionary containing words as keys and their \
+        associated vector representation as values.
+        :type word2vector: dict or gensim.models.keyedvectors.KeyedVectors
+        :returns: A tuple of length 3 containg 1. The dimension of the vectors, \
+        2. The dictionary of word to vectors, 3. The list of words in the dictionary
+        :rtype: tuple
+        '''
+        # Gensim does not used a dictionary but a special class
+        if isinstance(word2vector, KeyedVectors):
+            accepted_words = word2vector.index2word
+            most_likely_size = word2vector[accepted_words[0]].shape[0]
+            return most_likely_size, word2vector, accepted_words
+        vector_sizes = {}
+        for _, vector in word2vector.items():
+            vector_size = vector.shape[0]
+            vector_sizes[vector_size] = vector_sizes.get(vector_size, 0) + 1
+        most_likely_size = sorted(vector_sizes.items(), reverse=True,
+                                  key=lambda size_freq: size_freq[0])[0][0]
+        words_to_remove = []
+        accepted_words = []
+        for word, vector in word2vector.items():
+            if vector.shape[0] != most_likely_size:
+                words_to_remove.append(word)
+            else:
+                accepted_words.append(word)
+        for word in words_to_remove:
+            del word2vector[word]
+        return most_likely_size, word2vector, accepted_words
+
+    @staticmethod
+    def glove_txt_binary(glove_file_path):
+        '''
+        Converts the Glove word embedding file which is a text file to a
+        binary file that can be loaded through gensims
+        KeyedVectors.load_word2vec_format method and deletes the text file
+        version and returns the file path to the new binary file.
+
+        :param glove_file_path: File path to the downloaded glove vector text \
+        file.
+        :type glove_file_path: String
+        :returns: The file path to the binary file version of the glove vector
+        :rtype: String
+        '''
+        # File path to the binary file
+        binary_file_path = os.path.splitext(os.path.basename(glove_file_path))
+        binary_file_path = binary_file_path[0]
+        binary_file_path += '.binary'
+        binary_file_path = os.path.join(os.path.dirname(glove_file_path),
+                                        binary_file_path)
+        if os.path.isfile(binary_file_path):
+            return binary_file_path
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
+            # Converts to word2vec file format
+            glove2word2vec(glove_file_path, temp_file.name)
+            word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
+                                                             binary=False)
+            # Creates the binary file version of the word vectors
+            word_vectors.save_word2vec_format(binary_file_path, binary=True)
+        # Delete the text version of the glove vectors
+        os.remove(glove_file_path)
+        return binary_file_path
 
     def lookup_vector(self, word):
         '''
         Given a word returns the vector representation of that word. If the model
-        does not have a representation for that word returns a vector of zeros.
+        does not have a representation for that word it returns word vectors
+        unknown word vector (most models this is zeors)
 
         :param word: A word
         :type word: String
@@ -55,49 +178,149 @@ class WordVectors(object):
         '''
 
         if isinstance(word, str):
-            try:
-                return self._word2vector[word]
-            except KeyError:
-                return np.zeros(self.vector_size)
+            word_index = self.word2index[word]
+            return self.index2vector[word_index]
         raise ValueError('The word parameter must be of type str not {}'\
                          .format(type(word)))
 
-    @property
-    def index2word(self):
+    def _index2word(self):
         '''
+        The index starts at one as zero is a special value assigned to words that
+        are padded. The word return for zero is defined by `padded_word` attribute.
+        If the padded value is different to the unknown word value then the index
+        will contain an extra index for the unknown word index which is the
+        vocab size + 1 index.
+
         :returns: A dictionary matching word indexs to there corresponding words.
         Inverse of :py:func:`tdparse.word_vectors.GensimVectors.word2index`
         :rtype: dict
         '''
 
+
         index_word = {}
-        for index, word in enumerate(self._word_list):
+        index_word[0] = self.padding_word
+        index = 1
+        for word in self._word_list:
+            if word == self.unknown_word:
+                continue
             index_word[index] = word
+            index += 1
+        # Required as the unknown word might have been learned and in 
+        # self._word_list
+        if self.unknown_index != 0:
+            self.unknown_index = len(index_word)
+        index_word[self.unknown_index] = self.unknown_word
         return index_word
 
-    @property
-    def word2index(self):
+    def _return_unknown_index(self):
         '''
+        :returns: zero. Used as lambda is not pickleable
+        :rtype: int
+        '''
+        return self.unknown_index
+
+    def _word2index(self):
+        '''
+        If you have specified a special padded index vector then the <pad> word
+        would match to index 0 and the vocab + 1 index will be <unk> else if
+        no special pad index vector then vocab + 1 won't exist and <unk> will be
+        0
+
         :returns: A dictionary matching words to there corresponding index.
         Inverse of :py:func:`tdparse.word_vectors.GensimVectors.index2word`
         :rtype: dict
         '''
 
-        return {word : index for index, word in self.index2word.items()}
+        # Cannot use lambda function as it cannot be pickled
+        word2index_dict = defaultdict(self._return_unknown_index)
+        for index, word in self.index2word.items():
+            word2index_dict[word] = index
+        return word2index_dict
 
-    @property
-    def index2vector(self):
+    def _index2vector(self):
         '''
+        NOTE: the zero index is mapped to the unknown index unless padded vector
+        is specified then zero index is padded index and vocab + 1 index is
+        unknown index
+
         :returns: A dictionary of word index to corresponding word vector. Same
         as :py:func:`tdparse.word_vectors.GensimVectors.lookup_vector` but
         instead of words that are looked up it is the words index.
         :rtype: dict
         '''
 
+        def unit_norm(vector):
+            '''
+            :param vector: A 1-dimension vector
+            :type vector: numpy.ndarray
+            :returns: The vector normalised to it's unit vector.
+            :rtype: numpy.ndarray
+            '''
+
+            # Check it is not a zero vector
+            if np.array_equal(np.zeros(self.vector_size), vector):
+                return vector
+            l2_norm = np.linalg.norm(vector)
+            return vector / l2_norm
+
         index_vector = {}
+        if self.unit_length:
+            index_vector[0] = unit_norm(self.padding_vector)
+            index_vector[self.unknown_index] = unit_norm(self.unknown_vector)
+        else:
+            index_vector[0] = self.padding_vector
+            index_vector[self.unknown_index] = self.unknown_vector
         for index, word in self.index2word.items():
-            index_vector[index] = self.lookup_vector(word)
+            if index == 0 or index == self.unknown_index:
+                continue
+            if self.unit_length:
+                index_vector[index] = unit_norm(self._word2vector[word])
+            else:
+                index_vector[index] = self._word2vector[word]
         return index_vector
+
+    def __repr__(self):
+        return self.name
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size)
+
+
+    def _unknown_word(self):
+        '''
+        :returns: The word that is returned for the 0 index.
+        :rtype: String
+        '''
+
+        return '<unk>'
+
+    def _embedding_matrix(self):
+        '''
+        The embedding matrix that can be used in Keras embedding layer as the
+        weights. It is very much a simple lookup where the key is the word index.
+
+        :retunrs: The embedding matrix of dimension (vocab_size + 1, vector_size) \
+        where the vocab size is + 1 due to the unknown vector.
+        :rtype: numpy.ndarray
+        '''
+        matrix = np.zeros((len(self.index2vector), self.vector_size),
+                          dtype=np.float32)
+        for index, vector in self.index2vector.items():
+            try:
+                matrix[index] = vector
+            except Exception as e:
+                word = self.index2word[index]
+                print('{} {} {} {}'.format(word, index, vector, e))
+        return matrix
 
 
 class GensimVectors(WordVectors):
@@ -108,11 +331,13 @@ class GensimVectors(WordVectors):
     2. `Fasttext <https://radimrehurek.com/gensim/models/wrappers/fasttext.html>`_
 
     private attributes:
+
     1. self._model = Gensim instance of the chosen model e.g. if word2vec
     was chosen then it would be `gensim.models.word2vec.Word2Vec`
     '''
 
-    def __init__(self, file_path, train_data, model=None, **kwargs):
+    def __init__(self, file_path, train_data, name=None, model=None,
+                 unit_length=False, padding_value=None, **kwargs):
         '''
         Trains or loads the model specified.
 
@@ -122,9 +347,18 @@ class GensimVectors(WordVectors):
         tokenised text, to train the model e.g. [['hello', 'how'], ['another']].
         Not required if `file_path` contains a trained model.
         :param model: The name of the model
+        :param name: The name of given to the instance.
+        :param unit_length: If the word vectors should be normalised to unit \
+        vectors
+        :param kwargs: The keyword arguments to give to the Gensim Model that is \
+        being used i.e. keyword argument to `Word2Vec <https://radimrehurek.com/\
+        gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec>`_
         :type file_path: String
         :type train_data: iterable object e.g. list
         :type model: String
+        :type name: String Default None
+        :type unit_length: bool. Default False.
+        :type kwargs: dict
         '''
 
         allowed_models = {'word2vec' : word2vec.Word2Vec,
@@ -160,21 +394,37 @@ class GensimVectors(WordVectors):
                             'a model from {} or any data to train on which has '\
                             'to have the __iter__ function {}'\
                             .format(file_path, train_data))
-        super().__init__(self._model.wv, self._model.wv.index2word)
+        super().__init__(self._model.wv, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
 
 class PreTrained(WordVectors):
     '''
     Class that loads word vectors that have been pre-trained.
 
     All pre-trained word vectors have to follow the following conditions:
+
     1. New word vector on each line
-    2. Each line is tab seperated
+    2. Each line is tab seperated (by default but a tab is just delimenter which
+    can be changed by setting delimenter argument in the constructor)
     3. The first tab sperated value on the line is the word
     4. The rest of the tab seperated values on that line represent the values
     for the associtaed word.
     '''
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, name=None, unit_length=False,
+                 delimenter='\t', padding_value=None):
+        '''
+        :param file_path: The file path to load the word vectors from
+        :param name: The name given to the instance.
+        :param unit_length: If the word vectors should be normalised to unit \
+        vectors
+        :param delimenter: The value to be used to split the values in each line \
+        of the word vectors.
+        :type file_path: String
+        :type name: String Default None
+        :type unit_length: bool. Default False
+        :type delimenter: String. Default `\t`
+        '''
         if not isinstance(file_path, str):
             raise TypeError('The type of the file path should be str not {}'\
                             .format(type(file_path)))
@@ -183,17 +433,347 @@ class PreTrained(WordVectors):
             raise ValueError('There is no file at file path {}'.format(file_path))
 
         word2vector = {}
-        word_list = []
         with open(file_path, 'r') as data_file:
-            for line in data_file:
-                line = line.strip()
-                word_values = line.split('\t')
+            for org_line in data_file:
+                line = org_line.strip()
+                word_values = line.split(delimenter)
                 word = word_values[0]
-                word_list.append(word)
+                # This attempts to remove words that have whitespaces in them
+                # a sample of this problem can be found within the Glove
+                # Common Crawl 840B vectors where \xa0name@domain.com ==
+                # name@domain.com after strip is applied and they have different
+                # vectors
+                if word in word2vector:
+                    org_word = org_line.split(delimenter)[0]
+                    if word != org_word:
+                        continue
+                    else:
+                        del word2vector[word]
                 word_vector = np.asarray(word_values[1:], dtype='float32')
                 if word in word2vector:
+                    dict_vector = word2vector[word]
                     raise KeyError('{} already has a vector in the word vector '\
-                                   'dict'.format(word))
+                                   'dict. Vector in dict {} and alternative vector {}'\
+                                   .format(word, dict_vector, word_vector))
                 else:
                     word2vector[word] = word_vector
-        super().__init__(word2vector, word_list)
+        super().__init__(word2vector, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
+
+    def _unknown_vector(self):
+        '''
+        Overrides. Instead of returnning zero vector it return the vector for
+        the word `<unk>`.
+
+        :returns: The vector for the word `<unk>`
+        :rtype: numpy.ndarray
+        '''
+
+        return self._word2vector['<unk>']
+
+class GloveTwitterVectors(WordVectors):
+
+    def download(self, skip_conf):
+        '''
+        This method checks if the
+        `Glove Twitter word vectors <https://nlp.stanford.edu/projects/glove/>`_
+        are already in the repoistory if not it downloads and unzips the word
+        vectors if permission is granted and converts them into a gensim
+        KeyedVectors binary representation.
+
+        :param skip_conf: Whether to skip the permission step as it requires \
+        user input. True to skip permission.
+        :type skip_conf: bool
+        :returns: A dict containing word vector dimension as keys and the \
+        absolute path to the vector file.
+        :rtype: dict
+        '''
+
+        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
+                                    'glove_twitter')
+        os.makedirs(glove_folder, exist_ok=True)
+        current_glove_files = set(os.listdir(glove_folder))
+        all_glove_files = set(['glove.twitter.27B.25d.binary',
+                               'glove.twitter.27B.50d.binary',
+                               'glove.twitter.27B.100d.binary',
+                               'glove.twitter.27B.200d.binary'])
+        interset = all_glove_files.intersection(current_glove_files)
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if interset != all_glove_files:
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the glove vectors this is '\
+                               'a large download of 1.4GB and takes 5.4GB of disk '\
+                               'space after being unzipped. Would you like to '\
+                               'continue? If so type `yes`\n'
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'http://nlp.stanford.edu/data/glove.twitter.27B.zip'
+                glove_zip_path = os.path.join(glove_folder, 'glove_zip.zip')
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with open(glove_zip_path, 'wb') as glove_zip_file:
+                    glove_requests = requests.get(download_link, stream=True)
+                    for chunk in glove_requests.iter_content(chunk_size=128):
+                        glove_zip_file.write(chunk)
+                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
+                    glove_zip_file.extractall(path=glove_folder)
+            else:
+                raise Exception('Glove Twitter vectors not downloaded therefore'\
+                                ' cannot load them')
+
+        def add_full_path(file_name):
+            file_path = os.path.join(glove_folder, file_name)
+            return self.glove_txt_binary(file_path)
+
+        return {25 : add_full_path('glove.twitter.27B.25d.txt'),
+                50 : add_full_path('glove.twitter.27B.50d.txt'),
+                100 : add_full_path('glove.twitter.27B.100d.txt'),
+                200 : add_full_path('glove.twitter.27B.200d.txt')}
+
+
+
+    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
+                 padding_value=None):
+        '''
+        :param dimension: Dimension size of the word vectors you would like to \
+        use. Choice: 25, 50, 100, 200
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type dimension: int
+        :type skip_conf: bool. Default False
+        '''
+
+        dimension_file = self.download(skip_conf)
+        if not isinstance(dimension, int):
+            raise TypeError('Type of dimension has to be int not {}'\
+                            .format(type(dimension)))
+        if dimension not in dimension_file:
+            raise ValueError('Dimension avliable are the following {}'\
+                             .format(list(dimension_file.keys())))
+        if name is None:
+            name = 'glove twitter {}d'.format(dimension)
+        vector_file = dimension_file[dimension]
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size, dtype=np.float32)
+
+class GloveCommonCrawl(WordVectors):
+
+
+    def download(self, skip_conf, version):
+        '''
+        This method checks if either the `Glove Common Crawl \
+        <https://nlp.stanford.edu/projects/glove/>`_ 840 or 42 Billion token
+        word vectors were downloaded already into the repoistory if not it
+        downloads and unzips the 300 Dimension word vector if permission is
+        granted.
+
+        :param skip_conf: Whether to skip the permission step as it requires \
+        user input. True to skip permission.
+        :param version: Choice of either the 42 or 840 Billion token 300 \
+        dimension common crawl glove vectors. The values can be only 42 or \
+        840 and default is 42.
+        :type skip_conf: bool
+        :type version: int
+        :returns: The filepath to the 300 dimension word vector
+        :rtype: String
+        '''
+
+        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
+                                    'glove_common_crawl_{}b'.format(version))
+        os.makedirs(glove_folder, exist_ok=True)
+        glove_file_path = os.path.join(glove_folder,
+                                       'glove.{}B.300d'.format(version))
+        glove_file_txt_path = glove_file_path + '.txt'
+        glove_file_binary_path = glove_file_path + '.binary'
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if not os.path.isfile(glove_file_binary_path) and \
+           not os.path.isfile(glove_file_txt_path):
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the glove vectors this is '\
+                               'a large download of ~2GB and takes ~5.6GB of disk '\
+                               'space after being unzipped. Would you like to '\
+                               'continue? If so type `yes`\n'
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'http://nlp.stanford.edu/data/'\
+                                'glove.{}B.300d.zip'.format(version)
+                glove_zip_path = os.path.join(glove_folder,
+                                              'glove.{}B.300d.zip'.format(version))
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with open(glove_zip_path, 'wb') as glove_zip_file:
+                    glove_requests = requests.get(download_link, stream=True)
+                    for chunk in glove_requests.iter_content(chunk_size=128):
+                        glove_zip_file.write(chunk)
+                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
+                    glove_zip_file.extractall(path=glove_folder)
+            else:
+                raise Exception('Glove Common Crawl {}b vectors not downloaded '\
+                                'therefore cannot load them'.format(version))
+            if not os.path.isfile(glove_file_txt_path):
+                raise Exception('Error in either downloading the glove vectors '\
+                                'or file path names. Files in the glove folder '\
+                                '{} and where the golve file should be {}'\
+                                .format(os.listdir(glove_folder),
+                                        glove_file_txt_path))
+        return self.glove_txt_binary(glove_file_txt_path)
+
+    def __init__(self, version=42, name=None, unit_length=False,
+                 skip_conf=False, padding_value=None):
+        '''
+        :param version: Choice of either the 42 or 840 Billion token 300 \
+        dimension common crawl glove vectors. The values can be only 42 or \
+        840 and default is 42.
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type version: int. Default 42.
+        :type skip_conf: bool. Default False
+        '''
+        if version not in [42, 840]:
+            raise ValueError('Common Crawl only come in two version the 840 '\
+                             'or 42 Billion tokens. Require to choose between '\
+                             '42 and 840 and not {}'.format(version))
+
+
+        if name is None:
+            name = 'glove 300d {}b common crawl'.format(version)
+        vector_file = self.download(skip_conf, version)
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size, dtype=np.float32)
+
+class GloveWikiGiga(WordVectors):
+
+    def download(self, skip_conf):
+        '''
+        This method checks if the
+        `Glove Wikipedia Gigaword word vectors
+        <https://nlp.stanford.edu/projects/glove/>`_
+        are already in the repoistory if not it downloads and unzips the word
+        vectors if permission is granted and converts them into a gensim
+        KeyedVectors binary representation.
+
+        :param skip_conf: Whether to skip the permission step as it requires \
+        user input. True to skip permission.
+        :type skip_conf: bool
+        :returns: A dict containing word vector dimension as keys and the \
+        absolute path to the vector file.
+        :rtype: dict
+        '''
+
+        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
+                                    'glove_wiki_giga')
+        os.makedirs(glove_folder, exist_ok=True)
+        current_glove_files = set(os.listdir(glove_folder))
+        all_glove_files = set(['glove.6B.50d.binary',
+                               'glove.6B.100d.binary',
+                               'glove.6B.200d.binary',
+                               'glove.6B.300d.binary'])
+        interset = all_glove_files.intersection(current_glove_files)
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if interset != all_glove_files:
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the glove vectors this is '\
+                               'a large download of ~900MB and takes ~2.1GB of disk '\
+                               'space after being unzipped. Would you like to '\
+                               'continue? If so type `yes`\n'
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'http://nlp.stanford.edu/data/glove.6B.zip'
+                glove_zip_path = os.path.join(glove_folder, 'glove_zip.zip')
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with open(glove_zip_path, 'wb') as glove_zip_file:
+                    glove_requests = requests.get(download_link, stream=True)
+                    for chunk in glove_requests.iter_content(chunk_size=128):
+                        glove_zip_file.write(chunk)
+                with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
+                    glove_zip_file.extractall(path=glove_folder)
+            else:
+                raise Exception('Glove Twitter vectors not downloaded therefore'\
+                                ' cannot load them')
+
+        def add_full_path(file_name):
+            file_path = os.path.join(glove_folder, file_name)
+            return self.glove_txt_binary(file_path)
+
+        return {50 : add_full_path('glove.6B.50d.txt'),
+                100 : add_full_path('glove.6B.100d.txt'),
+                200 : add_full_path('glove.6B.200d.txt'),
+                300 : add_full_path('glove.6B.300d.txt')}
+
+
+
+    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
+                 padding_value=None):
+        '''
+        :param dimension: Dimension size of the word vectors you would like to \
+        use. Choice: 50, 100, 200, 300
+        :param skip_conf: Whether to skip the permission step for downloading \
+        the word vectors as it requires user input. True to skip permission.
+        :type dimension: int
+        :type skip_conf: bool. Default False
+        '''
+
+        dimension_file = self.download(skip_conf)
+        if not isinstance(dimension, int):
+            raise TypeError('Type of dimension has to be int not {}'\
+                            .format(type(dimension)))
+        if dimension not in dimension_file:
+            raise ValueError('Dimension avliable are the following {}'\
+                             .format(list(dimension_file.keys())))
+        if name is None:
+            name = 'glove wiki giga {}d'.format(dimension)
+        vector_file = dimension_file[dimension]
+        glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
+                                                              binary=True)
+        super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
+
+    def _unknown_vector(self):
+        '''
+        This is to be Overridden by sub classes if they want to return a custom
+        unknown vector.
+
+        :returns: A vector for all unknown words. In this case it is a zero
+        vector.
+        :rtype: numpy.ndarray
+        '''
+
+        return np.zeros(self.vector_size, dtype=np.float32)
