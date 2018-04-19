@@ -27,9 +27,9 @@ class TestTDLstm(TestCase):
 
         test_texts = ['hello how are you', 'I am very good thank you nottttthingword',
                       'i am very good thank you']
-        valid_return = np.asarray([[0, 0, 0, 394, 86, 45, 8],
-                                   [0, 131, 199, 58, 88, 8, 0],
-                                   [0, 5, 131, 199, 58, 88, 8]])
+        valid_return = np.asarray([[0, 0, 0, 393, 85, 44, 7],
+                                   [0, 130, 198, 57, 87, 7, 0],
+                                   [0, 4, 130, 198, 57, 87, 7]])
         lstm = LSTM(whitespace, sswe_model)
         seq_len, test_return = lstm.process_text(test_texts, -1)
         are_equal = np.array_equal(valid_return, test_return)
@@ -39,9 +39,9 @@ class TestTDLstm(TestCase):
                          '{}'.format(seq_len))
 
         # Testing pre-truncating
-        valid_return = np.asarray([[86, 45, 8],
-                                   [88, 8, 0],
-                                   [58, 88, 8]])
+        valid_return = np.asarray([[85, 44, 7],
+                                   [87, 7, 0],
+                                   [57, 87, 7]])
         test_seq_len, test_return = lstm.process_text(test_texts, 3)
         are_equal = np.array_equal(valid_return, test_return)
         self.assertEqual(True, are_equal, msg='Cannot pre-truncate data valid {} '\
@@ -49,9 +49,9 @@ class TestTDLstm(TestCase):
         self.assertEqual(test_seq_len, 3, msg='The sequence length should be 3 '\
                          'not {}'.format(test_seq_len))
         # Testing post-truncating
-        valid_return = np.asarray([[0, 394, 86, 45, 8],
-                                   [0, 131, 199, 58, 88],
-                                   [5, 131, 199, 58, 88]])
+        valid_return = np.asarray([[0, 393, 85, 44, 7],
+                                   [0, 130, 198, 57, 87],
+                                   [4, 130, 198, 57, 87]])
         test_seq_len, test_return = lstm.process_text(test_texts, 5, truncate='post')
         are_equal = np.array_equal(valid_return, test_return)
         self.assertEqual(True, are_equal, msg='Cannot post-truncate data valid {} '\
@@ -60,9 +60,9 @@ class TestTDLstm(TestCase):
                          'not {}'.format(test_seq_len))
 
         # Testing post-padding, Pre padding already test by functions above
-        valid_return = np.asarray([[394, 86, 45, 8, 0],
-                                   [199, 58, 88, 8, 0],
-                                   [131, 199, 58, 88, 8]])
+        valid_return = np.asarray([[393, 85, 44, 7, 0],
+                                   [198, 57, 87, 7, 0],
+                                   [130, 198, 57, 87, 7]])
         test_seq_len, test_return = lstm.process_text(test_texts, 5, padding='post')
         are_equal = np.array_equal(valid_return, test_return)
         self.assertEqual(True, are_equal, msg='Cannot post-pad data valid {} '\
