@@ -8,6 +8,9 @@ docs/source/**
 ._.DS_Store
 ._config.yaml
 
+mypy_cache
+
+tools
 tools/TweeboParser/pretrained_models.tar.gz
 tools/TweeboParser/pretrained_models/
 tools/TweeboParser/sample_input.txt
@@ -16,4 +19,5 @@ tools/TweeboParser/working_dir/
 tools/TweeboParser/TBParser/deps/gflags
 tools/TweeboParser/TBParser/deps/glog
 
-data/lexicons/
+data
+model zoo
