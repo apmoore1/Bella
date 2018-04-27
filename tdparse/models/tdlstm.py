@@ -89,7 +89,8 @@ class LSTM():
             print('Model architecture loaded {}\nModel weights saved to {}\n'\
                   'Load time {}'\
                   .format(model_arch_fp, model_weights_fp, time_taken))
-        self.test_pad_size = self.pad_size
+        self.test_pad_size = loaded_model.inputs[0].shape.dims[1].value
+        # self.test_pad_size = self.pad_size
 
     def process_text(self, texts, max_length, padding='pre', truncate='pre'):
         '''
@@ -611,8 +612,8 @@ class TDLSTM(LSTM):
 
     def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
         super().load_model(model_arch_fp, model_weights_fp, verbose=verbose)
-        self.left_test_pad_size = self.pad_size
-        self.right_test_pad_size = self.pad_size
+        self.left_test_pad_size = self.model.inputs[0].shape.dims[1].value
+        self.right_test_pad_size = self.model.inputs[1].shape.dims[1].value
 
     def predict(self, test_data):
         '''
@@ -900,6 +901,11 @@ class TCLSTM(TDLSTM):
                                    'left_target' : left_targets,
                                    'right_text_input' : right_sequence,
                                    'right_target' : right_targets})
+
+    def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
+        super().load_model(model_arch_fp, model_weights_fp, verbose=verbose)
+        self.left_test_pad_size = self.model.inputs[0].shape.dims[1].value
+        self.right_test_pad_size = self.model.inputs[2].shape.dims[1].value
 
 
     def _pre_process(self, data_dicts, training=False):
