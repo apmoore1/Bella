@@ -45,8 +45,8 @@ class TestHelper(TestCase):
         '''
 
         self.assertIsInstance(package_dir(), str, msg='The return should be a String')
-        self.assertEqual(package_dir().split(os.sep)[-1], 'bella',
-                         msg='The last folder should be bella')
+        self.assertEqual(package_dir().split(os.sep)[-1], 'tdparse',
+                         msg='The last folder should be tdparse')
 
     def test_full_path(self):
         '''
