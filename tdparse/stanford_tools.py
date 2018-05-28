@@ -11,9 +11,9 @@ class StanfordNlp(object):
 
     instance = None
 
-    def __new__(cls) -> StanfordCoreNLP:
+    def __new__(cls):
         if StanfordNlp.instance is None:
-            StanfordNlp.instance = StanfordCoreNLP
+            StanfordNlp.instance = StanfordCoreNLP('http://localhost', 9000)
         return StanfordNlp.instance
 
     def __init__(self, ip_address='http://localhost', port=9000) -> None:
