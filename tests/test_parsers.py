@@ -1,21 +1,21 @@
 '''
-Unit test suite for the :py:mod:`tdparse.helper` module.
+Unit test suite for the :py:mod:`bella.helper` module.
 '''
 from unittest import TestCase
 
 
-from tdparse.parsers import dong
-from tdparse.helper import read_config
+from bella.parsers import dong
+from bella.helper import read_config
 
 class TestParsers(TestCase):
     '''
     Contains the following functions:
-    1. :py:func:`tdparse.parsers.test_dong`
+    1. :py:func:`bella.parsers.test_dong`
     '''
 
     def test_dong(self):
         '''
-        Tests :py:func:`tdparse.parsers.dong`
+        Tests :py:func:`bella.parsers.dong`
         '''
 
         def check_results(expected_results, test_results):

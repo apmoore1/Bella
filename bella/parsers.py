@@ -2,7 +2,7 @@
 Functions that parse the annotated data that is being used in this project. The
 annotated dataset are the following:
 
-1. `Li Dong <http://goo.gl/5Enpu7>`_ which links to :py:func:`tdparse.parsers.dong`
+1. `Li Dong <http://goo.gl/5Enpu7>`_ which links to :py:func:`bella.parsers.dong`
 2. Semeval parser
 '''
 import json
@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 
 import ftfy
 
-from tdparse.data_types import Target, TargetCollection
+from bella.data_types import Target, TargetCollection
 
 def dong(file_path):
     '''

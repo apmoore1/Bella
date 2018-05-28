@@ -27,7 +27,7 @@ from gensim.models import word2vec
 from gensim.models.wrappers import FastText
 from gensim.scripts.glove2word2vec import glove2word2vec
 
-from tdparse import helper
+from bella import helper
 
 class WordVectors(object):
     '''
@@ -64,7 +64,7 @@ class WordVectors(object):
 
     Following methods:
 
-    1. :py:func:`tdparse.word_vectors.WordVectors.lookup_vector`
+    1. :py:func:`bella.word_vectors.WordVectors.lookup_vector`
     '''
     def __init__(self, word2vector, name=None, unit_length=False,
                  padding_value=None):
@@ -192,7 +192,7 @@ class WordVectors(object):
         vocab size + 1 index.
 
         :returns: A dictionary matching word indexs to there corresponding words.
-        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.word2index`
+        Inverse of :py:func:`bella.word_vectors.GensimVectors.word2index`
         :rtype: dict
         '''
 
@@ -205,7 +205,7 @@ class WordVectors(object):
                 continue
             index_word[index] = word
             index += 1
-        # Required as the unknown word might have been learned and in 
+        # Required as the unknown word might have been learned and in
         # self._word_list
         if self.unknown_index != 0:
             self.unknown_index = len(index_word)
@@ -227,7 +227,7 @@ class WordVectors(object):
         0
 
         :returns: A dictionary matching words to there corresponding index.
-        Inverse of :py:func:`tdparse.word_vectors.GensimVectors.index2word`
+        Inverse of :py:func:`bella.word_vectors.GensimVectors.index2word`
         :rtype: dict
         '''
 
@@ -244,7 +244,7 @@ class WordVectors(object):
         unknown index
 
         :returns: A dictionary of word index to corresponding word vector. Same
-        as :py:func:`tdparse.word_vectors.GensimVectors.lookup_vector` but
+        as :py:func:`bella.word_vectors.GensimVectors.lookup_vector` but
         instead of words that are looked up it is the words index.
         :rtype: dict
         '''

@@ -1,5 +1,5 @@
 '''
-Unit test suite for the :py:mod:`tdparse.word_vectors` module.
+Unit test suite for the :py:mod:`bella.word_vectors` module.
 '''
 import os
 from unittest import TestCase
@@ -8,13 +8,13 @@ import tempfile
 import pytest
 import numpy as np
 
-from tdparse.helper import read_config
-import tdparse.tokenisers as tokenisers
-from tdparse.word_vectors import WordVectors
-from tdparse.word_vectors import GensimVectors
-from tdparse.word_vectors import PreTrained
-from tdparse.word_vectors import GloveTwitterVectors
-from tdparse.word_vectors import GloveCommonCrawl
+from bella.helper import read_config
+import bella.tokenisers as tokenisers
+from bella.word_vectors import WordVectors
+from bella.word_vectors import GensimVectors
+from bella.word_vectors import PreTrained
+from bella.word_vectors import GloveTwitterVectors
+from bella.word_vectors import GloveCommonCrawl
 
 class TestWordVectors(TestCase):
     '''
@@ -27,7 +27,7 @@ class TestWordVectors(TestCase):
 
     def test_wordvector_methods(self):
         '''
-        Tests the :py:class:`tdparse.word_vectors.WordVectors`
+        Tests the :py:class:`bella.word_vectors.WordVectors`
         '''
 
         hello_vec = np.asarray([0.5, 0.3, 0.4], dtype=np.float32)
@@ -159,7 +159,7 @@ class TestWordVectors(TestCase):
         self.assertEqual('<pad>', vo_zhang.index2word[0])
         self.assertEqual('<unk>', vo_zhang.index2word[vo_zhang_unk_index])
 
-        # Ensure that padding does not affect word vectors that do not state 
+        # Ensure that padding does not affect word vectors that do not state
         # it is required
         word_vector = WordVectors(test_vectors)
         self.assertEqual('<unk>', word_vector.index2word[0])
@@ -170,7 +170,7 @@ class TestWordVectors(TestCase):
 
     def test_gensim_word2vec(self):
         '''
-        Tests the :py:class:`tdparse.word_vectors.GensimVectors`
+        Tests the :py:class:`bella.word_vectors.GensimVectors`
         '''
 
         # Test loading word vectors from a file
@@ -249,7 +249,7 @@ class TestWordVectors(TestCase):
                                  .format(data_vector.name))
     def test_pre_trained(self):
         '''
-        Tests the :py:class:`tdparse.word_vectors.PreTrained`
+        Tests the :py:class:`bella.word_vectors.PreTrained`
         '''
 
         # Test constructor

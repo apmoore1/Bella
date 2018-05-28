@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse import neural_pooling
+from bella import neural_pooling
 
 class JoinContextVectors(BaseEstimator, TransformerMixin):
 

@@ -4,8 +4,8 @@ syntactic parsing. Or functions that create
 '''
 import re
 
-from tdparse.data_types import Target
-from tdparse.dependency_parsers import stanford
+from bella.data_types import Target
+from bella.dependency_parsers import stanford
 
 
 def normalise_target(target, text, sorted_target_spans, renormalise=False,
@@ -72,7 +72,7 @@ def normalise_target(target, text, sorted_target_spans, renormalise=False,
     norm_text = add_target_to_text(norm_target)
 
     #if parser == stanford:
-    #  norm_target = norm_target.replace('@', '')  
+    #  norm_target = norm_target.replace('@', '')
 
     # Checks a word that is the normalised target word exists in the text and
     # if so changes it to a word that is not by putting dollar signs around it.

@@ -1,8 +1,8 @@
 '''
 Functions that are used throughout the package
 
-1. :py:func:`tdparse.helper.read_config`
-2. :py:func:`tdparse.helper.package_dir`
+1. :py:func:`bella.helper.read_config`
+2. :py:func:`bella.helper.package_dir`
 '''
 
 import os

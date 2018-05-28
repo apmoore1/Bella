@@ -1,14 +1,14 @@
 '''
-Unit test suite for the :py:mod:`tdparse.syntactic_contexts` module.
+Unit test suite for the :py:mod:`bella.syntactic_contexts` module.
 '''
 from unittest import TestCase
 
-from tdparse.data_types import Target
-from tdparse.syntactic_contexts import context
-from tdparse.syntactic_contexts import target_normalisation
-from tdparse.syntactic_contexts import dependency_context
-from tdparse.syntactic_contexts import dependency_relation_context
-from tdparse.dependency_parsers import tweebo
+from bella.data_types import Target
+from bella.syntactic_contexts import context
+from bella.syntactic_contexts import target_normalisation
+from bella.syntactic_contexts import dependency_context
+from bella.syntactic_contexts import dependency_relation_context
+from bella.dependency_parsers import tweebo
 
 
 class TestTarget(TestCase):

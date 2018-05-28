@@ -1,10 +1,10 @@
 ''''
-Unit test suite for the :py:mod:`tdparse.dependency_tokens` module.
+Unit test suite for the :py:mod:`bella.dependency_tokens` module.
 '''
 from collections import defaultdict
 from unittest import TestCase
 
-from tdparse.dependency_tokens import DependencyToken
+from bella.dependency_tokens import DependencyToken
 
 class TestDependencyTokens(TestCase):
     '''

@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse.word_vectors import WordVectors
+from bella.word_vectors import WordVectors
 
 class ContextWordVectors(BaseEstimator, TransformerMixin):
 

@@ -1,5 +1,5 @@
 '''
-Unit test suite for the :py:mod:`tdparse.dependency_parsers` module.
+Unit test suite for the :py:mod:`bella.dependency_parsers` module.
 '''
 import os
 import shutil
@@ -7,9 +7,9 @@ from unittest import TestCase
 
 import pytest
 
-from tdparse.dependency_tokens import DependencyToken
-from tdparse.dependency_parsers import tweebo_install
-from tdparse.dependency_parsers import tweebo
+from bella.dependency_tokens import DependencyToken
+from bella.dependency_parsers import tweebo_install
+from bella.dependency_parsers import tweebo
 
 class TestDependencyParsers(TestCase):
     '''
@@ -18,10 +18,10 @@ class TestDependencyParsers(TestCase):
     @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_tweebo_install(self):
         '''
-        Test for :py:func:`tdparse.dependency_parsers.tweebo_install`. Tests that
+        Test for :py:func:`bella.dependency_parsers.tweebo_install`. Tests that
         it downloads the files correctly. Hard to test the functionality without
         testing the parser which is in the
-        :py:func:`tdparse.tests.test_dependency_parsers.test_tweebo`
+        :py:func:`bella.tests.test_dependency_parsers.test_tweebo`
         '''
 
         def add(num1, num2):

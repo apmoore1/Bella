@@ -1,18 +1,18 @@
 '''
-Unit test suite for :py:mod:`tdparse.lexicons` module.
+Unit test suite for :py:mod:`bella.lexicons` module.
 '''
 from unittest import TestCase
 
 import pytest
 
-from tdparse.lexicons import Mpqa
-from tdparse.lexicons import HuLiu
-from tdparse.lexicons import NRC
-from tdparse.lexicons import Lexicon
+from bella.lexicons import Mpqa
+from bella.lexicons import HuLiu
+from bella.lexicons import NRC
+from bella.lexicons import Lexicon
 
 class TestLexicons(TestCase):
     '''
-    Tests the :py:class:`tdparse.lexicons.Lexicon` class and all of it's
+    Tests the :py:class:`bella.lexicons.Lexicon` class and all of it's
     subclasses.
     '''
 
@@ -60,7 +60,7 @@ class TestLexicons(TestCase):
 
     def test_lexicon_values(self):
         '''
-        Tests that :py:func:`tdparse.lexicons.Lexicon` checks the types of
+        Tests that :py:func:`bella.lexicons.Lexicon` checks the types of
         self.lexicon and if setting the lexicon in the constructor works.
         '''
         with self.assertRaises(TypeError, msg='Should not allow lexicon that is'\
@@ -80,7 +80,7 @@ class TestLexicons(TestCase):
                       "not own the lexicons therefore cannot release them.")
     def test_subset_values_class(self):
         '''
-        Tests that :py:func:`tdparse.lexicons.Lexicon._process_lexicon` function
+        Tests that :py:func:`bella.lexicons.Lexicon._process_lexicon` function
         works correctly. The functionality is lower casing the lexicon words and
         removing words from the lexicon if they are not within
         '''
@@ -140,7 +140,7 @@ class TestLexicons(TestCase):
                       "not own the lexicons therefore cannot release them.")
     def test_nrc(self):
         '''
-        Tests the :py:class:`tdparse.lexicons.NRC`
+        Tests the :py:class:`bella.lexicons.NRC`
         '''
 
         nrc_lex = NRC()
@@ -161,7 +161,7 @@ class TestLexicons(TestCase):
                       "not own the lexicons therefore cannot release them.")
     def test_huliu(self):
         '''
-        Tests the :py:class:`tdparse.lexicons.HuLiu`
+        Tests the :py:class:`bella.lexicons.HuLiu`
         '''
 
         hu_liu_lex = HuLiu()
@@ -187,7 +187,7 @@ class TestLexicons(TestCase):
                       "not own the lexicons therefore cannot release them.")
     def test_mpqa(self):
         '''
-        Tests the :py:class:`tdparse.lexicons.Mpqa`
+        Tests the :py:class:`bella.lexicons.Mpqa`
         '''
 
         mpqa_lex = Mpqa()

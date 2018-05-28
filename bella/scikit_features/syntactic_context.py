@@ -17,8 +17,8 @@ target word the text is about.
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse import syntactic_contexts
-from tdparse.dependency_parsers import tweebo
+from bella import syntactic_contexts
+from bella.dependency_parsers import tweebo
 
 
 class SyntacticContext(BaseEstimator, TransformerMixin):

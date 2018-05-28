@@ -1,18 +1,18 @@
 '''
-Unit test suite for the :py:mod:`tdparse.tdparse` module.
+Unit test suite for the :py:mod:`bella.models.tdparse` module.
 '''
 from unittest import TestCase
 
-from tdparse.helper import read_config
-from tdparse.word_vectors import PreTrained
-from tdparse.word_vectors import GensimVectors
-from tdparse import lexicons
-from tdparse.dependency_parsers import tweebo
-from tdparse.tokenisers import whitespace
-from tdparse.tokenisers import ark_twokenize
-from tdparse.models.tdparse import TDParseMinus
-from tdparse.models.tdparse import TDParse
-from tdparse.models.tdparse import TDParsePlus
+from bella.helper import read_config
+from bella.word_vectors import PreTrained
+from bella.word_vectors import GensimVectors
+from bella import lexicons
+from bella.dependency_parsers import tweebo
+from bella.tokenisers import whitespace
+from bella.tokenisers import ark_twokenize
+from bella.models.tdparse import TDParseMinus
+from bella.models.tdparse import TDParse
+from bella.models.tdparse import TDParsePlus
 
 class TestTarget(TestCase):
     '''
@@ -168,8 +168,8 @@ class TestTarget(TestCase):
         '''
         Tests:
 
-        1. `tdparse.models.target.TargetInd.get_cv_params`
-        2. `tdparse.models.target.TargetDepC.get_params`
+        1. `bella.models.target.TargetInd.get_cv_params`
+        2. `bella.models.target.TargetDepC.get_params`
         '''
 
         def grid_key_value_test(test_dict_list, valid_dict_list):
@@ -601,8 +601,8 @@ class TestTarget(TestCase):
         '''
         Tests:
 
-        1. `tdparse.models.target.TargetInd.get_params`
-        2. `tdparse.models.target.TargetDepC.get_params`
+        1. `bella.models.target.TargetInd.get_params`
+        2. `bella.models.target.TargetDepC.get_params`
         '''
 
         sswe_path = read_config('sswe_files')['vo_zhang']

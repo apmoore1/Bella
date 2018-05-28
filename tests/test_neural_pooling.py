@@ -1,18 +1,18 @@
 '''
-Unit test suite for the :py:mod:`tdparse.neural_pooling` module.
+Unit test suite for the :py:mod:`bella.neural_pooling` module.
 '''
 from unittest import TestCase
 
 import numpy as np
 
-from tdparse.neural_pooling import matrix_min
-from tdparse.neural_pooling import matrix_max
-from tdparse.neural_pooling import matrix_avg
-from tdparse.neural_pooling import matrix_median
-from tdparse.neural_pooling import matrix_std
-from tdparse.neural_pooling import matrix_prod
-from tdparse.neural_pooling import matrix_checking
-from tdparse.neural_pooling import inf_nan_check
+from bella.neural_pooling import matrix_min
+from bella.neural_pooling import matrix_max
+from bella.neural_pooling import matrix_avg
+from bella.neural_pooling import matrix_median
+from bella.neural_pooling import matrix_std
+from bella.neural_pooling import matrix_prod
+from bella.neural_pooling import matrix_checking
+from bella.neural_pooling import inf_nan_check
 
 @matrix_checking
 def matrix_row_error(matrix, transpose=True):
@@ -170,12 +170,12 @@ class TestNeuralPooling(TestCase):
 
     def test_check_decorator(self):
         '''
-        Tests the decorator :py:func:`tdparse.neural_pooling.matrix_checking`
+        Tests the decorator :py:func:`bella.neural_pooling.matrix_checking`
         used by the following functions:
 
-        1. :py:func:`tdparse.neural_pooling.matrix_min`
-        2. :py:func:`tdparse.neural_pooling.matrix_max`
-        3. :py:func:`tdparse.neural_pooling.matrix_avg`
+        1. :py:func:`bella.neural_pooling.matrix_min`
+        2. :py:func:`bella.neural_pooling.matrix_max`
+        3. :py:func:`bella.neural_pooling.matrix_avg`
         '''
 
         with self.assertRaises(TypeError, msg='Should only not accept lists only '\
@@ -204,7 +204,7 @@ class TestNeuralPooling(TestCase):
 
     def test_matrix_min(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_min`
+        Tests :py:func:`bella.neural_pooling.matrix_min`
         '''
 
         num_cor = np.asarray([1, 2, 3, 4], dtype=np.float32).reshape(1, 4)
@@ -225,7 +225,7 @@ class TestNeuralPooling(TestCase):
 
     def test_matrix_max(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_max`
+        Tests :py:func:`bella.neural_pooling.matrix_max`
         '''
 
         num_cor = np.asarray([9, 10, 11, 12], dtype=np.float32).reshape(1, 4)
@@ -248,7 +248,7 @@ class TestNeuralPooling(TestCase):
 
     def test_matrix_avg(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_mean`
+        Tests :py:func:`bella.neural_pooling.matrix_mean`
         '''
 
         num_cor = np.asarray([5, 6, 7, 8], dtype=np.float32).reshape(1, 4)
@@ -273,7 +273,7 @@ class TestNeuralPooling(TestCase):
 
     def test_matrix_median(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_median`
+        Tests :py:func:`bella.neural_pooling.matrix_median`
         '''
 
         num_cor = np.asarray([5, 6, 7, 8], dtype=np.float32).reshape(1, 4)
@@ -297,7 +297,7 @@ class TestNeuralPooling(TestCase):
 
     def test_matrix_std(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_std`
+        Tests :py:func:`bella.neural_pooling.matrix_std`
         '''
         num_array = np.asarray([[1, 2], [5, 6], [9, 10]], dtype=np.float32)
         std_array = np.asarray([[1, 2, 3, 4]], dtype=np.float32)
@@ -317,7 +317,7 @@ class TestNeuralPooling(TestCase):
                          .format(std_out, std_corr))
     def test_matrix_prod(self):
         '''
-        Tests :py:func:`tdparse.neural_pooling.matrix_std`
+        Tests :py:func:`bella.neural_pooling.matrix_std`
         '''
         num_array = np.asarray([[1, 2], [5, 6], [9, 10]], dtype=np.float32)
         std_array = np.asarray([[1, 2, 3, 4]], dtype=np.float32)

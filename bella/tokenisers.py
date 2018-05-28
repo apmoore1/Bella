@@ -2,14 +2,14 @@
 Functions that tokenise text and Returns the list of tokens all of which are
 Strings.
 
-1. Whitespace - :py:func:`tdparse.tokenisers.whitespace`
-2. Twitter tokeniser - :py:func:`tdparse.tokenisers.ark_twokenize`
+1. Whitespace - :py:func:`bella.tokenisers.whitespace`
+2. Twitter tokeniser - :py:func:`bella.tokenisers.ark_twokenize`
 '''
 import time
 
 import twokenize
 
-from tdparse import stanford_tools
+from bella import stanford_tools
 
 def whitespace(text):
     '''

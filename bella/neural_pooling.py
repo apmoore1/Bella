@@ -88,9 +88,9 @@ def matrix_checking(neural_func):
     decorated functions return. The functions decorated are the neural functions
     which are:
 
-    1. :py:func:`tdparse.neural_pooling.matrix_min`
-    2. :py:func:`tdparse.neural_pooling.matrix_max`
-    3. :py:func:`tdparse.neural_pooling.matrix_avg`
+    1. :py:func:`bella.neural_pooling.matrix_min`
+    2. :py:func:`bella.neural_pooling.matrix_max`
+    3. :py:func:`bella.neural_pooling.matrix_avg`
     '''
     @wraps(neural_func)
     def func_wrapper(matrix, transpose=False):

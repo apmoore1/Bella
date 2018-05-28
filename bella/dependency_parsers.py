@@ -8,9 +8,9 @@ import tempfile
 
 import networkx as nx
 
-from tdparse.helper import read_config, full_path
-from tdparse.dependency_tokens import DependencyToken
-from tdparse import stanford_tools
+from bella.helper import read_config, full_path
+from bella.dependency_tokens import DependencyToken
+from bella import stanford_tools
 
 
 def tweebo_install():

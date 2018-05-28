@@ -1,7 +1,7 @@
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse import lexicons
+from bella import lexicons
 
 class LexiconFilter(BaseEstimator, TransformerMixin):
 

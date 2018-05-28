@@ -16,8 +16,8 @@ import pandas as pd
 from sklearn import metrics
 import seaborn as sns
 
-from tdparse.tokenisers import whitespace
-from tdparse.stanford_tools import constituency_parse
+from bella.tokenisers import whitespace
+from bella.stanford_tools import constituency_parse
 
 class Target(MutableMapping):
     '''

@@ -1,25 +1,25 @@
 '''
-Unit test suite for :py:mod:`tdparse.helper` module.
+Unit test suite for :py:mod:`bella.helper` module.
 '''
 import os
 
 from unittest import TestCase
 
 
-from tdparse.helper import read_config
-from tdparse.helper import package_dir
-from tdparse.helper import full_path
+from bella.helper import read_config
+from bella.helper import package_dir
+from bella.helper import full_path
 
 class TestHelper(TestCase):
     '''
     Contains the following functions:
-    1. :py:func:`tdparse.helper.test_read_config`
-    2. :py:func:`tdparse.helper.test_package_dir`
+    1. :py:func:`bella.helper.test_read_config`
+    2. :py:func:`bella.helper.test_package_dir`
     '''
 
     def test_read_config(self):
         '''
-        Tests :py:func:`tdparse.helper.read_config`
+        Tests :py:func:`bella.helper.read_config`
         '''
 
         # Check if it can handle nested values - which should be converted to
@@ -41,16 +41,16 @@ class TestHelper(TestCase):
 
     def test_package_dir(self):
         '''
-        Tests :py:func:`tdparse.helper.package_dir`
+        Tests :py:func:`bella.helper.package_dir`
         '''
 
         self.assertIsInstance(package_dir(), str, msg='The return should be a String')
-        self.assertEqual(package_dir().split(os.sep)[-1], 'tdparse',
-                         msg='The last folder should be tdparse')
+        self.assertEqual(package_dir().split(os.sep)[-1], 'bella',
+                         msg='The last folder should be bella')
 
     def test_full_path(self):
         '''
-        Tests :py:func:`tdparse.helper.full_path`
+        Tests :py:func:`bella.helper.full_path`
         '''
 
         path = '../aspect datasets'

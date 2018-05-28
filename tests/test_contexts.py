@@ -1,5 +1,5 @@
 '''
-Unit test suite for the :py:mod:`tdparse.contexts` module.
+Unit test suite for the :py:mod:`bella.contexts` module.
 '''
 from unittest import TestCase
 
@@ -8,7 +8,7 @@ from unittest import TestCase
 #from tdparse.contexts import left_context
 #from tdparse.contexts import target_context
 #from tdparse.contexts import full_context
-from tdparse.contexts import context
+from bella.contexts import context
 
 class TestContexts(TestCase):
     '''
@@ -33,7 +33,7 @@ class TestContexts(TestCase):
                        'spans':[[14, 17], [62, 65]]}]
     def test_context(self):
         '''
-        Tests :py:func:`tdparse.contexts._context`
+        Tests :py:func:`bella.contexts._context`
         '''
         with self.assertRaises(ValueError, msg='Should only accept left, right '\
                                'or target context words for parameters'):
@@ -41,7 +41,7 @@ class TestContexts(TestCase):
 
     def test_left_context(self):
         '''
-        Tests :py:func:`tdparse.contexts.left_context`
+        Tests :py:func:`bella.contexts.left_context`
         '''
 
         single_left = [['This is a fake '], ['I had a great '], ['I ']]
@@ -96,7 +96,7 @@ class TestContexts(TestCase):
 
     def test_right_context(self):
         '''
-        Tests :py:func:`tdparse.contexts.right_context`
+        Tests :py:func:`bella.contexts.right_context`
         '''
 
         single_right = [[' that is to represent a Tweet!!!!'],
@@ -153,7 +153,7 @@ class TestContexts(TestCase):
 
     def test_target_context(self):
         '''
-        Tests :py:func:`tdparse.contexts.target_context`
+        Tests :py:func:`bella.contexts.target_context`
         '''
         single_targets = [['news article'], ['day'], ['cycled']]
         for index, test_context in enumerate(self.single_context):
@@ -175,7 +175,7 @@ class TestContexts(TestCase):
 
     def test_full_context(self):
         '''
-        Tests :py:func:`tdparse.contexts.full_context`
+        Tests :py:func:`bella.contexts.full_context`
         '''
         single_targets = [['This is a fake news article that is to represent a Tweet!!!!'],
                           ['I had a great day however I did not get much work done'],

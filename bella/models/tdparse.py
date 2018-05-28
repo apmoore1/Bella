@@ -14,19 +14,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import MinMaxScaler
 
-from tdparse.models.target import TargetInd
+from bella.models.target import TargetInd
 
-from tdparse.tokenisers import ark_twokenize
-from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
+from bella.tokenisers import ark_twokenize
+from bella.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
 
-from tdparse.scikit_features.context import Context
-from tdparse.scikit_features import syntactic_context
-from tdparse.scikit_features.tokeniser import ContextTokeniser
-from tdparse.scikit_features.word_vector import ContextWordVectors
-from tdparse.scikit_features.lexicon_filter import LexiconFilter
-from tdparse.scikit_features.neural_pooling import NeuralPooling
-from tdparse.scikit_features.join_context_vectors import JoinContextVectors
+from bella.scikit_features.context import Context
+from bella.scikit_features import syntactic_context
+from bella.scikit_features.tokeniser import ContextTokeniser
+from bella.scikit_features.word_vector import ContextWordVectors
+from bella.scikit_features.lexicon_filter import LexiconFilter
+from bella.scikit_features.neural_pooling import NeuralPooling
+from bella.scikit_features.join_context_vectors import JoinContextVectors
 
 class TDParseMinus(TargetInd):
     def __init__(self, child_relations=False):

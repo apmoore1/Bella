@@ -4,7 +4,7 @@ Contains classes of models that can be found in `Vo and Zhang 2015 paper \
 
 Classes:
 
-1. :py:class:`tdparse.models.target.TargetInd` - Target indepdent model
+1. :py:class:`bella.models.target.TargetInd` - Target indepdent model
 '''
 from collections import defaultdict
 import copy
@@ -19,17 +19,17 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
-from tdparse.tokenisers import ark_twokenize
-from tdparse.neural_pooling import matrix_max, matrix_min, matrix_avg,\
+from bella.tokenisers import ark_twokenize
+from bella.neural_pooling import matrix_max, matrix_min, matrix_avg,\
 matrix_median, matrix_prod, matrix_std
-from tdparse.notebook_helper import get_json_data, write_json_data
+from bella.notebook_helper import get_json_data, write_json_data
 
-from tdparse.scikit_features.context import Context
-from tdparse.scikit_features.tokeniser import ContextTokeniser
-from tdparse.scikit_features.word_vector import ContextWordVectors
-from tdparse.scikit_features.lexicon_filter import LexiconFilter
-from tdparse.scikit_features.neural_pooling import NeuralPooling
-from tdparse.scikit_features.join_context_vectors import JoinContextVectors
+from bella.scikit_features.context import Context
+from bella.scikit_features.tokeniser import ContextTokeniser
+from bella.scikit_features.word_vector import ContextWordVectors
+from bella.scikit_features.lexicon_filter import LexiconFilter
+from bella.scikit_features.neural_pooling import NeuralPooling
+from bella.scikit_features.join_context_vectors import JoinContextVectors
 
 class TargetInd():
     def __init__(self):
@@ -310,10 +310,10 @@ class TargetInd():
         If values are not required e.g. lower then the model has a defualt value
         for it which will be used when the user does not set a value here.
 
-        :param word_vector: A list of `tdparse.word_vectors.WordVectors` \
+        :param word_vector: A list of `bella.word_vectors.WordVectors` \
         instances e.g. [WordVectors(), AnotherWordVector()]
-        :param tokeniser: A tokeniser method from `tdparse.tokenisers` \
-        or a method that conforms to the same output as `tdparse.tokenisers`
+        :param tokeniser: A tokeniser method from `bella.tokenisers` \
+        or a method that conforms to the same output as `bella.tokenisers`
         :param lower: A bool which indicate wether to lower case the input words.
         :param C: A float which indicates the C value of the SVM classifier.
         :param random_state: A int which defines the random number to generate \
@@ -428,10 +428,10 @@ class TargetInd():
         This method is to be overidden when more values than those listed in the
         attributes are required for the model. E.g. a lexicon.
 
-        :param word_vectors: A list of a list of `tdparse.word_vectors.WordVectors` \
+        :param word_vectors: A list of a list of `bella.word_vectors.WordVectors` \
         instances e.g. [[WordVectors()], [WordVectors(), AnotherWordVector()]]
-        :param tokenisers: A list of tokenisers methods from `tdparse.tokenisers` \
-        or a list of methods that conform to the same output as `tdparse.tokenisers`
+        :param tokenisers: A list of tokenisers methods from `bella.tokenisers` \
+        or a list of methods that conform to the same output as `bella.tokenisers`
         :param lowers: A list of bool values which indicate wether to lower case \
         the input words.
         :param C: A list of floats which indicate the C value on the SVM classifier.
@@ -1077,8 +1077,8 @@ class TargetDepSent(TargetInd):
         '''
         Overrides the base version and adds the lexicons parameter.
         :param senti_lexicon: Lexicon of words you want to use has to be an instance \
-        of `tdparse.lexicons.Lexicon`.
-        :type senti_lexicon: instance of `tdparse.lexicons.Lexicon`
+        of `bella.lexicons.Lexicon`.
+        :type senti_lexicon: instance of `bella.lexicons.Lexicon`
         :returns: A parameter dictionary that can be used as the param attribute \
         in the `fit` function.
         :rtype: dict
@@ -1097,7 +1097,7 @@ class TargetDepSent(TargetInd):
         '''
         Overrides the base version and adds the lexicons parameter.
 
-        :param senti_lexicons: List of instance `tdparse.lexicons.Lexicon` where \
+        :param senti_lexicons: List of instance `bella.lexicons.Lexicon` where \
         each lexicon is used to sub select interested words.
         :type senti_lexicon: list
         :returns: A list of dicts where each dict represents a different \

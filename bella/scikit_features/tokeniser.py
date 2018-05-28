@@ -9,7 +9,7 @@ transformer method of the class for more details.
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse import tokenisers
+from bella import tokenisers
 
 
 class ContextTokeniser(BaseEstimator, TransformerMixin):
@@ -22,7 +22,7 @@ class ContextTokeniser(BaseEstimator, TransformerMixin):
     Default whitespace tokeniser.
     2. self.lower - whether to lower case the tokens. Default False.
 
-    See :py:func:`tdparse.tokenisers` for more tokeniser functions that can be
+    See :py:func:`bella.tokenisers` for more tokeniser functions that can be
     used here or create your own function.
     '''
 

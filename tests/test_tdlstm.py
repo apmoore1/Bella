@@ -1,17 +1,17 @@
 '''
-Unit test suite for the :py:mod:`tdparse.helper` module.
+Unit test suite for the :py:mod:`bella.helper` module.
 '''
 from unittest import TestCase
 
 import numpy as np
 
-from tdparse.helper import read_config
-from tdparse.word_vectors import PreTrained
-from tdparse.word_vectors import GensimVectors
-from tdparse import lexicons
-from tdparse.dependency_parsers import tweebo
-from tdparse.tokenisers import whitespace
-from tdparse.models.tdlstm import LSTM
+from bella.helper import read_config
+from bella.word_vectors import PreTrained
+from bella.word_vectors import GensimVectors
+from bella import lexicons
+from bella.dependency_parsers import tweebo
+from bella.tokenisers import whitespace
+from bella.models.tdlstm import LSTM
 
 class TestTDLstm(TestCase):
     '''

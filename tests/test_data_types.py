@@ -1,11 +1,11 @@
 '''
-Unit test suite for the :py:mod:`tdparse.data_types` module.
+Unit test suite for the :py:mod:`bella.data_types` module.
 '''
 import copy
 from unittest import TestCase
 
-from tdparse.data_types import Target
-from tdparse.data_types import TargetCollection
+from bella.data_types import Target
+from bella.data_types import TargetCollection
 
 class TestTarget(TestCase):
     '''
@@ -74,7 +74,7 @@ class TestTarget(TestCase):
         target_id = '210#1'
         predicted = 0
         sentence_id = '210'
-        target_example = Target(span, target_id, target, text, sentiment, 
+        target_example = Target(span, target_id, target, text, sentiment,
                                 predicted, sentence_id)
 
         # Testing that the dictionary mapping is correct
@@ -143,10 +143,10 @@ class TestTarget(TestCase):
                                     'text with Iphone', 1)
         predicted_sentiment = 0
         target_example_int['predicted'] = 0
-        self.assertEqual(predicted_sentiment, target_example_int['predicted'], 
+        self.assertEqual(predicted_sentiment, target_example_int['predicted'],
                          msg='Predicted sentiment value should be 0 and '\
                          'not {}'.format(target_example_int['predicted']))
-        
+
         target_example_string = Target([(3, 5), (6, 8)], '1', 'Iphone',
                                        'text with Iphone', 'pos')
         predicted_sentiment = 'neg'
@@ -434,14 +434,14 @@ class TestTarget(TestCase):
         '''
         Tests the add_pred_sentiment function of TargetCollection
         '''
-        
+
         target_example_int_0 = Target([(3, 5), (6, 8)], '1', 'Iphone',
                                   'text with Iphone', 1)
         target_example_int_1 = Target([(1, 5)], '3', 'Iphone',
                                   'text with Iphone', 1)
         target_example_int_2 = Target([(1, 2)], '2', 'Iphone',
                                   'text with Iphone', -1)
-        target_col_int = TargetCollection([target_example_int_0, 
+        target_col_int = TargetCollection([target_example_int_0,
                                            target_example_int_1,
                                            target_example_int_2])
 
@@ -526,14 +526,14 @@ class TestTarget(TestCase):
 
         # Test for 2 unique sentiments per sentence
         test_col = target_col.subset_by_sentiment(2)
-        valid_col = TargetCollection([target_example_0, target_example_1, 
-                                      target_example_8, target_example_9, 
+        valid_col = TargetCollection([target_example_0, target_example_1,
+                                      target_example_8, target_example_9,
                                       target_example_10])
         self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
                          ' but has returned this {}'.format(valid_col, test_col))
         # Test for 1 unique sentiments per sentence
         test_col = target_col.subset_by_sentiment(1)
-        valid_col = TargetCollection([target_example_7, target_example_2, 
+        valid_col = TargetCollection([target_example_7, target_example_2,
                                       target_example_3])
         self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
                          ' but has returned this {}'.format(valid_col, test_col))
@@ -543,7 +543,3 @@ class TestTarget(TestCase):
                                       target_example_6])
         self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
                          ' but has returned this {}'.format(valid_col, test_col))
-
-
-
-

@@ -1,6 +1,6 @@
 '''
 This module contains the Lexicon classes where each class is a sub class of
-the :py:class:`tdparse.lexicons.Lexicon` class.
+the :py:class:`bella.lexicons.Lexicon` class.
 
 The following classes are in the module:
 
@@ -18,7 +18,7 @@ import csv
 import os
 import re
 
-from tdparse.helper import read_config, full_path
+from bella.helper import read_config, full_path
 
 class Lexicon():
     '''
@@ -121,28 +121,28 @@ class Lexicon():
 
         NOTE: Requires that both lexicons have the same categories.
 
-        :param lexicon1: An instance of :py:class:`tdparse.lexicons.Lexicon`
-        :param lexicon2: An instance of :py:class:`tdparse.lexicons.Lexicon`
-        :type lexicon1: :py:class:`tdparse.lexicons.Lexicon`
-        :type lexicon2: :py:class:`tdparse.lexicons.Lexicon`
+        :param lexicon1: An instance of :py:class:`bella.lexicons.Lexicon`
+        :param lexicon2: An instance of :py:class:`bella.lexicons.Lexicon`
+        :type lexicon1: :py:class:`bella.lexicons.Lexicon`
+        :type lexicon2: :py:class:`bella.lexicons.Lexicon`
         :returns: Combines the two lexicons and removes words that have opposite \
-        sentiment and returns it as a :py:class:`tdparse.lexicons.Lexicon`
-        :rtype: :py:class:`tdparse.lexicons.Lexicon`
+        sentiment and returns it as a :py:class:`bella.lexicons.Lexicon`
+        :rtype: :py:class:`bella.lexicons.Lexicon`
         '''
         def compare_lexicons(lex1, lex2, lex_name):
             '''
             Given the two lexicons will combine the lexicons together and remove
             words that do not have the same category.
 
-            :param lex1: An instance of :py:class:`tdparse.lexicons.Lexicon`
-            :param lex2: An instance of :py:class:`tdparse.lexicons.Lexicon`
+            :param lex1: An instance of :py:class:`bella.lexicons.Lexicon`
+            :param lex2: An instance of :py:class:`bella.lexicons.Lexicon`
             :param lex_name: The name to give the returned Lexicon
-            :type lex1: :py:class:`tdparse.lexicons.Lexicon`
-            :type lex2: :py:class:`tdparse.lexicons.Lexicon`
+            :type lex1: :py:class:`bella.lexicons.Lexicon`
+            :type lex2: :py:class:`bella.lexicons.Lexicon`
             :type lex_name: String
             :returns: Combines the two lexicons and removes words that have opposite \
-            sentiment and returns it as a :py:class:`tdparse.lexicons.Lexicon`
-            :rtype: :py:class:`tdparse.lexicons.Lexicon`
+            sentiment and returns it as a :py:class:`bella.lexicons.Lexicon`
+            :rtype: :py:class:`bella.lexicons.Lexicon`
             '''
 
             combined_words = set(list(lex1.keys()) + list(lex2.keys()))
@@ -187,7 +187,7 @@ class Mpqa(Lexicon):
     '''
     MPQA lexicon `Wilson, Wiebe and Hoffman \
     <https://aclanthology.coli.uni-saarland.de/papers/H05-1044/h05-1044>`_.
-    Sub class of :py:class:`tdparse.lexicons.Lexicon`
+    Sub class of :py:class:`bella.lexicons.Lexicon`
 
     Category lables = 1. positive, 2. negative, 3. both, 4. neutral
     '''
@@ -198,7 +198,7 @@ class Mpqa(Lexicon):
 
     def get_lexicon(self):
         '''
-        Overrides :py:func@`tdparse.lexicons.Lexicon.get_lexicon`
+        Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`
         '''
         mpqa_file_path = full_path(read_config('lexicons')['mpqa'])
         word_cats = []
@@ -222,7 +222,7 @@ class HuLiu(Lexicon):
     '''
     `Hu and Liu <https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf>`_ \
     Lexicon.
-    Sub class of :py:class:`tdparse.lexicons.Lexicon`
+    Sub class of :py:class:`bella.lexicons.Lexicon`
 
     Category lables = 1. positive, 2. negative
     '''
@@ -233,7 +233,7 @@ class HuLiu(Lexicon):
 
     def get_lexicon(self):
         '''
-        Overrides :py:func@`tdparse.lexicons.Lexicon.get_lexicon`
+        Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`
         '''
 
         sentiment_folder = full_path(read_config('lexicons')['hu_liu'])
@@ -254,7 +254,7 @@ class NRC(Lexicon):
     NRC emotion `Mohammad and Turney \
     <http://saifmohammad.com/WebDocs/Mohammad-Turney-NAACL10-EmotionWorkshop.pdf>`_\
     Lexicon
-    Sub class of :py:class:`tdparse.lexicons.Lexicon`
+    Sub class of :py:class:`bella.lexicons.Lexicon`
 
     Category lables = 1. anger, 2. fear, 3. anticipation, 4. trust, 5. surprise,
     6. sadness, 7. joy, 8. disgust, 9. positive, and 10. negative.
@@ -266,7 +266,7 @@ class NRC(Lexicon):
 
     def get_lexicon(self):
         '''
-        Overrides :py:func:`tdparse.lexicons.Lexicon.get_lexicon`
+        Overrides :py:func:`bella.lexicons.Lexicon.get_lexicon`
         '''
 
         emotion_file_path = full_path(read_config('lexicons')['nrc_emotion'])

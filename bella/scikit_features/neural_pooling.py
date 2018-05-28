@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.base import BaseEstimator
 
-from tdparse.neural_pooling import matrix_max
+from bella.neural_pooling import matrix_max
 
 class NeuralPooling(BaseEstimator, TransformerMixin):
 

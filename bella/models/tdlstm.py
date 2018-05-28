@@ -19,9 +19,9 @@ from IPython.display import SVG
 
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
-from tdparse.contexts import context
-from tdparse.neural_pooling import matrix_median
-from tdparse.notebook_helper import get_json_data, write_json_data
+from bella.contexts import context
+from bella.neural_pooling import matrix_median
+from bella.notebook_helper import get_json_data, write_json_data
 
 class LSTM():
     def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False):
@@ -42,11 +42,11 @@ class LSTM():
         :param batch_size: Number of samples per gradient update
         :param epochs: Number of epochs to train the model.
         :type tokeniser: function
-        :type embeddings: :py:class:`tdparse.word_vectors.WordVectors` instance
+        :type embeddings: :py:class:`bella.word_vectors.WordVectors` instance
         :type pad_size: int. Default -1
         :type lower: bool. Default False
         :returns: The instance of TLSTM
-        :rtype: :py:class:`tdparse.models.tdlstm.TLSTM`
+        :rtype: :py:class:`bella.models.tdlstm.TLSTM`
         '''
 
         self.tokeniser = tokeniser

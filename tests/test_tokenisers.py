@@ -1,15 +1,15 @@
 '''
-Unit test suite for the :py:mod:`tdparse.tokenisers` module.
+Unit test suite for the :py:mod:`bella.tokenisers` module.
 '''
 from unittest import TestCase
 
-from tdparse.tokenisers import whitespace
-from tdparse.tokenisers import ark_twokenize
+from bella.tokenisers import whitespace
+from bella.tokenisers import ark_twokenize
 
 class TestTokenisers(TestCase):
     '''
     Contains the following functions:
-    1. :py:func:`tdparse.tokenisers.whitespace`
+    1. :py:func:`bella.tokenisers.whitespace`
     '''
 
     test_sentences = ['The fox    jumped over the         MOON.',
@@ -18,7 +18,7 @@ class TestTokenisers(TestCase):
 
     def test_whitespace(self):
         '''
-        Tests :py:func:`tdparse.tokenisers.whitespace`
+        Tests :py:func:`bella.tokenisers.whitespace`
         '''
 
         with self.assertRaises(ValueError, msg='It should not accept a list'):
@@ -38,7 +38,7 @@ class TestTokenisers(TestCase):
 
     def test_ark_twokenize(self):
         '''
-        Tests :py:func:`tdparse.tokenisers.ark_twokenize`
+        Tests :py:func:`bella.tokenisers.ark_twokenize`
         '''
 
         with self.assertRaises(ValueError, msg='It should not accept a list'):
