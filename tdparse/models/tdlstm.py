@@ -917,14 +917,17 @@ class TCLSTM(TDLSTM):
                 target_vectors = []
                 target_words = data['target'].split()
                 for target_word in target_words:
-                    target_vectors.append(self.embeddings.lookup_vector(target_word))
+                    if self.lower:
+                        target_word = target_word.lower()
+                    target_embedding = self.embeddings\
+                                           .lookup_vector(target_word)
+                    target_vectors.append(target_embedding)
                 target_vectors = np.vstack(target_vectors)
                 median_target_vector = matrix_median(target_vectors)
                 median_vectors = np.repeat(median_target_vector, pad_size,
                                            axis=0)
                 target_matrix[index] = median_vectors
             return target_matrix
-
 
         sequences = super()._pre_process(data_dicts, training=training)
         left_sequence, right_sequence = sequences
