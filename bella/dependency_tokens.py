@@ -4,6 +4,7 @@ Contains the following class:
 1. DependencyToken
 '''
 
+
 class DependencyToken():
     '''
     Objects that contain a token and its dependency relations via it's attributes.
@@ -252,7 +253,7 @@ class DependencyToken():
             self.token = renormalise[1]
         target_word = self.token
         target_span = (num_previous_chars, num_previous_chars + len(target_word))
-        if connected_text[target_span[0] : target_span[1]] != target_word:
+        if connected_text[target_span[0]: target_span[1]] != target_word:
             raise ValueError('Cannot get the target word `{}` within the connected '\
                              'text `{}` this could be due to the connected words '\
                              '`{}` spans: `{}`'.format(target_word, connected_text,
