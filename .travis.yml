@@ -1,15 +1,20 @@
-addons:
-  apt:
-    packages:
-      - cmake
-      - gcc
+
+os: linux
+sudo: required
+dist: trusty
+services:
+  - docker
 language: python
 python:
   - "3.6"
+before_install:
+  - docker pull mooreap/tweeboparserdocker
+  - docker pull mooreap/corenlp
+  - docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker
+  - docker run -p 9000:9000 -d --rm mooreap/corenlp
 install:
   - pip install -r requirements.txt
 script:
-  - bash jupyter_extensions.sh
   - python -m pytest
   - cd docs
   - sphinx-apidoc -o source/ ../tdparse

@@ -2,35 +2,46 @@
 Contains functions that perform depdency parsing.
 '''
 from collections import defaultdict
-import os
-import subprocess
-import tempfile
+from typing import List, Tuple
 
 import networkx as nx
+from tweebo_parser import API
 
-from bella.helper import read_config, full_path
 from bella.dependency_tokens import DependencyToken
 from bella import stanford_tools
 
 
-def tweebo_install():
+class TweeboParser(object):
     '''
-    Python decorator that ensures that
-    `TweeboParser <https://github.com/ikekonglp/TweeboParser>`_ is installed,
-    before running the function it wraps. Returns the given function.
+    Singleton Class instance
     '''
 
-    # tweebo_dir = full_path(read_config('depdency_parsers')['tweebo_dir'])
-    tweebo_dir = os.path.abspath(read_config('depdency_parsers')['tweebo_dir'])
-    # If the models file exists then Tweebo has been installed or failed to
-    # install
-    tweebo_models = os.path.join(tweebo_dir, 'pretrained_models')
-    if not os.path.isdir(tweebo_models):
-        install_script = os.path.join(tweebo_dir, 'install.sh')
-        subprocess.run(['bash', install_script])
+    instance = None
+
+    def __new__(cls):
+        if TweeboParser.instance is None:
+            TweeboParser.instance = API()
+        return TweeboParser.instance
+
+    def __init__(self, ip_address='http://0.0.0.0', port=8000):
+        '''
+        :param ip_address: Address of the Tweebo Parser API Server
+        :param port: port that the Tweebo Parser API server is listening to
+        :type ip_address: str
+        :type port: int
+        '''
+
+        self.instance = self.instance(ip_address, port)
+
+    def __getattr__(self, name):
+        return getattr(self.instance, name)
+
+    def __setattr__(self, name, value):
+        return setattr(self.instance, name, value)
 
 
-def get_tweebo_dependencies(token_dep_sentence):
+def _to_dependencies_tokens(token_dep_sentence: List[Tuple[str, int]]
+                            ) -> List[DependencyToken]:
     '''
     NOTE:
     The DependencyToken allows easy access to all the dependency links for that
@@ -132,49 +143,7 @@ def get_tweebo_dependencies(token_dep_sentence):
     return dep_tokens
 
 
-def tweebo_post_process(processed_text):
-    '''
-    Given the text processed by Tweebo as a String that has a token and its
-    meta data on each new line and a sentence represented by a newline. It
-    finds all of the tokens related to a single sentence and returns all
-    sentences as a list of DependencyToken instances produced by the
-    :py:func:`get_tweebo_dependencies`.
-
-    :param processed_text: The string ouput of Tweebo parser
-    :type processed_text: String
-    :returns: A list of a list of DependencyToken instances, where each list \
-    represents a String instance in the texts given to the :py:func:`tweebo` \
-    function.
-    :rtype: list
-    '''
-
-    tokens = processed_text.split('\n')
-    sentences = []
-    last_token = None
-    sentence = []
-    for token in tokens:
-        token = token.strip()
-        if last_token == '' and token == '':
-            continue
-        elif token == '':
-            if sentence == ['$$$EMPTY$$$']:
-                sentences.append([])
-            else:
-                sentences.append(get_tweebo_dependencies(sentence))
-            sentence = []
-        else:
-            token = token.split('\t')
-            token_dep_index = int(token[6]) - 1
-            token_text = token[1]
-            if token_text == '$$$EMPTY$$$':
-                sentence.append('$$$EMPTY$$$')
-            else:
-                sentence.append((token_text, token_dep_index))
-        last_token = token
-    return sentences
-
-
-def tweebo(texts):
+def tweebo(texts: List[str]) -> List[DependencyToken]:
     '''
     Given a list of Strings will tokenise, pos tag and then dependecy parse
     the text using `Tweebo <https://github.com/ikekonglp/TweeboParser>`_
@@ -193,51 +162,36 @@ def tweebo(texts):
     :rtype: list
     '''
 
-    tweebo_install()
+    tweebo_api = TweeboParser()
+    processed_texts = tweebo_api.parse_conll(texts)
 
-    def no_text(text):
-        '''
-        Given a String checks if it is empty if so returns an empty_token else
-        the text that was given.
-
-        :param text: Text to be checked
-        :type text: String
-        :returns: The text if it is not empty or empty token if it is.
-        :rtype: String
-        '''
-
-        empty_token = '$$$EMPTY$$$'
-        if text.strip() == '':
-            return empty_token
-        return text
-    with tempfile.TemporaryDirectory() as working_dir:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            text_file_path = os.path.join(temp_dir, 'text_file.txt')
-            result_file_path = os.path.join(temp_dir, 'text_file.txt.predict')
-            tweebo_dir = full_path(read_config('depdency_parsers')
-                                   ['tweebo_dir'])
-            with open(text_file_path, 'w+') as text_file:
-                for text in texts:
-                    text = no_text(text)
-                    text_file.write(text)
-                    text_file.write('\n')
-            run_script = os.path.join(tweebo_dir, 'python_run.sh')
-            sub_process_params = ['bash', run_script,
-                                  text_file_path, working_dir]
-            if subprocess.run(sub_process_params):
-                with open(result_file_path, 'r') as result_file:
-                    return tweebo_post_process(result_file.read())
-            else:
-                raise SystemError('Could not run the Tweebo run script {}'
-                                  .format(run_script))
+    dep_texts = []
+    for processed_text in processed_texts:
+        token_dep_indexs = _convert_conll(processed_text)
+        dep_texts.append(_to_dependencies_tokens(token_dep_indexs))
+    return dep_texts
 
 
-def stanford(texts):
+def _convert_conll(conll_data: str) -> List[Tuple[str, int]]:
+    token_dep_indexs = []
+    for line in conll_data.split('\n'):
+        if not line:
+            continue
+        column_data = line.split('\t')
+        word = column_data[1].strip()
+        # All the word indexs start at 1 not 0.
+        # Need to take into account the previous sentence words
+        dep_token_index = int(column_data[6]) - 1
+        token_dep_indexs.append((word, dep_token_index))
+    return token_dep_indexs
+
+
+def stanford(texts: str) -> List[DependencyToken]:
 
     dep_texts = []
     for text in texts:
         dep_dicts, tokens_dicts = stanford_tools.dependency_parse(text)
-        token_dep = []
+        token_dep_indexs = []
         prev_sent_length = 0
         for sentence, _ in enumerate(tokens_dicts):
             tokens_dict = tokens_dicts[sentence]
@@ -250,7 +204,7 @@ def stanford(texts):
                 # If True then it is the root word
                 if dep_word_index + 1 == prev_sent_length:
                     dep_word_index = -1
-                token_dep.append((word, dep_word_index))
+                token_dep_indexs.append((word, dep_word_index))
             prev_sent_length += len(tokens_dict)
-        dep_texts.append(get_tweebo_dependencies(token_dep))
+        dep_texts.append(_to_dependencies_tokens(token_dep_indexs))
     return dep_texts
