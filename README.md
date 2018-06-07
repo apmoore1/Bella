@@ -1,14 +1,26 @@
 # Bella
+[![Build Status](https://travis-ci.org/apmoore1/Bella.svg?branch=master)](https://travis-ci.org/apmoore1/Bella)
 
 Target Dependent Sentiment Analysis (TDSA) framework.
 
 
-## Requirements and installation
-1. Only been tested on Ubuntu 14.04 and 16.04
-2. Python Tested with 3.6 and known to not work with anything less than 3.5.
-3. pip3 install -r requirements.txt
-4. To use the [Tweebo Parser](./tools/TweeboParser) requires *gcc* and *cmake*. Tweebo will also automatically install when you first import the dependency_parsers module **BUT** would recomend installing it before by running the script [./tools/TweeboParser/install.sh](./tools/TweeboParser/install.sh). This will take at least 15 minutes and depends on your Internet connection. **NOTE** permission to all files within ./tools/TweeboParser is very important I would recomend running: chmod -R 777 ./tools/TweeboParser
-5. Docker - This is required to run Stanford CoreNLP. To install docker (Note requires sudo therefore might be best to look at the script and choose the commands you want to use) on Ubuntu run [docker_install](./docker_install.sh) will remove old or new version of docker with the specified one in the script. It will also pull the Stanford CoreNLP container and run it in the background.
+## Requirements and Installation
+1. Python 3.6
+2. `pip install bella`
+3. Install [docker](https://docs.docker.com/install/)
+4. Start Stanford CoreNLP server: `docker run -p 9000:9000 -d --rm mooreap/corenlp`
+5. Start the TweeboParser API server: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker`
+
+To stop the docker servers running:
+
+1. Find the name assigned to the docker image using: docker ps
+2. Then stop the relevant docker image: docker stop name_of_image
+
+**NOTE**
+Both of these servers will run with as many threads as your machine has CPUs to limit this do the following:
+1. For stanford: `docker run -p 9000:9000 -d --rm mooreap/corenlp -threads 6` will run it with 6 threads
+2. For TweeboParser: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker --threads 6` will run it with 6 threads
+
 
 ## Data and Word vectors and where to store them
 
