@@ -89,7 +89,7 @@ testpath==0.3.1
 tornado==4.5.2
 traitlets==4.3.2
 tweebo-parser-python-api==1.0.2
--e git+https://github.com/Sentimentron/ark-twokenize-py@f0a92c07998ed73d98274f174069d102cd698779#egg=twokenize
+twokenize==1.0.0
 urllib3==1.22
 wcwidth==0.1.7
 webencodings==0.5.1
