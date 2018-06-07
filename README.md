@@ -6,7 +6,7 @@ Target Dependent Sentiment Analysis (TDSA) framework.
 
 ## Requirements and Installation
 1. Python 3.6
-2. `pip install bella`
+2. `pip install bella-tdsa`
 3. Install [docker](https://docs.docker.com/install/)
 4. Start Stanford CoreNLP server: `docker run -p 9000:9000 -d --rm mooreap/corenlp`
 5. Start the TweeboParser API server: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker`
