@@ -17,7 +17,7 @@ install:
 script:
   - python -m pytest
   - cd docs
-  - sphinx-apidoc -o source/ ../tdparse
+  - sphinx-apidoc -o source/ ../bella
   - make html
   - cd -
 deploy:
