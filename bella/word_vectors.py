@@ -16,9 +16,11 @@ are its vector representation. Currently loads the Tang et al. vectors
 
 from collections import defaultdict
 import os
+import math
 import types
 import tempfile
 import zipfile
+from pathlib import Path
 
 import numpy as np
 import requests
@@ -26,8 +28,10 @@ from gensim.models.keyedvectors import KeyedVectors
 from gensim.models import word2vec
 from gensim.models.wrappers import FastText
 from gensim.scripts.glove2word2vec import glove2word2vec
+from tqdm import tqdm
 
-from bella import helper
+BELLA_VEC_DIR = Path.home().joinpath('.Bella', 'Vectors')
+
 
 class WordVectors(object):
     '''
@@ -80,7 +84,8 @@ class WordVectors(object):
         self.padding_vector = None
         if padding_value is not None:
             self.unknown_index = len(self._word_list) + 1
-            self.padding_vector = np.asarray([padding_value] * self.vector_size)
+            self.padding_vector = np.asarray([padding_value] *
+                                             self.vector_size)
             self.padding_word = '<pad>'
         else:
             self.padding_vector = self.unknown_vector
@@ -132,7 +137,7 @@ class WordVectors(object):
         return most_likely_size, word2vector, accepted_words
 
     @staticmethod
-    def glove_txt_binary(glove_file_path):
+    def glove_txt_binary(glove_file_path: Path):
         '''
         Converts the Glove word embedding file which is a text file to a
         binary file that can be loaded through gensims
@@ -146,22 +151,22 @@ class WordVectors(object):
         :rtype: String
         '''
         # File path to the binary file
-        binary_file_path = os.path.splitext(os.path.basename(glove_file_path))
+        binary_file_path = os.path.splitext(glove_file_path.name)
         binary_file_path = binary_file_path[0]
         binary_file_path += '.binary'
-        binary_file_path = os.path.join(os.path.dirname(glove_file_path),
-                                        binary_file_path)
-        if os.path.isfile(binary_file_path):
+        binary_file_path = glove_file_path.parent.joinpath(binary_file_path)
+        if binary_file_path.is_file():
             return binary_file_path
         with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
             # Converts to word2vec file format
-            glove2word2vec(glove_file_path, temp_file.name)
+            glove2word2vec(str(glove_file_path.resolve()), temp_file.name)
             word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
                                                              binary=False)
             # Creates the binary file version of the word vectors
+            binary_file_path = str(binary_file_path.resolve())
             word_vectors.save_word2vec_format(binary_file_path, binary=True)
         # Delete the text version of the glove vectors
-        os.remove(glove_file_path)
+        glove_file_path.unlink()
         return binary_file_path
 
     def lookup_vector(self, word):
@@ -180,8 +185,8 @@ class WordVectors(object):
         if isinstance(word, str):
             word_index = self.word2index[word]
             return self.index2vector[word_index]
-        raise ValueError('The word parameter must be of type str not {}'\
-                         .format(type(word)))
+        raise ValueError('The word parameter must be of type str not '
+                         f'{type(word)}')
 
     def _index2word(self):
         '''
@@ -195,7 +200,6 @@ class WordVectors(object):
         Inverse of :py:func:`bella.word_vectors.GensimVectors.word2index`
         :rtype: dict
         '''
-
 
         index_word = {}
         index_word[0] = self.padding_word
@@ -294,7 +298,6 @@ class WordVectors(object):
 
         return np.zeros(self.vector_size)
 
-
     def _unknown_word(self):
         '''
         :returns: The word that is returned for the 0 index.
@@ -319,7 +322,7 @@ class WordVectors(object):
                 matrix[index] = vector
             except Exception as e:
                 word = self.index2word[index]
-                print('{} {} {} {}'.format(word, index, vector, e))
+                print(f'{word} {index} {vector} {e}')
         return matrix
 
 
@@ -361,11 +364,11 @@ class GensimVectors(WordVectors):
         :type kwargs: dict
         '''
 
-        allowed_models = {'word2vec' : word2vec.Word2Vec,
-                          'fasttext' : FastText}
+        allowed_models = {'word2vec': word2vec.Word2Vec,
+                          'fasttext': FastText}
         if model not in allowed_models:
-            raise ValueError('model parameter has to be one of the following {} '\
-                             'not {}'.format(allowed_models.keys(), model))
+            raise ValueError('model parameter has to be one of the following '
+                             f'{allowed_models.keys()} not {model}')
         model = allowed_models[model]
         failed_to_load = True
 
@@ -396,6 +399,7 @@ class GensimVectors(WordVectors):
                             .format(file_path, train_data))
         super().__init__(self._model.wv, name=name, unit_length=unit_length,
                          padding_value=padding_value)
+
 
 class PreTrained(WordVectors):
     '''
@@ -471,12 +475,14 @@ class PreTrained(WordVectors):
 
         return self._word2vector['<unk>']
 
+
 class GloveTwitterVectors(WordVectors):
 
     def download(self, skip_conf):
         '''
         This method checks if the
-        `Glove Twitter word vectors <https://nlp.stanford.edu/projects/glove/>`_
+        `Glove Twitter word vectors \
+        <https://nlp.stanford.edu/projects/glove/>`_
         are already in the repoistory if not it downloads and unzips the word
         vectors if permission is granted and converts them into a gensim
         KeyedVectors binary representation.
@@ -489,10 +495,9 @@ class GloveTwitterVectors(WordVectors):
         :rtype: dict
         '''
 
-        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
-                                    'glove_twitter')
-        os.makedirs(glove_folder, exist_ok=True)
-        current_glove_files = set(os.listdir(glove_folder))
+        glove_folder = BELLA_VEC_DIR.joinpath('glove_twitter')
+        glove_folder.mkdir(parents=True, exist_ok=True)
+        current_glove_files = list(glove_folder.iterdir())
         all_glove_files = set(['glove.twitter.27B.25d.binary',
                                'glove.twitter.27B.50d.binary',
                                'glove.twitter.27B.100d.binary',
@@ -503,37 +508,40 @@ class GloveTwitterVectors(WordVectors):
         if interset != all_glove_files:
             can_download = 'yes'
             if not skip_conf:
-                download_msg = 'We are going to download the glove vectors this is '\
-                               'a large download of 1.4GB and takes 5.4GB of disk '\
-                               'space after being unzipped. Would you like to '\
-                               'continue? If so type `yes`\n'
+                download_msg = 'We are going to download the glove vectors '\
+                               'this is a large download of 1.4GB and takes '\
+                               '5.4GB of disk space after being unzipped. '\
+                               'Would you like to continue? If so type `yes`\n'
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
-                download_link = 'http://nlp.stanford.edu/data/glove.twitter.27B.zip'
-                glove_zip_path = os.path.join(glove_folder, 'glove_zip.zip')
+                download_link = 'http://nlp.stanford.edu/data/glove.twitter.'\
+                                '27B.zip'
+                glove_zip_path = glove_folder.joinpath('glove_zip.zip')
                 # Reference:
                 # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
-                with open(glove_zip_path, 'wb') as glove_zip_file:
-                    glove_requests = requests.get(download_link, stream=True)
-                    for chunk in glove_requests.iter_content(chunk_size=128):
+                with glove_zip_path.open('wb') as glove_zip_file:
+                    request = requests.get(download_link, stream=True)
+                    total_size = int(request.headers.get('content-length', 0))
+                    print('Downloading Glove Twitter vectors')
+                    for chunk in tqdm(request.iter_content(chunk_size=128),
+                                      total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
             else:
-                raise Exception('Glove Twitter vectors not downloaded therefore'\
-                                ' cannot load them')
+                raise Exception('Glove Twitter vectors not downloaded '
+                                'therefore cannot load them')
 
         def add_full_path(file_name):
-            file_path = os.path.join(glove_folder, file_name)
+            file_path = glove_folder.joinpath(file_name)
             return self.glove_txt_binary(file_path)
 
-        return {25 : add_full_path('glove.twitter.27B.25d.txt'),
-                50 : add_full_path('glove.twitter.27B.50d.txt'),
-                100 : add_full_path('glove.twitter.27B.100d.txt'),
-                200 : add_full_path('glove.twitter.27B.200d.txt')}
-
-
+        return {25: add_full_path('glove.twitter.27B.25d.txt'),
+                50: add_full_path('glove.twitter.27B.50d.txt'),
+                100: add_full_path('glove.twitter.27B.100d.txt'),
+                200: add_full_path('glove.twitter.27B.200d.txt')}
 
     def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
                  padding_value=None):
@@ -573,8 +581,8 @@ class GloveTwitterVectors(WordVectors):
 
         return np.zeros(self.vector_size, dtype=np.float32)
 
-class GloveCommonCrawl(WordVectors):
 
+class GloveCommonCrawl(WordVectors):
 
     def download(self, skip_conf, version):
         '''
@@ -595,48 +603,50 @@ class GloveCommonCrawl(WordVectors):
         :rtype: String
         '''
 
-        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
-                                    'glove_common_crawl_{}b'.format(version))
-        os.makedirs(glove_folder, exist_ok=True)
-        glove_file_path = os.path.join(glove_folder,
-                                       'glove.{}B.300d'.format(version))
-        glove_file_txt_path = glove_file_path + '.txt'
-        glove_file_binary_path = glove_file_path + '.binary'
+        glove_folder = BELLA_VEC_DIR.joinpath(f'glove_common_crawl_{version}b')
+        glove_folder.mkdir(parents=True, exist_ok=True)
+        glove_file_name = f'glove.{version}B.300d'
+        glove_txt_fp = glove_folder.joinpath(glove_file_name + '.txt')
+        glove_binary_fp = glove_folder.joinpath(glove_file_name + '.binary')
         # If the files in the folder aren't all the glove files that would be
         # downloaded re-download the zip and unzip the files.
-        if not os.path.isfile(glove_file_binary_path) and \
-           not os.path.isfile(glove_file_txt_path):
+        if not glove_binary_fp.is_file() and not glove_txt_fp.is_file():
             can_download = 'yes'
             if not skip_conf:
-                download_msg = 'We are going to download the glove vectors this is '\
-                               'a large download of ~2GB and takes ~5.6GB of disk '\
-                               'space after being unzipped. Would you like to '\
-                               'continue? If so type `yes`\n'
+                download_msg = 'We are going to download the glove vectors '\
+                               'this is a large download of ~2GB and takes '\
+                               '~5.6GB of diskspace after being unzipped. '\
+                               'Would you like to continue? If so type `yes`\n'
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
-                download_link = 'http://nlp.stanford.edu/data/'\
-                                'glove.{}B.300d.zip'.format(version)
-                glove_zip_path = os.path.join(glove_folder,
-                                              'glove.{}B.300d.zip'.format(version))
+                zip_file_name = f'glove.{version}B.300d.zip'
+                download_link = 'http://nlp.stanford.edu/data/' + zip_file_name
+
+                glove_zip_path = glove_folder.joinpath(zip_file_name)
+
                 # Reference:
                 # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
-                with open(glove_zip_path, 'wb') as glove_zip_file:
-                    glove_requests = requests.get(download_link, stream=True)
-                    for chunk in glove_requests.iter_content(chunk_size=128):
+                with glove_zip_path.open('wb') as glove_zip_file:
+                    request = requests.get(download_link, stream=True)
+                    total_size = int(request.headers.get('content-length', 0))
+                    print(f'Downloading Glove {version}B vectors')
+                    for chunk in tqdm(request.iter_content(chunk_size=128),
+                                      total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
             else:
-                raise Exception('Glove Common Crawl {}b vectors not downloaded '\
-                                'therefore cannot load them'.format(version))
-            if not os.path.isfile(glove_file_txt_path):
-                raise Exception('Error in either downloading the glove vectors '\
-                                'or file path names. Files in the glove folder '\
-                                '{} and where the golve file should be {}'\
-                                .format(os.listdir(glove_folder),
-                                        glove_file_txt_path))
-        return self.glove_txt_binary(glove_file_txt_path)
+                raise Exception(f'Glove Common Crawl {version}b vectors '
+                                'not downloaded therefore cannot load them')
+            glove_folder_files = list(glove_folder.iterdir())
+            if not glove_txt_fp.is_file():
+                raise Exception('Error in either downloading the glove vectors'
+                                ' or file path names. Files in the glove '
+                                f'folder {glove_folder_files} and where the '
+                                f'golve file should be {str(glove_txt_fp)}')
+        return self.glove_txt_binary(glove_txt_fp)
 
     def __init__(self, version=42, name=None, unit_length=False,
                  skip_conf=False, padding_value=None):
@@ -650,10 +660,9 @@ class GloveCommonCrawl(WordVectors):
         :type skip_conf: bool. Default False
         '''
         if version not in [42, 840]:
-            raise ValueError('Common Crawl only come in two version the 840 '\
-                             'or 42 Billion tokens. Require to choose between '\
-                             '42 and 840 and not {}'.format(version))
-
+            raise ValueError('Common Crawl only come in two version the 840 '
+                             'or 42 Billion tokens. Require to choose between '
+                             f'42 and 840 and not {version}')
 
         if name is None:
             name = 'glove 300d {}b common crawl'.format(version)
@@ -675,6 +684,7 @@ class GloveCommonCrawl(WordVectors):
 
         return np.zeros(self.vector_size, dtype=np.float32)
 
+
 class GloveWikiGiga(WordVectors):
 
     def download(self, skip_conf):
@@ -694,10 +704,9 @@ class GloveWikiGiga(WordVectors):
         :rtype: dict
         '''
 
-        glove_folder = os.path.join(helper.package_dir(), 'data', 'word_vectors',
-                                    'glove_wiki_giga')
-        os.makedirs(glove_folder, exist_ok=True)
-        current_glove_files = set(os.listdir(glove_folder))
+        glove_folder = BELLA_VEC_DIR.joinpath(f'glove_wiki_giga')
+        glove_folder.mkdir(parents=True, exist_ok=True)
+        current_glove_files = set(list(glove_folder.iterdir()))
         all_glove_files = set(['glove.6B.50d.binary',
                                'glove.6B.100d.binary',
                                'glove.6B.200d.binary',
@@ -708,37 +717,39 @@ class GloveWikiGiga(WordVectors):
         if interset != all_glove_files:
             can_download = 'yes'
             if not skip_conf:
-                download_msg = 'We are going to download the glove vectors this is '\
-                               'a large download of ~900MB and takes ~2.1GB of disk '\
-                               'space after being unzipped. Would you like to '\
-                               'continue? If so type `yes`\n'
+                download_msg = 'We are going to download the glove vectors '\
+                               'this is a large download of ~900MB and takes '\
+                               '~2.1GB of disk space after being unzipped. '\
+                               'Would you like to continue? If so type `yes`\n'
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
                 download_link = 'http://nlp.stanford.edu/data/glove.6B.zip'
-                glove_zip_path = os.path.join(glove_folder, 'glove_zip.zip')
+                glove_zip_path = glove_folder.joinpath('glove_zip.zip')
                 # Reference:
                 # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
-                with open(glove_zip_path, 'wb') as glove_zip_file:
-                    glove_requests = requests.get(download_link, stream=True)
-                    for chunk in glove_requests.iter_content(chunk_size=128):
+                with glove_zip_path.oepn('wb') as glove_zip_file:
+                    request = requests.get(download_link, stream=True)
+                    total_size = int(request.headers.get('content-length', 0))
+                    print('Downloading Glove Wikipedia Gigaword vectors')
+                    for chunk in tqdm(request.iter_content(chunk_size=128),
+                                      total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
             else:
-                raise Exception('Glove Twitter vectors not downloaded therefore'\
-                                ' cannot load them')
+                raise Exception('Glove Twitter vectors not downloaded '
+                                'therefore cannot load them')
 
         def add_full_path(file_name):
-            file_path = os.path.join(glove_folder, file_name)
+            file_path = glove_folder.joinpath(file_name)
             return self.glove_txt_binary(file_path)
 
-        return {50 : add_full_path('glove.6B.50d.txt'),
-                100 : add_full_path('glove.6B.100d.txt'),
-                200 : add_full_path('glove.6B.200d.txt'),
-                300 : add_full_path('glove.6B.300d.txt')}
-
-
+        return {50: add_full_path('glove.6B.50d.txt'),
+                100: add_full_path('glove.6B.100d.txt'),
+                200: add_full_path('glove.6B.200d.txt'),
+                300: add_full_path('glove.6B.300d.txt')}
 
     def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
                  padding_value=None):

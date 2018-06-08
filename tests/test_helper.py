@@ -7,8 +7,6 @@ from unittest import TestCase
 
 
 from bella.helper import read_config
-from bella.helper import package_dir
-from bella.helper import full_path
 
 class TestHelper(TestCase):
     '''

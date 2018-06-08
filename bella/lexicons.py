@@ -15,10 +15,9 @@ lexicon.
 '''
 
 import csv
-import os
 import re
+from pathlib import Path
 
-from bella.helper import read_config, full_path
 
 class Lexicon():
     '''
@@ -183,6 +182,8 @@ class Lexicon():
 
     def __str__(self):
         return self.name
+
+
 class Mpqa(Lexicon):
     '''
     MPQA lexicon `Wilson, Wiebe and Hoffman \
@@ -192,7 +193,12 @@ class Mpqa(Lexicon):
     Category lables = 1. positive, 2. negative, 3. both, 4. neutral
     '''
 
-    def __init__(self, subset_cats=None, lower=False, name=None, lexicon=None):
+    def __init__(self, mpqa_fp: Path, subset_cats=None, lower=False,
+                 name=None, lexicon=None):
+        '''
+        :param mpqa_fp: File path to the mpqa lexicon.
+        '''
+        self.file_path = mpqa_fp
         super().__init__(subset_cats=subset_cats, lower=lower,
                          name=name, lexicon=lexicon)
 
@@ -200,9 +206,9 @@ class Mpqa(Lexicon):
         '''
         Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`
         '''
-        mpqa_file_path = full_path(read_config('lexicons')['mpqa'])
+
         word_cats = []
-        with open(mpqa_file_path, 'r') as mpqa_file:
+        with self.file_path.open('r') as mpqa_file:
             for line in mpqa_file:
                 line = line.strip()
                 if line:
@@ -218,16 +224,24 @@ class Mpqa(Lexicon):
                     word_cats.append((word, cat))
         return word_cats
 
+
 class HuLiu(Lexicon):
     '''
-    `Hu and Liu <https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf>`_ \
+    `Hu and Liu
+    <https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf>`_
     Lexicon.
     Sub class of :py:class:`bella.lexicons.Lexicon`
 
     Category lables = 1. positive, 2. negative
     '''
 
-    def __init__(self, subset_cats=None, lower=False, name=None, lexicon=None):
+    def __init__(self, huliu_folder_path: Path, subset_cats=None, lower=False,
+                 name=None, lexicon=None):
+        '''
+        :param nrc_fp: File path to the Hu Liu sentiment lexicon folder that \
+        contains both the positive and negative words txt files.
+        '''
+        self.folder_path = huliu_folder_path
         super().__init__(subset_cats=subset_cats, lower=lower,
                          name=name, lexicon=lexicon)
 
@@ -236,18 +250,18 @@ class HuLiu(Lexicon):
         Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`
         '''
 
-        sentiment_folder = full_path(read_config('lexicons')['hu_liu'])
         cats = ['positive', 'negative']
         word_cat = []
         for cat in cats:
-            file_path = os.path.join(sentiment_folder, '{}-words.txt'.format(cat))
-            with open(file_path, 'r', encoding='cp1252') as senti_file:
+            file_path = self.folder_path.joinpath('{}-words.txt'.format(cat))
+            with file_path.open('r', encoding='cp1252') as senti_file:
                 for line in senti_file:
                     if re.search('^;', line) or re.search(r'^\W+', line):
                         continue
                     line = line.strip()
                     word_cat.append((line.strip(), cat))
         return word_cat
+
 
 class NRC(Lexicon):
     '''
@@ -260,7 +274,12 @@ class NRC(Lexicon):
     6. sadness, 7. joy, 8. disgust, 9. positive, and 10. negative.
     '''
 
-    def __init__(self, subset_cats=None, lower=False, name=None, lexicon=None):
+    def __init__(self, nrc_fp: Path, subset_cats=None, lower=False,
+                 name=None, lexicon=None):
+        '''
+        :param nrc_fp: File path to the NRC lexicon.
+        '''
+        self.file_path = nrc_fp
         super().__init__(subset_cats=subset_cats, lower=lower,
                          name=name, lexicon=lexicon)
 
@@ -269,10 +288,8 @@ class NRC(Lexicon):
         Overrides :py:func:`bella.lexicons.Lexicon.get_lexicon`
         '''
 
-        emotion_file_path = full_path(read_config('lexicons')['nrc_emotion'])
         word_cat = []
-
-        with open(emotion_file_path, 'r', newline='') as emotion_file:
+        with self.file_path.open('r', newline='') as emotion_file:
             tsv_reader = csv.reader(emotion_file, delimiter='\t')
             for row in tsv_reader:
                 if len(row):
