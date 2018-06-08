@@ -92,7 +92,8 @@ setup(name='bella_tdsa',
           'webencodings==0.5.1',
           'Werkzeug==0.12.2',
           'widgetsnbextension==3.0.7',
-          'twokenize==1.0.0'
+          'twokenize==1.0.2',
+          'tqdm==4.23.4'
       ],
       python_requires='>=3.6',
       packages=find_packages(),
