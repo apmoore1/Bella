@@ -71,7 +71,8 @@ class WordVectors(object):
     1. :py:func:`bella.word_vectors.WordVectors.lookup_vector`
     '''
     def __init__(self, word2vector, name=None, unit_length=False,
-                 padding_value=None):
+                 padding_value=None, filter_words=None):
+        self.filter_words = [] if filter_words is None else filter_words
         size_vector_list = self._check_vector_size(word2vector)
         self.vector_size, self._word2vector, self._word_list = size_vector_list
         self.name = '{}'.format(name)
@@ -95,8 +96,14 @@ class WordVectors(object):
         self.word2index = self._word2index()
         self.index2vector = self._index2vector()
         self.embedding_matrix = self._embedding_matrix()
-    @staticmethod
-    def _check_vector_size(word2vector):
+
+    def _keyed_vec_2_dict(self, key_vector):
+        word_2_vec_dict = {}
+        for word in key_vector.vocab:
+            word_2_vec_dict[word] = key_vector[word]
+        return word_2_vec_dict
+
+    def _check_vector_size(self, word2vector):
         '''
         This finds the most common vector size in the word 2 vectors dictionary
         mapping. Normally they should all have the same mapping but it has been
@@ -116,9 +123,10 @@ class WordVectors(object):
         '''
         # Gensim does not used a dictionary but a special class
         if isinstance(word2vector, KeyedVectors):
-            accepted_words = word2vector.index2word
-            most_likely_size = word2vector[accepted_words[0]].shape[0]
-            return most_likely_size, word2vector, accepted_words
+            word2vector = self._keyed_vec_2_dict(word2vector)
+            #accepted_words = word2vector.index2word
+            #most_likely_size = word2vector[accepted_words[0]].shape[0]
+            #return most_likely_size, word2vector, accepted_words
         vector_sizes = {}
         for _, vector in word2vector.items():
             vector_size = vector.shape[0]
@@ -126,10 +134,16 @@ class WordVectors(object):
         most_likely_size = sorted(vector_sizes.items(), reverse=True,
                                   key=lambda size_freq: size_freq[0])[0][0]
         words_to_remove = []
+        unk_word = self._unknown_word()
         accepted_words = []
         for word, vector in word2vector.items():
             if vector.shape[0] != most_likely_size:
                 words_to_remove.append(word)
+            elif self.filter_words != []:
+                if word not in self.filter_words and word != unk_word:
+                    words_to_remove.append(word)
+                else:
+                    accepted_words.append(word)
             else:
                 accepted_words.append(word)
         for word in words_to_remove:
@@ -342,7 +356,8 @@ class GensimVectors(WordVectors):
     '''
 
     def __init__(self, file_path, train_data, name=None, model=None,
-                 unit_length=False, padding_value=None, **kwargs):
+                 unit_length=False, padding_value=None,
+                 filter_words=None, **kwargs):
         '''
         Trains or loads the model specified.
 
@@ -400,7 +415,8 @@ class GensimVectors(WordVectors):
                             'to have the __iter__ function {}'\
                             .format(file_path, train_data))
         super().__init__(self._model.wv, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
 
 class VoVectors(GensimVectors):
@@ -451,14 +467,16 @@ class VoVectors(GensimVectors):
         return str(vo_folder.joinpath('c10_w3_s100').resolve())
 
     def __init__(self, name=None, unit_length=False,
-                 padding_value=None, skip_conf=False):
+                 padding_value=None, skip_conf=False,
+                 filter_words=None):
         vector_file = self.download(skip_conf)
 
         if name is None:
             name = 'w2v'
         super().__init__(vector_file, train_data=None, name=name,
                          model='word2vec', unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
 
 
@@ -477,7 +495,7 @@ class PreTrained(WordVectors):
     '''
 
     def __init__(self, file_path, name=None, unit_length=False,
-                 delimenter='\t', padding_value=None):
+                 delimenter='\t', padding_value=None, filter_words=None):
         '''
         :param file_path: The file path to load the word vectors from
         :param name: The name given to the instance.
@@ -523,7 +541,8 @@ class PreTrained(WordVectors):
                 else:
                     word2vector[word] = word_vector
         super().__init__(word2vector, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
     def _unknown_vector(self):
         '''
@@ -580,14 +599,15 @@ class SSWE(PreTrained):
         return str(sswe_fp.resolve())
 
     def __init__(self, name=None, unit_length=False, skip_conf=False,
-                 padding_value=None):
+                 padding_value=None, filter_words=None):
 
         vector_file = self.download(skip_conf)
 
         if name is None:
             name = 'sswe'
         super().__init__(vector_file, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
 
 
@@ -662,7 +682,8 @@ class GloveTwitterVectors(WordVectors):
                 200: add_full_path('glove.twitter.27B.200d.txt')}
 
     def __init__(self, dimension, name=None, unit_length=False,
-                 skip_conf=False, padding_value=None):
+                 skip_conf=False, padding_value=None,
+                 filter_words=None):
         '''
         :param dimension: Dimension size of the word vectors you would like to \
         use. Choice: 25, 50, 100, 200
@@ -686,7 +707,8 @@ class GloveTwitterVectors(WordVectors):
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
     def _unknown_vector(self):
         '''
@@ -770,7 +792,8 @@ class GloveCommonCrawl(WordVectors):
         return self.glove_txt_binary(glove_txt_fp)
 
     def __init__(self, version=42, name=None, unit_length=False,
-                 skip_conf=False, padding_value=None):
+                 skip_conf=False, padding_value=None,
+                 filter_words=None):
         '''
         :param version: Choice of either the 42 or 840 Billion token 300 \
         dimension common crawl glove vectors. The values can be only 42 or \
@@ -792,7 +815,8 @@ class GloveCommonCrawl(WordVectors):
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
     def _unknown_vector(self):
         '''
@@ -877,7 +901,7 @@ class GloveWikiGiga(WordVectors):
                 300: add_full_path('glove.6B.300d.txt')}
 
     def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
-                 padding_value=None):
+                 padding_value=None, filter_words=None):
         '''
         :param dimension: Dimension size of the word vectors you would like to \
         use. Choice: 50, 100, 200, 300
@@ -901,7 +925,8 @@ class GloveWikiGiga(WordVectors):
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
-                         padding_value=padding_value)
+                         padding_value=padding_value,
+                         filter_words=filter_words)
 
     def _unknown_vector(self):
         '''
