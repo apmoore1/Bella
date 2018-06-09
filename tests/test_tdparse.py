@@ -3,9 +3,7 @@ Unit test suite for the :py:mod:`bella.models.tdparse` module.
 '''
 from unittest import TestCase
 
-from bella.helper import read_config
-from bella.word_vectors import PreTrained
-from bella.word_vectors import GensimVectors
+from bella.word_vectors import SSWE, VoVectors
 from bella import lexicons
 from bella.dependency_parsers import tweebo
 from bella.tokenisers import whitespace
@@ -195,11 +193,8 @@ class TestTarget(TestCase):
                 test_dict = test_dict_list[index]
                 self._key_value_test(valid_dict, test_dict)
 
-
-        sswe_path = read_config('sswe_files')['vo_zhang']
-        sswe_model = PreTrained(sswe_path, name='sswe')
-        vo_zhang_path = read_config('word2vec_files')['vo_zhang']
-        vo_zhang = GensimVectors(vo_zhang_path, None, model='word2vec')
+        sswe_model = SSWE(skip_conf=True)
+        vo_zhang = VoVectors(skip_conf=True)
 
         # Testing TDParse_minus class
         #
@@ -605,10 +600,8 @@ class TestTarget(TestCase):
         2. `bella.models.target.TargetDepC.get_params`
         '''
 
-        sswe_path = read_config('sswe_files')['vo_zhang']
-        sswe_model = PreTrained(sswe_path, name='sswe')
-        vo_zhang_path = read_config('word2vec_files')['vo_zhang']
-        vo_zhang = GensimVectors(vo_zhang_path, None, model='word2vec')
+        sswe_model = SSWE(skip_conf=True)
+        vo_zhang = VoVectors(skip_conf=True)
 
         # Testing TDParseMinus class
         test_model = TDParseMinus()

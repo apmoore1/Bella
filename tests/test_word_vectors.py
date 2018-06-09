@@ -1,6 +1,7 @@
 '''
 Unit test suite for the :py:mod:`bella.word_vectors` module.
 '''
+from pathlib import Path
 import os
 from unittest import TestCase
 import tempfile
@@ -15,6 +16,10 @@ from bella.word_vectors import GensimVectors
 from bella.word_vectors import PreTrained
 from bella.word_vectors import GloveTwitterVectors
 from bella.word_vectors import GloveCommonCrawl
+from bella.word_vectors import VoVectors
+from bella.word_vectors import SSWE
+
+CONFIG_FP = Path(__file__).parent.joinpath('..', 'config.yaml')
 
 class TestWordVectors(TestCase):
     '''
@@ -142,9 +147,7 @@ class TestWordVectors(TestCase):
         self.assertEqual(3, word_vector.unknown_index)
 
         pad_vec = np.asarray([-1]*100, dtype=np.float32)
-        vo_zhang_path = read_config('word2vec_files')['vo_zhang']
-        vo_zhang = GensimVectors(vo_zhang_path, None, model='word2vec',
-                                 padding_value=-1)
+        vo_zhang = VoVectors(skip_conf=True, padding_value=-1)
         vo_zhang_unk_index = vo_zhang.unknown_index
         embedding_matrix = vo_zhang.embedding_matrix
         pad_emb_vec = np.array_equal(pad_vec, embedding_matrix[0])
@@ -174,8 +177,7 @@ class TestWordVectors(TestCase):
         '''
 
         # Test loading word vectors from a file
-        vo_zhang_path = read_config('word2vec_files')['vo_zhang']
-        vo_zhang = GensimVectors(vo_zhang_path, None, model='word2vec')
+        vo_zhang = VoVectors(skip_conf=True)
 
         self.assertEqual(vo_zhang.vector_size, 100, msg='Vector size should be equal'\
                          ' to 100 not {}'.format(vo_zhang.vector_size))
@@ -222,7 +224,8 @@ class TestWordVectors(TestCase):
                           min_count=1)
 
         # Test creating vectors from data
-        data_path = os.path.abspath(read_config('test_data')['sherlock_holmes'])
+        data_path = os.path.abspath(read_config('test_data', CONFIG_FP)
+                                    ['sherlock_holmes'])
         with open(data_path, 'r') as data:
             data = map(tokenisers.whitespace, data)
             with tempfile.NamedTemporaryFile() as temp_file:
@@ -260,8 +263,7 @@ class TestWordVectors(TestCase):
                                'are not file paths'):
             PreTrained('file.txt')
         # Test if model loads correctly
-        sswe_path = read_config('sswe_files')['vo_zhang']
-        sswe_model = PreTrained(sswe_path, name='sswe')
+        sswe_model = SSWE(skip_conf=True)
         sswe_vec_size = sswe_model.vector_size
         self.assertEqual(sswe_vec_size, 50, msg='Vector size should be 50 not '\
                          '{}'.format(sswe_vec_size))

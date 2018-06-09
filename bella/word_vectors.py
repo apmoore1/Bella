@@ -156,9 +156,11 @@ class WordVectors(object):
         binary_file_path += '.binary'
         binary_file_path = glove_file_path.parent.joinpath(binary_file_path)
         if binary_file_path.is_file():
-            return binary_file_path
+            return str(binary_file_path.resolve())
         with tempfile.NamedTemporaryFile('w', encoding='utf-8') as temp_file:
             # Converts to word2vec file format
+            print('Converting word vectors file from text to binary for '
+                  'quicker load time')
             glove2word2vec(str(glove_file_path.resolve()), temp_file.name)
             word_vectors = KeyedVectors.load_word2vec_format(temp_file.name,
                                                              binary=False)
@@ -401,6 +403,65 @@ class GensimVectors(WordVectors):
                          padding_value=padding_value)
 
 
+class VoVectors(GensimVectors):
+
+    def download(self, skip_conf):
+        vo_folder = BELLA_VEC_DIR.joinpath('Vo Word Vectors')
+        vo_folder.mkdir(parents=True, exist_ok=True)
+        current_vector_files = set([vo_file.name for vo_file
+                                    in vo_folder.iterdir()])
+        all_vector_files = set(['c10_w3_s100',
+                                'c10_w3_s100.syn0.npy',
+                                'c10_w3_s100.syn1.npy'])
+        interset = all_vector_files.intersection(current_vector_files)
+        # If the files in the folder aren't all the glove files that would be
+        # downloaded re-download the zip and unzip the files.
+        if interset != all_vector_files:
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the Vo Word vectors '\
+                               'this is a download of 120MB '\
+                               'Would you like to continue? If so type '\
+                               '`yes`\n>> '
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                base_url = 'https://github.com/bluemonk482/tdparse/raw/'\
+                           'master/resources/wordemb/w2v/'
+                link_locations = [(f'{base_url}c10_w3_s100',
+                                   vo_folder.joinpath('c10_w3_s100')),
+                                  (f'{base_url}c10_w3_s100.syn0.npy',
+                                   Path(vo_folder, 'c10_w3_s100.syn0.npy')),
+                                  (f'{base_url}c10_w3_s100.syn1.npy',
+                                   Path(vo_folder, 'c10_w3_s100.syn1.npy'))]
+                print('Downloading Vo vectors')
+                for download_link, file_location in link_locations:
+                    # Reference:
+                    # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                    with file_location.open('wb') as vo_file:
+                        request = requests.get(download_link, stream=True)
+                        total_size = int(request.headers.get('content-length',
+                                                             0))
+                        for chunk in tqdm(request.iter_content(chunk_size=128),
+                                          total=math.ceil(total_size//128)):
+                            vo_file.write(chunk)
+            else:
+                raise Exception('Vo vectors not downloaded therefore '
+                                'cannot load them')
+        return str(vo_folder.joinpath('c10_w3_s100').resolve())
+
+    def __init__(self, name=None, unit_length=False,
+                 padding_value=None, skip_conf=False):
+        vector_file = self.download(skip_conf)
+
+        if name is None:
+            name = 'w2v'
+        super().__init__(vector_file, train_data=None, name=name,
+                         model='word2vec', unit_length=unit_length,
+                         padding_value=padding_value)
+
+
+
 class PreTrained(WordVectors):
     '''
     Class that loads word vectors that have been pre-trained.
@@ -408,8 +469,8 @@ class PreTrained(WordVectors):
     All pre-trained word vectors have to follow the following conditions:
 
     1. New word vector on each line
-    2. Each line is tab seperated (by default but a tab is just delimenter which
-    can be changed by setting delimenter argument in the constructor)
+    2. Each line is tab seperated (by default but a tab is just delimenter \
+    which can be changed by setting delimenter argument in the constructor)
     3. The first tab sperated value on the line is the word
     4. The rest of the tab seperated values on that line represent the values
     for the associtaed word.
@@ -476,6 +537,60 @@ class PreTrained(WordVectors):
         return self._word2vector['<unk>']
 
 
+class SSWE(PreTrained):
+
+    def download(self, skip_conf):
+        '''
+        '''
+        sswe_folder = BELLA_VEC_DIR.joinpath('SSWE')
+        sswe_folder.mkdir(parents=True, exist_ok=True)
+        sswe_fp = sswe_folder.joinpath('sswe')
+        # If the files in the folder aren't all the SSWE files that would be
+        # downloaded re-download the zip and unzip the files.
+        if not sswe_fp.is_file():
+            can_download = 'yes'
+            if not skip_conf:
+                download_msg = 'We are going to download the SSWE vectors '\
+                               'this is a download of 74MB '\
+                               'Would you like to continue? If so type '\
+                               '`yes`\n>> '
+                can_download = input(download_msg)
+
+            if can_download.strip().lower() == 'yes':
+                download_link = 'https://github.com/bluemonk482/tdparse/raw/'\
+                                'master/resources/wordemb/sswe/sswe-u.txt'
+                # Reference:
+                # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
+                with sswe_fp.open('wb') as sswe_file:
+                    request = requests.get(download_link, stream=True)
+                    total_size = int(request.headers.get('content-length', 0))
+                    print('Downloading SSWE vectors')
+                    for chunk in tqdm(request.iter_content(chunk_size=128),
+                                      total=math.ceil(total_size//128)):
+                        sswe_file.write(chunk)
+            else:
+                raise Exception('SSWE vectors not downloaded therefore '
+                                'cannot load them')
+            sswe_folder_files = list(sswe_folder.iterdir())
+            if not sswe_fp.is_file():
+                raise Exception('Error in either downloading the SSWE vectors'
+                                ' or file path names. Files in the SSWE '
+                                f'folder {sswe_folder_files} and where the '
+                                f'SSWE file should be {str(sswe_fp)}')
+        return str(sswe_fp.resolve())
+
+    def __init__(self, name=None, unit_length=False, skip_conf=False,
+                 padding_value=None):
+
+        vector_file = self.download(skip_conf)
+
+        if name is None:
+            name = 'sswe'
+        super().__init__(vector_file, name=name, unit_length=unit_length,
+                         padding_value=padding_value)
+
+
+
 class GloveTwitterVectors(WordVectors):
 
     def download(self, skip_conf):
@@ -497,7 +612,8 @@ class GloveTwitterVectors(WordVectors):
 
         glove_folder = BELLA_VEC_DIR.joinpath('glove_twitter')
         glove_folder.mkdir(parents=True, exist_ok=True)
-        current_glove_files = list(glove_folder.iterdir())
+        current_glove_files = set([glove_file.name for glove_file
+                                   in glove_folder.iterdir()])
         all_glove_files = set(['glove.twitter.27B.25d.binary',
                                'glove.twitter.27B.50d.binary',
                                'glove.twitter.27B.100d.binary',
@@ -511,7 +627,8 @@ class GloveTwitterVectors(WordVectors):
                 download_msg = 'We are going to download the glove vectors '\
                                'this is a large download of 1.4GB and takes '\
                                '5.4GB of disk space after being unzipped. '\
-                               'Would you like to continue? If so type `yes`\n'
+                               'Would you like to continue? If so type '\
+                               '`yes`\n>> '
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
@@ -527,6 +644,7 @@ class GloveTwitterVectors(WordVectors):
                     for chunk in tqdm(request.iter_content(chunk_size=128),
                                       total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                print('Unzipping word vector download')
                 glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
@@ -543,8 +661,8 @@ class GloveTwitterVectors(WordVectors):
                 100: add_full_path('glove.twitter.27B.100d.txt'),
                 200: add_full_path('glove.twitter.27B.200d.txt')}
 
-    def __init__(self, dimension, name=None, unit_length=False, skip_conf=False,
-                 padding_value=None):
+    def __init__(self, dimension, name=None, unit_length=False,
+                 skip_conf=False, padding_value=None):
         '''
         :param dimension: Dimension size of the word vectors you would like to \
         use. Choice: 25, 50, 100, 200
@@ -556,14 +674,15 @@ class GloveTwitterVectors(WordVectors):
 
         dimension_file = self.download(skip_conf)
         if not isinstance(dimension, int):
-            raise TypeError('Type of dimension has to be int not {}'\
+            raise TypeError('Type of dimension has to be int not {}'
                             .format(type(dimension)))
         if dimension not in dimension_file:
-            raise ValueError('Dimension avliable are the following {}'\
+            raise ValueError('Dimension avliable are the following {}'
                              .format(list(dimension_file.keys())))
         if name is None:
-            name = 'glove twitter {}d'.format(dimension)
+            name = f'glove twitter {dimension}d'
         vector_file = dimension_file[dimension]
+        print(f'Loading {name} from file')
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
@@ -616,7 +735,8 @@ class GloveCommonCrawl(WordVectors):
                 download_msg = 'We are going to download the glove vectors '\
                                'this is a large download of ~2GB and takes '\
                                '~5.6GB of diskspace after being unzipped. '\
-                               'Would you like to continue? If so type `yes`\n'
+                               'Would you like to continue? If so type '\
+                               '`yes`\n>> '
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
@@ -634,6 +754,7 @@ class GloveCommonCrawl(WordVectors):
                     for chunk in tqdm(request.iter_content(chunk_size=128),
                                       total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                print('Unzipping word vector download')
                 glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
@@ -667,6 +788,7 @@ class GloveCommonCrawl(WordVectors):
         if name is None:
             name = 'glove 300d {}b common crawl'.format(version)
         vector_file = self.download(skip_conf, version)
+        print(f'Loading {name} from file')
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,
@@ -706,7 +828,8 @@ class GloveWikiGiga(WordVectors):
 
         glove_folder = BELLA_VEC_DIR.joinpath(f'glove_wiki_giga')
         glove_folder.mkdir(parents=True, exist_ok=True)
-        current_glove_files = set(list(glove_folder.iterdir()))
+        current_glove_files = set([glove_file.name for glove_file
+                                   in glove_folder.iterdir()])
         all_glove_files = set(['glove.6B.50d.binary',
                                'glove.6B.100d.binary',
                                'glove.6B.200d.binary',
@@ -720,7 +843,8 @@ class GloveWikiGiga(WordVectors):
                 download_msg = 'We are going to download the glove vectors '\
                                'this is a large download of ~900MB and takes '\
                                '~2.1GB of disk space after being unzipped. '\
-                               'Would you like to continue? If so type `yes`\n'
+                               'Would you like to continue? If so type '\
+                               '`yes`\n>> '
                 can_download = input(download_msg)
 
             if can_download.strip().lower() == 'yes':
@@ -728,13 +852,14 @@ class GloveWikiGiga(WordVectors):
                 glove_zip_path = glove_folder.joinpath('glove_zip.zip')
                 # Reference:
                 # http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content
-                with glove_zip_path.oepn('wb') as glove_zip_file:
+                with glove_zip_path.open('wb') as glove_zip_file:
                     request = requests.get(download_link, stream=True)
                     total_size = int(request.headers.get('content-length', 0))
                     print('Downloading Glove Wikipedia Gigaword vectors')
                     for chunk in tqdm(request.iter_content(chunk_size=128),
                                       total=math.ceil(total_size//128)):
                         glove_zip_file.write(chunk)
+                print('Unzipping word vector download')
                 glove_zip_path = str(glove_zip_path.resolve())
                 with zipfile.ZipFile(glove_zip_path, 'r') as glove_zip_file:
                     glove_zip_file.extractall(path=glove_folder)
@@ -772,6 +897,7 @@ class GloveWikiGiga(WordVectors):
         if name is None:
             name = 'glove wiki giga {}d'.format(dimension)
         vector_file = dimension_file[dimension]
+        print(f'Loading {name} from file')
         glove_key_vectors = KeyedVectors.load_word2vec_format(vector_file,
                                                               binary=True)
         super().__init__(glove_key_vectors, name=name, unit_length=unit_length,

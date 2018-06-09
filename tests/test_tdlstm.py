@@ -5,11 +5,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from bella.helper import read_config
-from bella.word_vectors import PreTrained
-from bella.word_vectors import GensimVectors
-from bella import lexicons
-from bella.dependency_parsers import tweebo
+from bella.word_vectors import SSWE
 from bella.tokenisers import whitespace
 from bella.models.tdlstm import LSTM
 
@@ -22,8 +18,8 @@ class TestTDLstm(TestCase):
         '''
         Test process_text
         '''
-        sswe_path = read_config('sswe_files')['vo_zhang']
-        sswe_model = PreTrained(sswe_path, name='sswe')
+
+        sswe_model = SSWE(skip_conf=True)
 
         test_texts = ['hello how are you', 'I am very good thank you nottttthingword',
                       'i am very good thank you']

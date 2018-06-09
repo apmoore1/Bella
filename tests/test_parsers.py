@@ -1,11 +1,14 @@
 '''
 Unit test suite for the :py:mod:`bella.helper` module.
 '''
+from pathlib import Path
 from unittest import TestCase
 
 
 from bella.parsers import dong
 from bella.helper import read_config
+
+CONFIG_FP = Path(__file__).parent.joinpath('..', 'config.yaml')
 
 class TestParsers(TestCase):
     '''
@@ -77,14 +80,15 @@ class TestParsers(TestCase):
                              'spans':[(2, 8)]}]
         check_results(expected_results, dong(test_file_path).data())
 
-        bad_sent_path = read_config('test_data')['dong_bad_sent_data']
+        bad_sent_path = read_config('test_data', CONFIG_FP)
+        bad_sent_path = bad_sent_path['dong_bad_sent_data']
         with self.assertRaises(ValueError, msg='It should not accept sentiment '\
                                'values that are not 1, 0, or -1'):
             dong(bad_sent_path)
 
         # Ensure that it can handle the same target with multiple spans
-        test_multiple_path = read_config('test_data')['dong_multiple_offsets_data']
-
+        test_multiple_path = read_config('test_data', CONFIG_FP)
+        test_multiple_path = test_multiple_path['dong_multiple_offsets_data']
         multi_expected = [{'target_id':'dong_test_multiple_offsets_data0',
                            'sentence_id':'dong_test_multiple_offsets_data0',
                            'sentiment':-1,
@@ -103,7 +107,8 @@ class TestParsers(TestCase):
 
         # Test that multi word targets that should have a space between them
         # are still detected
-        test_mwe_path = read_config('test_data')['dong_mwe_offsets_data']
+        test_mwe_path = read_config('test_data', CONFIG_FP)
+        test_mwe_path = test_mwe_path['dong_mwe_offsets_data']
         mwe_expected = [{'target_id':'dong_test_mwe_offsets_data0',
                          'sentence_id':'dong_test_mwe_offsets_data0',
                          'sentiment':-1,
