@@ -2,11 +2,10 @@ import random as rn
 import os
 import tempfile
 import time
-from multiprocessing import Pool
+from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
-import keras
 from keras import backend as K
 from keras import preprocessing, models, optimizers, initializers, layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -57,8 +56,6 @@ class LSTM():
         self.model = None
 
     def save_model(self, model_arch_fp, model_weights_fp, verbose=0):
-        model_arch_fp += '.yaml'
-        model_weights_fp += '.h5'
         if self.model is None:
             raise ValueError('Model is not fitted please fit the model '\
                              'using the fit function')
@@ -72,11 +69,26 @@ class LSTM():
                   'Save time {}'\
                   .format(model_arch_fp, model_weights_fp, time_taken))
 
+    def load_model_dir(self, model_zoo_path: Path, dataset_name: str,
+                       verbose: int = 0) -> None:
+        '''
+        :param model_zoo_path: File path to the model zoo directory
+        :param dataset_name: Name of the dataset the pre-trained model is \
+        trained on.
+        :param verbose: Output of where the weights and architecture was \
+        loaded from and how long loading took.
+        :return: Nothing. Loads the pre-trained model to self.model.
+        '''
+
+        file_name = f'{str(self)} {dataset_name}'
+        model_arch_fp = model_zoo_path / (file_name + ' architecture.yaml')
+        model_weights_fp = model_zoo_path / (file_name + ' weights.h5')
+        self.load_model(model_arch_fp, model_weights_fp, verbose=verbose)
+
+
     def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
         time_taken = time.time()
         loaded_model = None
-        model_arch_fp += '.yaml'
-        model_weights_fp += '.h5'
         with open(model_arch_fp, 'r') as model_arch_file:
             loaded_model = model_from_yaml(model_arch_file)
         if loaded_model is None:
@@ -86,7 +98,7 @@ class LSTM():
         self.model = loaded_model
         if verbose == 1:
             time_taken = round(time.time() - time_taken, 2)
-            print('Model architecture loaded {}\nModel weights saved to {}\n'\
+            print('Model architecture loaded {}\nModel weights loaded {}\n'\
                   'Load time {}'\
                   .format(model_arch_fp, model_weights_fp, time_taken))
         self.test_pad_size = loaded_model.inputs[0].shape.dims[1].value
@@ -533,7 +545,7 @@ class LSTM():
         self.model = model
         return history
 
-    def predict(self, test_data):
+    def predict(self, test_data, sentiment_mapper=None):
         '''
         :param test_y: Test features. Specifically a list of dict like \
         structures that contain `text` key.
@@ -543,12 +555,20 @@ class LSTM():
         '''
 
         if self.model is None:
-            raise ValueError('The model has not been fitted please run the '\
+            raise ValueError('The model has not been fitted please run the '
                              '`fit` method.')
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
         sequence_test_data = self._pre_process(test_data, training=False)
-        return self.model.predict(sequence_test_data)
+        pred_values = self.model.predict(sequence_test_data)
+        if sentiment_mapper is None:
+            return pred_values
+        pred_labels = np.argmax(pred_values, axis=1)
+        pred_labels = [sentiment_mapper[pred_label] for
+                       pred_label in pred_labels]
+        return np.array(pred_labels)
+
+
 
     def visulaise(self, plot_format='vert'):
         '''
@@ -615,7 +635,8 @@ class TDLSTM(LSTM):
         self.left_test_pad_size = self.model.inputs[0].shape.dims[1].value
         self.right_test_pad_size = self.model.inputs[1].shape.dims[1].value
 
-    def predict(self, test_data):
+
+    def predict(self, test_data, sentiment_mapper=None):
         '''
         :param test_y: Test features. Specifically a list of dict like \
         structures that contain `text` key.
@@ -632,8 +653,14 @@ class TDLSTM(LSTM):
         left_sequence, right_sequence = self._pre_process(test_data,
                                                           training=False)
 
-        return self.model.predict({'left_text_input' : left_sequence,
-                                   'right_text_input' : right_sequence})
+        pred_values = self.model.predict({'left_text_input': left_sequence,
+                                          'right_text_input': right_sequence})
+        if sentiment_mapper is None:
+            return pred_values
+        pred_labels = np.argmax(pred_values, axis=1)
+        pred_labels = [sentiment_mapper[pred_label] for
+                       pred_label in pred_labels]
+        return np.array(pred_labels)
 
     def _pre_process(self, data_dicts, training=False):
 
@@ -881,7 +908,7 @@ class TCLSTM(TDLSTM):
         self.right_test_pad_size = 0
         self.inc_target = inc_target
 
-    def predict(self, test_data):
+    def predict(self, test_data, sentiment_mapper=None):
         '''
         :param test_y: Test features. Specifically a list of dict like \
         structures that contain `text` key.
@@ -891,22 +918,29 @@ class TCLSTM(TDLSTM):
         '''
 
         if self.model is None:
-            raise ValueError('The model has not been fitted please run the '\
+            raise ValueError('The model has not been fitted please run the '
                              '`fit` method.')
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
         sequence_targets = self._pre_process(test_data, training=False)
-        left_sequence, left_targets, right_sequence, right_targets = sequence_targets
-        return self.model.predict({'left_text_input' : left_sequence,
-                                   'left_target' : left_targets,
-                                   'right_text_input' : right_sequence,
-                                   'right_target' : right_targets})
+        left_sequence, left_targets = sequence_targets[0], sequence_targets[1]
+        right_sequence = sequence_targets[2]
+        right_targets = sequence_targets[3]
+        pred_values = self.model.predict({'left_text_input': left_sequence,
+                                          'left_target': left_targets,
+                                          'right_text_input': right_sequence,
+                                          'right_target': right_targets})
+        if sentiment_mapper is None:
+            return pred_values
+        pred_labels = np.argmax(pred_values, axis=1)
+        pred_labels = [sentiment_mapper[pred_label] for
+                       pred_label in pred_labels]
+        return np.array(pred_labels)
 
     def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
         super().load_model(model_arch_fp, model_weights_fp, verbose=verbose)
         self.left_test_pad_size = self.model.inputs[0].shape.dims[1].value
         self.right_test_pad_size = self.model.inputs[2].shape.dims[1].value
-
 
     def _pre_process(self, data_dicts, training=False):
         def context_median_targets(pad_size):
