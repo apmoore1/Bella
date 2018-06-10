@@ -13,7 +13,7 @@ lexicon.
 <http://saifmohammad.com/WebDocs/Mohammad-Turney-NAACL10-EmotionWorkshop.pdf>`_
 lexicon.
 '''
-
+from collections import defaultdict
 import csv
 import re
 from pathlib import Path
@@ -66,11 +66,23 @@ class Lexicon():
                             .format(type(self.lexicon[0])))
 
         self.lexicon = self._process_lexicon(subset_cats, lower)
+        self.remove_duplicates()
         self.words = set([word for word, cat in self.lexicon])
         if name is not None:
             self.name = name
         else:
             self.name = self.__class__.__name__
+
+    def remove_duplicates(self):
+        duplicate_lexicon = defaultdict(list)
+        for word, cat in self.lexicon:
+            duplicate_lexicon[word].append(cat)
+        lexicon = []
+        for word, cat_list in duplicate_lexicon.items():
+            if len(cat_list) > 1:
+                continue
+            lexicon.append((word, cat_list[0]))
+        self.lexicon = lexicon
 
     def get_lexicon(self):
         '''
