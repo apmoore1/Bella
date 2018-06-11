@@ -1,44 +1,33 @@
 ####
 #### Data Paths
 ####
-dong_twit_train_data: ../aspect datasets/dong_sent/dong_training.txt
-dong_twit_test_data: ../aspect datasets/dong_sent/dong_test.txt
-semeval_2014_rest_train: ../aspect datasets/semeval_2014/restaurants_train.xml
-semeval_2014_lap_train: ../aspect datasets/semeval_2014/laptop_train.xml
-semeval_2014_rest_test: ../aspect datasets/semeval_2014/restaurants_test.xml
-semeval_2014_lap_test: ../aspect datasets/semeval_2014/laptop_test.xml
-semeval_2015_rest_test: ../aspect datasets/semeval_2015/restaurants_test.xml
-semeval_2016_rest_test: ../aspect datasets/semeval_2016/restaurants_test.xml
-election_folder_dir: ../aspect datasets/election_data_bo_wang
-product_reviews_dir: ../aspect datasets/product_reviews
-product_train: ../aspect datasets/product_reviews/train.xml
-product_test: ../aspect datasets/product_reviews/test.xml
-youtubean: ../aspect datasets/youtubean/samsung_galaxy_s5.xml
-youtubean_train: ../aspect datasets/youtubean/train.xml
-youtubean_test: ../aspect datasets/youtubean/test.xml
-mitchel_org_train: ../aspect datasets/mitchel/train.1
-mitchel_org_test: ../aspect datasets/mitchel/test.1
-mitchel_train: ../aspect datasets/mitchel/train.xml
-mitchel_test: ../aspect datasets/mitchel/test.xml
-
-
-#
-# Word vector paths
-#
-word_vector_folder: ./data/word_vectors
-# word2vec files
-word2vec_files:
-  vo_zhang: ./data/word_vectors/vo_zhang/word2vec
-sswe_files:
-  vo_zhang: ./data/word_vectors/vo_zhang/sswe.tsv
+dong_twit_train_data: /home/andrew/Desktop/aspect datasets/dong_sent/dong_training.txt
+dong_twit_test_data: /home/andrew/Desktop/aspect datasets/dong_sent/dong_test.txt
+semeval_2014_rest_train: /home/andrew/Desktop/aspect datasets/semeval_2014/restaurants_train.xml
+semeval_2014_lap_train: /home/andrew/Desktop/aspect datasets/semeval_2014/laptop_train.xml
+semeval_2014_rest_test: /home/andrew/Desktop/aspect datasets/semeval_2014/restaurants_test.xml
+semeval_2014_lap_test: /home/andrew/Desktop/aspect datasets/semeval_2014/laptop_test.xml
+semeval_2015_rest_test: /home/andrew/Desktop/aspect datasets/semeval_2015/restaurants_test.xml
+semeval_2016_rest_test: /home/andrew/Desktop/aspect datasets/semeval_2016/restaurants_test.xml
+election_folder_dir: /home/andrew/Desktop/aspect datasets/election_data_bo_wang
+product_reviews_dir: /home/andrew/Desktop/aspect datasets/product_reviews
+product_train: /home/andrew/Desktop/aspect datasets/product_reviews/train.xml
+product_test: /home/andrew/Desktop/aspect datasets/product_reviews/test.xml
+youtubean: /home/andrew/Desktop/aspect datasets/youtubean/samsung_galaxy_s5.xml
+youtubean_train: /home/andrew/Desktop/aspect datasets/youtubean/train.xml
+youtubean_test: /home/andrew/Desktop/aspect datasets/youtubean/test.xml
+mitchel_org_train: /home/andrew/Desktop/aspect datasets/mitchel/train.1
+mitchel_org_test: /home/andrew/Desktop/aspect datasets/mitchel/test.1
+mitchel_train: /home/andrew/Desktop/aspect datasets/mitchel/train.xml
+mitchel_test: /home/andrew/Desktop/aspect datasets/mitchel/test.xml
 
 #
 # Lexicon paths
 #
 lexicons:
-  hu_liu: ./data/lexicons/hu_liu/
-  nrc_emotion: ./data/lexicons/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
-  mpqa: ./data/lexicons/subjclueslen1-HLTEMNLP05.tff
+  hu_liu: /home/andrew/Desktop/lexicons/hu_liu/
+  nrc_emotion: /home/andrew/Desktop/lexicons/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
+  mpqa: /home/andrew/Desktop/lexicons/subjclueslen1-HLTEMNLP05.tff
 ###
 ## Paths for testing the code nothing related to the dataset being evaluated
 ###
