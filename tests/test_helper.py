@@ -24,7 +24,7 @@ class TestHelper(TestCase):
 
         # Check if it can handle nested values - which should be converted to
         # a dictionary
-        self.assertIsInstance(read_config('word2vec_files', CONFIG_FP), dict)
+        self.assertIsInstance(read_config('lexicons', CONFIG_FP), dict)
 
         self.assertEqual(read_config('test_data', CONFIG_FP)['dong_data'],
                          './tests/test_data/dong_test_data.txt')
