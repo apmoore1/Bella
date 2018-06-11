@@ -163,6 +163,7 @@ def tweebo(texts: List[str]) -> List[DependencyToken]:
     '''
 
     tweebo_api = TweeboParser()
+    texts = [text.replace('\n', ' ') for text in texts]
     processed_texts = tweebo_api.parse_conll(texts)
 
     dep_texts = []
