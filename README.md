@@ -50,6 +50,11 @@ All the word vectors are automatically downloaded for you and they are stored in
 4. Glove Twitter
 5. Glove Wiki Giga
 
+
+## Model Zoo
+
+The model zoo can be found in the ["model zoo"](https://github.com/apmoore1/Bella/tree/master/model%20zoo) folder.
+
 ## The notebooks
 
 Can be found [here](./notebooks)
@@ -68,11 +73,4 @@ The best order to look at the notebooks is first look at the data with this [not
 6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean%20dataset%20splitting.ipynb)
 7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
 
-If you would like to run any of the notebooks to test the model I would recomend running notebooks from points 2, 3, 4 or 5
 
-
-## Model Zoo
-
-The model zoo can be found in the Git LFS folder in this directory under the name ["model zoo"](https://github.com/apmoore1/Bella/tree/master/model%20zoo).
-
-Git LFS [download and instructions](https://www.atlassian.com/git/tutorials/git-lfs)
