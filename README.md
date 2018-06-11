@@ -54,19 +54,21 @@ All the word vectors are automatically downloaded for you and they are stored in
 
 Can be found [here](./notebooks)
 
+The best order to look at the notebooks is first look at the data with this [notebook](./notebooks/datasets.ipynb). Then looking at the [notebook](./notebooks/Model%20Example.ipynb) that describes how to load and use the saved models from the [model zoo](#model-zoo). Then go and explore the rest if you would like: 
+
 1. The Mass evaluation notebooks are the following
-  1. [Mass Evaluation - TDParse](./notebooks/Mass%20Evaluation%20-%20TDParse.ipynb) for the Target dependent models
-  2. [Mass Evaluation - Target Dependent](./notebooks/Mass%20Evaluation%20-%20Target%20Dependent.ipynb) for the TDParse models
-  3. [Mass Evaluation LSTM](./notebooks/Mass%20Evaluation%20LSTM.ipynb) for the LSTM models
+   * [Mass Evaluation - TDParse](./notebooks/Mass%20Evaluation%20-%20TDParse.ipynb) for the Target dependent models
+   * [Mass Evaluation - Target Dependent](./notebooks/Mass%20Evaluation%20-%20Target%20Dependent.ipynb) for the TDParse models
+   * [Mass Evaluation LSTM](./notebooks/Mass%20Evaluation%20LSTM.ipynb) for the LSTM models
   All of these do not contain any analysis just demostartes how we gathered the results. Lastly they also create the model zoo. For the analysis of the Mass evaluations see [Mass Evaluation Result Analysis](./notebooks/Mass%20Evaluation%20Result%20Analysis.ipynb) notebook
 2. For the analysis of the reproduction of the Target Dependent model of [Vo and Zhang](https://www.ijcai.org/Proceedings/15/Papers/194.pdf) see this [notebook](./notebooks/target_model.ipynb)
 3. For the analysis of the reproduction of the TDParse model of [Wang et al.](https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046) see this [notebook](./notebooks/TDParse.ipynb)
 4. For the analysis of the reproduction of the LSTM models of [Tang et al.](https://www.aclweb.org/anthology/C16-1311) see this [notebook](./notebooks/LSTM.ipynb)
 5. For the statistics of the datasets and where to find them see this [notebook](./notebooks/datasets.ipynb)
-6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean dataset splitting.ipynb)
-7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel et al dataset splitting.ipynb)
+6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean%20dataset%20splitting.ipynb)
+7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
 
-If you would like to run any of the notebooks to test the model I would recomend running notebooks from points 5, 6, 7 or 8
+If you would like to run any of the notebooks to test the model I would recomend running notebooks from points 2, 3, 4 or 5
 
 
 ## Model Zoo
