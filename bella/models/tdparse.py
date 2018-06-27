@@ -7,7 +7,7 @@ that are within `Wang et al. paper \
 2. :py:class:`bella.models.target.TDParse` -- TDParse model
 3. :py:class:`bella.models.tdparse.TDParsePlus` -- TDParse Plus model
 '''
-from typing import Any, List, Callable, Dict
+from typing import Any, List, Callable, Dict, Union
 
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
@@ -127,8 +127,10 @@ class TDParseMinus(TargetInd):
 
     @classmethod
     def get_cv_parameters(cls,
-                          word_vectors: List['bella.word_vectors.WordVectors'],
-                          parser: List[Any],
+                          word_vectors: Union[None,
+                                              List[List['bella.word_vectors\
+                                              .WordVectors']]] = None,
+                          parser: Union[None, List[Any]] = None,
                           tokeniser=None, lower=None,
                           C=None, random_state=None, scale=None):
         '''
@@ -137,8 +139,10 @@ class TDParseMinus(TargetInd):
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]]
-        :param parser: A list of dependency parser to be used.
+                             [SSWE(), GloveCommonCrawl()]] Default None, use
+                             the word embeddings already within the model.
+        :param parser: A list of dependency parser to be used. Default None,
+                       use the parser already within the model.
         :param tokenisers: A list of tokeniser to be used
                            e.g. :py:meth:`str.split`. Default None, only use
                            default tokeniser.
@@ -161,9 +165,14 @@ class TDParseMinus(TargetInd):
         '''
         params_list = super().get_cv_parameters(word_vectors, tokeniser,
                                                 lower, C, random_state, scale)
-        params_list = cls._add_to_all_params(params_list,
-                                             cls._get_dependency_context()[0],
-                                             parser)
+        if params_list == [{}]:
+            params_list = []
+        if parser is not None:
+            dep_context = cls._get_dependency_context()[0]
+            params_list = cls._add_to_all_params(params_list, dep_context,
+                                                 parser)
+        if not params_list:
+            return [{}]
         return params_list
 
     @staticmethod
@@ -609,10 +618,13 @@ class TDParsePlus(TDParseMinus):
 
     @classmethod
     def get_cv_parameters(cls,
-                          word_vectors: List[List['bella.word_vectors\
-                                                   .WordVectors']],
-                          parser: List[Any],
-                          senti_lexicon: List['bella.lexicons.Lexicon'],
+                          word_vectors: Union[None,
+                                              List[List['bella.word_vectors\
+                                              .WordVectors']]] = None,
+                          parser: Union[None, List[Any]] = None,
+                          senti_lexicon: Union[None,
+                                               List['bella.lexicons\
+                                                     .Lexicon']] = None,
                           tokeniser=None, lower=None,
                           C=None, random_state=None, scale=None):
         '''
@@ -621,10 +633,14 @@ class TDParsePlus(TDParseMinus):
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]]
-        :param parser: A list of dependency parser to be used.
+                             [SSWE(), GloveCommonCrawl()]] Default None, use
+                             the word embeddings already within the model.
+        :param parser: A list of dependency parser to be used. Default None,
+                       use the parser already within the model.
         :param senti_lexicon: A list of Sentiment Lexicons to be explored for
                               the Left and Right sentiment context (LS and RS).
+                              Default None, use the sentiment lexicons already
+                              within the model.
         :param tokenisers: A list of tokeniser to be used
                            e.g. :py:meth:`str.split`. Default None, only use
                            default tokeniser.
@@ -648,8 +664,13 @@ class TDParsePlus(TDParseMinus):
         params_list = super().get_cv_parameters(word_vectors, parser,
                                                 tokeniser, lower, C,
                                                 random_state, scale)
-        params_list = cls._add_to_params(params_list, senti_lexicon,
-                                         cls._get_word_senti_names())
+        if params_list == [{}]:
+            params_list = []
+        if senti_lexicon is not None:
+            params_list = cls._add_to_params(params_list, senti_lexicon,
+                                             cls._get_word_senti_names())
+        if not params_list:
+            return [{}]
         return params_list
 
     @staticmethod

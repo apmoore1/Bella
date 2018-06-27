@@ -10,7 +10,7 @@ that are within `Vo and Zhang 2015 paper \
 4. :py:class:`bella.models.target.TargetDepPlus` -- Target Dependent Plus model
 '''
 
-from typing import Any, List, Callable, Dict
+from typing import Any, List, Callable, Dict, Union
 
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
@@ -141,7 +141,7 @@ class TargetInd(SKLearnModel):
         return params_dict
 
     @classmethod
-    def get_cv_parameters(cls, word_vectors, tokeniser=None, lower=None,
+    def get_cv_parameters(cls, word_vectors=None, tokeniser=None, lower=None,
                           C=None, random_state=None, scale=None):
         '''
         Transform the given parameters into a list of dictonaries that is
@@ -149,7 +149,8 @@ class TargetInd(SKLearnModel):
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]]
+                             [SSWE(), GloveCommonCrawl()]]. Default None, use
+                             the word embeddings already within the model.
         :param tokenisers: A list of tokeniser to be used e.g.
                            :py:meth:`str.split`. Default None, only use default
                            tokeniser.
@@ -171,8 +172,9 @@ class TargetInd(SKLearnModel):
         :return: Parameters to explore through cross validation
         '''
         params_list = []
-        params_list = cls._add_to_params(params_list, word_vectors,
-                                         cls._get_word_vector_names())
+        if word_vectors is not None:
+            params_list = cls._add_to_params(params_list, word_vectors,
+                                             cls._get_word_vector_names())
         if tokeniser is not None:
             tokenisers_names = [param_name + '__tokeniser'
                                 for param_name in cls._get_tokeniser_names()]
@@ -190,6 +192,8 @@ class TargetInd(SKLearnModel):
                                                  random_state)
         if scale is not None:
             params_list = cls._add_to_all_params(params_list, 'scale', scale)
+        if not params_list:
+            return [{}]
         return params_list
 
     @staticmethod
@@ -832,9 +836,12 @@ class TargetDepPlus(TargetInd):
 
     @classmethod
     def get_cv_parameters(cls,
-                          word_vectors: List[List['bella.word_vectors\
-                                                   .WordVectors']],
-                          senti_lexicon: List['bella.lexicons.Lexicon'],
+                          word_vectors: Union[None,
+                                              List[List['bella.word_vectors\
+                                              .WordVectors']]] = None,
+                          senti_lexicon: Union[None,
+                                               List['bella.lexicons\
+                                                     .Lexicon']] = None,
                           tokeniser=None, lower=None,
                           C=None, random_state=None, scale=None):
         '''
@@ -843,9 +850,12 @@ class TargetDepPlus(TargetInd):
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]]
+                             [SSWE(), GloveCommonCrawl()]] Default None, use
+                             the word embeddings already within the model.
         :param senti_lexicon: A list of Sentiment Lexicons to be explored for
                               the Left and Right sentiment context (LS and RS).
+                              Default None, use the sentiment lexicons already
+                              within the model.
         :param tokenisers: A list of tokeniser to be used
                            e.g. :py:meth:`str.split`. Default None, only use
                            default tokeniser.
@@ -868,8 +878,13 @@ class TargetDepPlus(TargetInd):
         '''
         params_list = super().get_cv_parameters(word_vectors, tokeniser,
                                                 lower, C, random_state, scale)
-        params_list = cls._add_to_params(params_list, senti_lexicon,
-                                         cls._get_word_senti_names())
+        if params_list == [{}]:
+            params_list = []
+        if senti_lexicon is not None:
+            params_list = cls._add_to_params(params_list, senti_lexicon,
+                                             cls._get_word_senti_names())
+        if not params_list:
+            return [{}]
         return params_list
 
     @staticmethod
