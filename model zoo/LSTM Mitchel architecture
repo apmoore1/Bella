@@ -1,3 +1,103 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:79d46965b6b3ea006c282eed1604b33d411a4afa69fcd7fbf973ddfa6cfd5bb8
-size 2651
+backend: tensorflow
+class_name: Model
+config:
+  input_layers:
+  - [text_input, 0, 0]
+  layers:
+  - class_name: InputLayer
+    config:
+      batch_input_shape: !!python/tuple [null, 38]
+      dtype: float32
+      name: text_input
+      sparse: false
+    inbound_nodes: []
+    name: text_input
+  - class_name: Embedding
+    config:
+      activity_regularizer: null
+      batch_input_shape: !!python/tuple [null, 38]
+      dtype: float32
+      embeddings_constraint: null
+      embeddings_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      embeddings_regularizer: null
+      input_dim: 8618
+      input_length: 38
+      mask_zero: false
+      name: embedding_layer
+      output_dim: 300
+      trainable: true
+    inbound_nodes:
+    - - - text_input
+        - 0
+        - 0
+        - {}
+    name: embedding_layer
+  - class_name: LSTM
+    config:
+      activation: tanh
+      activity_regularizer: null
+      bias_constraint: null
+      bias_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      bias_regularizer: null
+      dropout: 0.0
+      go_backwards: false
+      implementation: 1
+      kernel_constraint: null
+      kernel_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      kernel_regularizer: null
+      name: lstm_layer
+      recurrent_activation: hard_sigmoid
+      recurrent_constraint: null
+      recurrent_dropout: 0.0
+      recurrent_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      recurrent_regularizer: null
+      return_sequences: false
+      return_state: false
+      stateful: false
+      trainable: true
+      unit_forget_bias: true
+      units: 300
+      unroll: false
+      use_bias: true
+    inbound_nodes:
+    - - - embedding_layer
+        - 0
+        - 0
+        - {}
+    name: lstm_layer
+  - class_name: Dense
+    config:
+      activation: softmax
+      activity_regularizer: null
+      bias_constraint: null
+      bias_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      bias_regularizer: null
+      kernel_constraint: null
+      kernel_initializer:
+        class_name: RandomUniform
+        config: {maxval: 0.003, minval: -0.003, seed: null}
+      kernel_regularizer: null
+      name: output
+      trainable: true
+      units: 3
+      use_bias: true
+    inbound_nodes:
+    - - - lstm_layer
+        - 0
+        - 0
+        - {}
+    name: output
+  name: model_4
+  output_layers:
+  - [output, 0, 0]
+keras_version: 2.1.3
