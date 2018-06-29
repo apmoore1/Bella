@@ -152,6 +152,60 @@ class BaseModel(ABC):
         self._fitted = value
 
 
+class KearsModel(BaseModel):
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        '''
+        Fit the model according to the given training data.
+
+        :param X: Training samples matrix, shape = [n_samples, n_features]
+        :param y: Training targets, shape = [n_samples]
+        :return: The `model` attribute will now be trained.
+        '''
+        pass
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        '''
+        Predict class labels for samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]
+        :return: Predicted class label per sample, shape = [n_samples]
+        '''
+        pass
+
+    def probabilities(self, X: np.ndarray) -> np.ndarray:
+        '''
+        The probability of each class label for all samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]]
+        :return: Probability of each class label for all samples, shape = \
+        [n_samples, n_classes]
+        '''
+        pass
+
+    @staticmethod
+    def save(model: 'BaseModel', save_fp: Path) -> None:
+        '''
+        Saves the entire machine learning model to a file.
+
+        :param model: The machine learning model instance to be saved.
+        :param save_fp: File path of the location that the model is to be \
+        saved to.
+        :return: Nothing.
+        '''
+        pass
+
+    @staticmethod
+    def load(load_fp: Path) -> 'bella.models.base.BaseModel':
+        '''
+        Loads the entire machine learning model from a file.
+
+        :param load_fp: File path of the location that the model was saved to.
+        :return: self
+        '''
+        pass
+
+
 class SKLearnModel(BaseModel):
     '''
     Concrete class that is designed to be used as a Mixin for all machine
@@ -195,10 +249,17 @@ class SKLearnModel(BaseModel):
 
     1. save -- Given a instance of this class will save it to a file.
     2. load -- Loads an instance of this class from a file.
+
+    Abstract Functions:
+
+    1. Pipeline -- Machine Learning model that is used as the base template
+       for the model attribute. Expects it to be a
+       :py:class:`sklearn.pipeline.Pipeline` instance.
     '''
 
     def __init__(self, *args, **kwargs) -> None:
 
+        self.model = self.pipeline()
         self.fitted = False
         self._model_parameters = self.get_parameters(*args, **kwargs)
         self.model.set_params(**self._model_parameters)
@@ -433,3 +494,14 @@ class SKLearnModel(BaseModel):
         for param_dict in params_list:
             param_dict[param_name] = param_value
         return params_list
+
+    @staticmethod
+    @abstractmethod
+    def pipeline() -> 'sklearn.pipeline.Pipeline':
+        '''
+        Machine Learning model that is used as the base template for the model
+        attribute.
+
+        :returns: The template machine learning model
+        '''
+        pass
