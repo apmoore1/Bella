@@ -54,8 +54,20 @@ class TDParseMinus(TargetInd):
         :param scale: How to scale the data before input into the estimator.
                       If no scaling is to be used set this to None.
         '''
+        # Inherit from SKLearnModel __init__ method
+        # The parameters here go into the self.get_parameters method
+        super(TargetInd, self).__init__(word_vectors, parser, tokeniser, lower,
+                                        C, random_state, scale)
 
-        self.model = Pipeline([
+    @staticmethod
+    def pipeline() -> 'sklearn.pipeline.Pipeline':
+        '''
+        Machine Learning model that is used as the base template for the model
+        attribute.
+
+        :returns: The template machine learning model
+        '''
+        return Pipeline([
             ('dependency_context', syntactic_context.SyntacticContext()),
             ('contexts', syntactic_context.Context('full')),
             ('tokens', ContextTokeniser()),
@@ -85,10 +97,6 @@ class TDParseMinus(TargetInd):
             ('scale', MinMaxScaler()),
             ('svm', LinearSVC())
         ])
-        # Inherit from SKLearnModel __init__ method
-        # The parameters here go into the self.get_parameters method
-        super(TargetInd, self).__init__(word_vectors, parser, tokeniser, lower,
-                                        C, random_state, scale)
 
     @classmethod
     def get_parameters(cls,
@@ -127,52 +135,41 @@ class TDParseMinus(TargetInd):
 
     @classmethod
     def get_cv_parameters(cls,
-                          word_vectors: Union[None,
-                                              List[List['bella.word_vectors\
-                                              .WordVectors']]] = None,
-                          parser: Union[None, List[Any]] = None,
-                          tokeniser=None, lower=None,
-                          C=None, random_state=None, scale=None):
+                          word_vectors: List[List['bella.word_vectors\
+                                                        .WordVectors']],
+                          parser: List[Any],
+                          tokeniser=[ark_twokenize],
+                          lower=[True], C=[0.01], random_state=[42],
+                          scale=[MinMaxScaler()]):
         '''
         Transform the given parameters into a list of dictonaries that is
         accepted as `param_grid` parameter in
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]] Default None, use
-                             the word embeddings already within the model.
-        :param parser: A list of dependency parser to be used. Default None,
-                       use the parser already within the model.
-        :param tokenisers: A list of tokeniser to be used
-                           e.g. :py:meth:`str.split`. Default None, only use
-                           default tokeniser.
+                             [SSWE(), GloveCommonCrawl()]].
+        :param parser: A list of dependency parser to be used.
+        :param tokenisers: A list of tokeniser to be used e.g.
+                           :py:meth:`str.split`. Default [ark_twokenize]
         :param lowers: A list of bool values which indicate whether to lower
-                       case the input words. Default None, only use default
-                       setting(True).
+                       case the input words. Default [True]
         :param C: A list of C values for the :py:class:`sklearn.svm.SVC`
-                  estimator that is used in the pipeline. Default None, only
-                  use default setting(C=0.01).
+                  estimator that is used in the pipeline. Default [0.01]
         :param random_state: A list of random_state values for the
-                             :py:class:`sklearn.svm.SVC` estimator that is used
-                             in the pipeline. Default None, only use default
-                             setting(random_state=42).
+                             :py:class:`sklearn.svm.SVC` estimator that is
+                             used in the pipeline. Default [42]
         :param scale: List of scale values. The list can include
                       :py:class:`sklearn.preprocessing.MinMaxScaler` type of
-                      clases or None if no scaling is to be used. Default None,
-                      only use default setting
-                      (:py:class:`sklearn.preprocessing.MinMaxScaler`).
+                      clases or None if no scaling is to be used. Default
+                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]
         :return: Parameters to explore through cross validation
         '''
         params_list = super().get_cv_parameters(word_vectors, tokeniser,
                                                 lower, C, random_state, scale)
-        if params_list == [{}]:
-            params_list = []
-        if parser is not None:
-            dep_context = cls._get_dependency_context()[0]
-            params_list = cls._add_to_all_params(params_list, dep_context,
-                                                 parser)
-        if not params_list:
-            return [{}]
+        # dependency parser
+        dep_context = cls._get_dependency_context()[0]
+        params_list = cls._add_to_all_params(params_list, dep_context,
+                                             parser)
         return params_list
 
     @staticmethod
@@ -216,8 +213,20 @@ class TDParse(TDParseMinus):
         :param scale: How to scale the data before input into the estimator.
                       If no scaling is to be used set this to None.
         '''
+        # Inherit from SKLearnModel __init__ method
+        # The parameters here go into the self.get_parameters method
+        super(TargetInd, self).__init__(word_vectors, parser, tokeniser, lower,
+                                        C, random_state, scale)
 
-        self.model = Pipeline([
+    @staticmethod
+    def pipeline() -> 'sklearn.pipeline.Pipeline':
+        '''
+        Machine Learning model that is used as the base template for the model
+        attribute.
+
+        :returns: The template machine learning model
+        '''
+        return Pipeline([
             ('union', FeatureUnion([
                 ('dependency', Pipeline([
                     ('context', syntactic_context.SyntacticContext()),
@@ -332,10 +341,6 @@ class TDParse(TDParseMinus):
             ('scale', MinMaxScaler()),
             ('svm', LinearSVC())
         ])
-        # Inherit from SKLearnModel __init__ method
-        # The parameters here go into the self.get_parameters method
-        super(TargetInd, self).__init__(word_vectors, parser, tokeniser, lower,
-                                        C, random_state, scale)
 
     @staticmethod
     def _get_word_vector_names() -> List[str]:
@@ -618,59 +623,45 @@ class TDParsePlus(TDParseMinus):
 
     @classmethod
     def get_cv_parameters(cls,
-                          word_vectors: Union[None,
-                                              List[List['bella.word_vectors\
-                                              .WordVectors']]] = None,
-                          parser: Union[None, List[Any]] = None,
-                          senti_lexicon: Union[None,
-                                               List['bella.lexicons\
-                                                     .Lexicon']] = None,
-                          tokeniser=None, lower=None,
-                          C=None, random_state=None, scale=None):
+                          word_vectors: List[List['bella.word_vectors\
+                                                        .WordVectors']],
+                          parser: List[Any],
+                          senti_lexicon: List['bella.lexicons\
+                                                    .Lexicon'],
+                          tokeniser=[ark_twokenize],
+                          lower=[True], C=[0.01], random_state=[42],
+                          scale=[MinMaxScaler()]):
         '''
         Transform the given parameters into a list of dictonaries that is
         accepted as `param_grid` parameter in
         :py:class:`sklearn.model_selection.GridSearchCV`
 
         :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],
-                             [SSWE(), GloveCommonCrawl()]] Default None, use
-                             the word embeddings already within the model.
-        :param parser: A list of dependency parser to be used. Default None,
-                       use the parser already within the model.
+                             [SSWE(), GloveCommonCrawl()]].
+        :param parser: A list of dependency parser to be used.
         :param senti_lexicon: A list of Sentiment Lexicons to be explored for
                               the Left and Right sentiment context (LS and RS).
-                              Default None, use the sentiment lexicons already
-                              within the model.
-        :param tokenisers: A list of tokeniser to be used
-                           e.g. :py:meth:`str.split`. Default None, only use
-                           default tokeniser.
+        :param tokenisers: A list of tokeniser to be used e.g.
+                           :py:meth:`str.split`. Default [ark_twokenize]
         :param lowers: A list of bool values which indicate whether to lower
-                       case the input words. Default None, only use default
-                       setting(True).
+                       case the input words. Default [True]
         :param C: A list of C values for the :py:class:`sklearn.svm.SVC`
-                  estimator that is used in the pipeline. Default None, only
-                  use default setting(C=0.01).
+                  estimator that is used in the pipeline. Default [0.01]
         :param random_state: A list of random_state values for the
-                             :py:class:`sklearn.svm.SVC` estimator that is used
-                             in the pipeline. Default None, only use default
-                             setting(random_state=42).
+                             :py:class:`sklearn.svm.SVC` estimator that is
+                             used in the pipeline. Default [42]
         :param scale: List of scale values. The list can include
                       :py:class:`sklearn.preprocessing.MinMaxScaler` type of
-                      clases or None if no scaling is to be used. Default None,
-                      only use default setting
-                      (:py:class:`sklearn.preprocessing.MinMaxScaler`).
+                      clases or None if no scaling is to be used. Default
+                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]
         :return: Parameters to explore through cross validation
         '''
         params_list = super().get_cv_parameters(word_vectors, parser,
                                                 tokeniser, lower, C,
                                                 random_state, scale)
-        if params_list == [{}]:
-            params_list = []
-        if senti_lexicon is not None:
-            params_list = cls._add_to_params(params_list, senti_lexicon,
-                                             cls._get_word_senti_names())
-        if not params_list:
-            return [{}]
+        # sentiment lexicon
+        params_list = cls._add_to_params(params_list, senti_lexicon,
+                                         cls._get_word_senti_names())
         return params_list
 
     @staticmethod
