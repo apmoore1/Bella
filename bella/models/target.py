@@ -30,9 +30,41 @@ from bella.models.base import SKLearnModel
 
 
 class TargetInd(SKLearnModel):
+    '''
+    Attributes:
+
+    1. model -- Machine learning model. Expects it to be a
+       :py:class:`sklearn.pipeline.Pipeline` instance.
+    2. fitted -- If the machine learning model has been fitted (default False)
+    3. model_parameters -- The parameters that are set in the machine
+       learning model. E.g. Parameter could be the tokeniser used.
+
+    Methods:
+
+    1. fit -- Fit the model according to the given training data.
+    2. predict -- Predict class labels for samples in X.
+    3. probabilities -- The probability of each class label for all samples
+       in X.
+    4. __repr__ -- Name of the machine learning model.
+
+    Class Methods:
+
+    1. get_parameters -- Transform the given parameters into a dictonary
+       that is accepted as model parameters.
+    2. get_cv_parameters -- Transform the given parameters into a list of
+       dictonaries that is accepted as `param_grid` parameter in
+       :py:class:`sklearn.model_selection.GridSearchCV`
+
+    Functions:
+
+    1. save -- Given a instance of this class will save it to a file.
+    2. load -- Loads an instance of this class from a file.
+    3. pipeline -- Machine Learning model that is used as the base template
+       for the model attribute.
+    '''
 
     def __repr__(self) -> str:
-        return 'Target Indepdent'
+        return 'Target Independent'
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  tokeniser: Callable[[str], List[str]] = ark_twokenize,
