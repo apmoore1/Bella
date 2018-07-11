@@ -155,7 +155,8 @@ class BaseModel(ABC):
 class KearsModel(BaseModel):
 
     def fit(self, X: np.ndarray, y: np.ndarray,
-            validation_data: Tuple[np.ndarray, np.ndarray] = None) -> None:
+            validation_data: Tuple[np.ndarray, np.ndarray],
+            verbose: int = 0) -> 'keras.callbacks.History':
         '''
         Fit the model according to the given training data.
 
@@ -164,7 +165,10 @@ class KearsModel(BaseModel):
         :param validation_data: Tuple of `(x_val, y_val)`. Used to evaluate the
                                 model at each epoch. Will not be trained on
                                 this data.
-        :return: The `model` attribute will now be trained.
+        :param verbose: 0 = silent, 1 = progress
+        :return: A record of training loss values and metrics values at
+                 successive epochs, as well as validation loss values and
+                 validation metrics values.
         '''
         pass
 
@@ -267,7 +271,6 @@ class SKLearnModel(BaseModel):
         self.fitted = False
         self._model_parameters = self.get_parameters(*args, **kwargs)
         self.model.set_params(**self._model_parameters)
-        self.fitted = False
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         '''

@@ -3,10 +3,11 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Callable, Any, List, Union
+from typing import Dict, Callable, Any, List, Union, Tuple
 
 import numpy as np
 import tensorflow as tf
+import keras
 from keras import backend as K
 from keras import preprocessing, models, optimizers, initializers, layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -32,7 +33,9 @@ class LSTM():
                  batch_size: int = 32, epochs: int = 300,
                  embedding_layer_kwargs: Dict[str, Any] = None,
                  lstm_layer_kwargs: Dict[str, Any] = None,
-                 dense_layer_kwargs: Dict[str, Any] = None):
+                 dense_layer_kwargs: Dict[str, Any] = None,
+                 optimiser: 'keras.optimizers.Optimizer' = optimizers.SGD()
+                 ) -> None:
         '''
         :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`.
         :param embeddings: Embedding (Word vectors) to be used e.g.
@@ -44,25 +47,53 @@ class LSTM():
                          use the text sequence in the training data that has
                          the most tokens as the pad size.
         :param lower: Whether to lower case the words being processed.
-        :param lstm_dimension: Output of the LSTM layer. If None it is the \
-        which is the default then the dimension will be the same as the \
-        embedding vector.
-        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
-        `keras optimiser <https://keras.io/optimizers/>`_.
-        :param patience: Wether or not to use EarlyStopping default is not \
-        stated by the None value. If so this is the patience value e.g. 5.
-        :param batch_size: Number of samples per gradient update
-        :param epochs: Number of epochs to train the model.
-        :returns: The instance of TLSTM
-        :rtype: :py:class:`bella.models.tdlstm.TLSTM`
+        :param patience: Number of epochs with no improvement before training
+                         is stopped.
+        :param batch_size: Number of samples per gradient update.
+        :param epochs: Number of times to train over the entire training set
+                       before stopping. If patience is set, then it may
+                       stop before reaching the number of epochs specified
+                       here.
+        :param embedding_layer_kwargs: Keyword arguments to pass to the
+                                       embedding layer which is a
+                                       :py:class:`keras.layers.Embedding`
+                                       object. If no parameters to pass leave
+                                       as None.
+        :param lstm_layer_kwargs: Keyword arguments to pass to the lstm
+                                  layer(s) which is a
+                                  :py:class:`keras.layers.LSTM` object. If no
+                                  parameters to pass leave as None.
+        :param dense_layer_kwargs: Keyword arguments to pass to the dense
+                                   (final layer) which is a
+                                   :py:class:`keras.layers.Dense` object. If no
+                                   parameters to pass leave as None.
+        :param optimiser: Optimiser to be used accepts any
+                          `keras optimiser <https://keras.io/optimizers/>`_.
+                          Default is :py:class:`keras.optimizers.SGD`
         '''
 
         self.tokeniser = tokeniser
         self.embeddings = embeddings
+        self.reproducible = reproducible
         self.pad_size = pad_size
         self.test_pad_size = 0
         self.lower = lower
+        self.patience = patience
+        self.batch_size = batch_size
+        self.epochs = epochs
+
+        self.embedding_layer_kwargs = embedding_layer_kwargs
+        if embedding_layer_kwargs is None:
+            self.embedding_layer_kwargs = {}
+        self.lstm_layer_kwargs = lstm_layer_kwargs
+        if lstm_layer_kwargs is None:
+            self.lstm_layer_kwargs = {}
+        self.dense_layer_kwargs = dense_layer_kwargs
+        if dense_layer_kwargs is None:
+            self.dense_layer_kwargs = {}
+        self.optimiser = optimiser
         self.model = None
+        self.fitted = False
 
     def save_model(self, model_arch_fp, model_weights_fp, verbose=0):
         if self.model is None:
@@ -142,8 +173,8 @@ class LSTM():
         if max_length == 0:
             raise ValueError('The max length of a sequence cannot be zero')
         elif max_length < -1:
-            raise ValueError('The max length has to be either -1 or above '\
-                             'zero not {}'.format(max_length))
+            raise ValueError('The max length has to be either -1 or above '
+                             f'zero not {max_length}')
 
         # Process the text into integers based on the embeddings given
         all_sequence_data = []
@@ -170,7 +201,8 @@ class LSTM():
         return (max_length,
                 preprocessing.sequence.pad_sequences(all_sequence_data,
                                                      maxlen=max_length,
-                                                     dtype='int32', padding=padding,
+                                                     dtype='int32',
+                                                     padding=padding,
                                                      truncating=truncate))
     @staticmethod
     def validation_split(train_data, train_y, validation_size=0.2,
@@ -203,22 +235,23 @@ class LSTM():
                     train_data[validation_index], train_y[validation_index])
 
     def create_training_y(self, train_y, validation_y):
-        all_y = np.hstack((train_y, validation_y))
-        # Convert the training true values into categorical data format
-        num_classes = np.unique(all_y).shape[0]
-        all_y = to_categorical(all_y, num_classes=num_classes)\
-                .astype(np.float32)
-        return all_y
+        train_y = to_categorical(train_y).astype(np.float32)
+        validation_y = to_categorical(validation_y).astype(np.float32)
+        if train_y.shape[1] != validation_y.shape[1]:
+            raise ValueError('The number of classes in the training data '
+                             f'{train_y.shape[1]} is not equal to the number '
+                             'of classes in the validation data '
+                             f'{validation_y.shape[1]}')
+        return train_y, validation_y
 
     def _pre_process(self, data_dicts, training=False):
         text_data = [data['text'] for data in data_dicts]
         if training:
             if self.model is not None:
-                raise ValueError('When pre-process the data for training the '\
-                                 'the model should be None not {}'\
-                                 .format(self.model))
-            self.test_pad_size, sequence_data = self.process_text(text_data,
-                                                                  self.pad_size)
+                raise ValueError('When pre-process the data for training the '
+                                 f'the model should be None not {self.model}')
+            pad_data = self.process_text(text_data, self.pad_size)
+            self.test_pad_size, sequence_data = pad_data
             return sequence_data
         else:
             _, sequence_data = self.process_text(text_data, self.test_pad_size)
@@ -248,8 +281,8 @@ class LSTM():
         sequence_train_data = self._pre_process(train_data, training=True)
         sequence_val_data = self._pre_process(validation_data, training=False)
         # Stack the validation data with the training data to complie with Keras.
-        all_text = np.vstack((sequence_train_data, sequence_val_data))
-        return all_text
+        # all_text = np.vstack((sequence_train_data, sequence_val_data))
+        return sequence_train_data, sequence_val_data
 
 
     def fit_predict(self, train_data, train_y, test_data, test_y,
@@ -412,79 +445,75 @@ class LSTM():
         return scorer(norm_true_values, pred_values, *args, **kwargs)
 
     @staticmethod
-    def _to_be_reproducible(reproducible: int):
-        os.environ['PYTHONHASHSEED'] = f'{str(reproducible)}'
-        np.random.seed(reproducible)
-        rn.seed(reproducible)
-        # Forces tensorflow to use only one thread
-        session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
-                                      inter_op_parallelism_threads=1)
-        tf.set_random_seed(reproducible)
-
-        sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-        K.set_session(sess)
-
-
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=0,
-            reproducible=True, embedding_layer_trainable=False,
-            lstm_dimension=None, optimiser=None, patience=None,
-            batch_size=32, epochs=100, org_initialisers=True):
+    def _to_be_reproducible(reproducible: Union[int, None]) -> None:
         '''
-        :param train_data: Training features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :param train_y: Target values of the training data
-        :param validation_size: The fraction of the training data to be set aside \
-        for validation data
-        :param verbose: Verbosity of the traning the model. 0=silent, \
-        1=progress bar, and 2=one line per epoch
-        :param reproducible: Wether or not to make the model to be reproducible. \
-        This will slow done the training.
-        :param embedding_layer_trainable: Whether the word embeddings weights \
-        are updated during training.
-        :param lstm_dimension: Output of the LSTM layer. If None it is the \
-        which is the default then the dimension will be the same as the \
-        embedding vector.
-        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
-        `keras optimiser <https://keras.io/optimizers/>`_.
-        :param patience: Wether or not to use EarlyStopping default is not \
-        stated by the None value. If so this is the patience value e.g. 5.
-        :param batch_size: Number of samples per gradient update
-        :param epochs: Number of epochs to train the model.
-        :param org_initialisers: Whether to use the original weight initializers \
-        that were stated in the paper. If False then use Keras default initializers.
-        :type train_data: list
-        :type train_y: list
-        :type validation_size: float. Default 0.2
-        :type verbose: int. Default 1
-        :type reproducible: bool. Default True.
-        :type embedding_layer_trainable: bool. Default False
-        :type lstm_dimension: int. Default None
-        :type optimiser: Keras optimiser. Default None which uses SDG.
-        :type patience: int. Default None.
-        :type batch_size: int. Default 32
-        :type epochs: int. Default 100.
-        :type org_initialisers: bool. Default True
-        :returns: Nothing. The self.model will be fitted.
-        :rtype: None
+        To make the method reproducible or not. If it is not needed then
+        we can use all the python threads.
+
+        :param reproducible: If int is provided this int is used as the seed
+                             values. Else None should be given if it is not
+                             to be reproducible.
         '''
+        if reproducible is not None:
+            os.environ['PYTHONHASHSEED'] = '0'
+            np.random.seed(reproducible)
+            rn.seed(reproducible)
+            # Forces tensorflow to use only one thread
+            session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+                                          inter_op_parallelism_threads=1)
+            tf.set_random_seed(reproducible)
 
-        self.model = None
-        self._to_be_reproducible(reproducible)
+            sess = tf.Session(graph=tf.get_default_graph(),
+                              config=session_conf)
+            K.set_session(sess)
+        else:
+            np.random.seed(None)
+            rn.seed(np.random.randint(0, 1000))
+            tf.set_random_seed(np.random.randint(0, 1000))
 
-        # Data pre-processing
-        data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size,
-                                     reproducible=reproducible)
-        temp_train, temp_train_y, validation_data, validation_y = data
-        all_data = self.create_training_text(temp_train, validation_data)
-        all_y = self.create_training_y(temp_train_y, validation_y)
-        num_classes = all_y.shape[1]
+    def fit(self, X: np.ndarray, y: np.ndarray,
+            validation_data: Tuple[np.ndarray, np.ndarray],
+            verbose: int = 0) -> 'keras.callbacks.History':
+        '''
+        Fit the model according to the given training data.
 
-        # LSTM model
+        :param X: Training samples matrix, shape = [n_samples, n_features]
+        :param y: Training targets, shape = [n_samples]
+        :param validation_data: Tuple of `(x_val, y_val)`. Used to evaluate the
+                                model at each epoch. Will not be trained on
+                                this data.
+        :param verbose: 0 = silent, 1 = progress
+        :return: A record of training loss values and metrics values at
+                 successive epochs, as well as validation loss values and
+                 validation metrics values.
+        '''
+        self._to_be_reproducible(self.reproducible)
+
+        X_val, y_val = validation_data
+        if sum(y_val < 0) or sum(y < 0):
+            raise ValueError('The class labels have to be greater than 0')
+        X, X_val = self.create_training_text(X, X_val)
+        y, y_val = self.create_training_y(y, y_val)
+        num_classes = y.shape[1]
+        if verbose:
+            print(f'Number of classes in the data {num_classes}')
+
+        # Embeddings
         embedding_matrix = self.embeddings.embedding_matrix
         vocab_size, vector_size = embedding_matrix.shape
-        if lstm_dimension is None:
-            lstm_dimension = vector_size
+
+        embedding_layer_kwargs = self.embedding_layer_kwargs
+        embedding_layer_trainable = True
+        if 'trainable' in embedding_layer_kwargs:
+            embedding_layer_trainable = embedding_layer_kwargs.pop('trainable')
+
+        lstm_layer_kwargs = self.lstm_layer_kwargs
+        lstm_dimension = vector_size
+        if 'cell' in self.lstm_layer_kwargs:
+            lstm_dimension = lstm_layer_kwargs.pop('cell')
+
+        dense_layer_kwargs = self.dense_layer_kwargs
+        # output_activation = 'softmax' if num_classes > 2 else ''
         # Model layers
         input_layer = layers.Input(shape=(self.test_pad_size,),
                                    name='text_input')
@@ -494,68 +523,45 @@ class LSTM():
                                      input_length=self.test_pad_size,
                                      trainable=embedding_layer_trainable,
                                      weights=[embedding_matrix],
-                                     name='embedding_layer')(input_layer)
+                                     name='embedding_layer',
+                                     **embedding_layer_kwargs
+                                     )(input_layer)
         lstm_layer = layers.LSTM(lstm_dimension,
-                                 name='lstm_layer')(embedding_layer)
+                                 name='lstm_layer',
+                                 **lstm_layer_kwargs)(embedding_layer)
         prediction_layer = layers.Dense(num_classes, activation='softmax',
-                                        name='output')(lstm_layer)
-        if org_initialisers:
-            uniform_init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
-            lstm_init = {'kernel_initializer' : uniform_init,
-                         'recurrent_initializer' : uniform_init,
-                         'bias_initializer' : uniform_init}
-            dense_init = {'kernel_initializer' : uniform_init,
-                          'bias_initializer' : uniform_init}
-            embedding_init = {'embeddings_initializer' : uniform_init}
-            # Model layers
-            embedding_layer = layers\
-                              .Embedding(input_dim=vocab_size,
-                                         output_dim=vector_size,
-                                         input_length=self.test_pad_size,
-                                         trainable=embedding_layer_trainable,
-                                         weights=[embedding_matrix],
-                                         name='embedding_layer',
-                                         **embedding_init)(input_layer)
-            lstm_layer = layers.LSTM(lstm_dimension, name='lstm_layer',
-                                     **lstm_init)(embedding_layer)
-            prediction_layer = layers.Dense(num_classes, activation='softmax',
-                                            name='output', **dense_init)\
-                                           (lstm_layer)
+                                        name='output',
+                                        **dense_layer_kwargs)(lstm_layer)
 
         model = models.Model(inputs=input_layer, outputs=prediction_layer)
-
-        if optimiser is None:
-            optimiser = optimizers.SGD(lr=0.01)
-        model.compile(optimizer=optimiser, metrics=['accuracy'],
+        model.compile(optimizer=self.optimiser, metrics=['accuracy'],
                       loss='categorical_crossentropy')
         with tempfile.NamedTemporaryFile() as weight_file:
             # Set up the callbacks
-            callbacks = None
-            if patience is not None:
-                model_checkpoint = ModelCheckpoint(weight_file.name,
-                                                   monitor='val_loss',
-                                                   save_best_only=True,
-                                                   save_weights_only=True,
-                                                   mode='min')
-                early_stopping = EarlyStopping(monitor='val_loss', mode='min',
-                                               patience=patience)
-                callbacks = [early_stopping, model_checkpoint]
-            history = model.fit(all_data, all_y, validation_split=validation_size,
-                                epochs=epochs, callbacks=callbacks,
-                                verbose=verbose, batch_size=batch_size)
+            model_checkpoint = ModelCheckpoint(weight_file.name,
+                                               monitor='val_loss',
+                                               save_best_only=True,
+                                               save_weights_only=True,
+                                               mode='min')
+            early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                           patience=self.patience)
+            callbacks = [early_stopping, model_checkpoint]
+            history = model.fit(X, y, validation_data=(X_val, y_val),
+                                epochs=self.epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=self.batch_size)
             # Load the best model from the saved weight file
-            if patience is not None:
-                model.load_weights(weight_file.name)
+            model.load_weights(weight_file.name)
         self.model = model
+        self.fitted = True
         return history
 
-    def predict(self, test_data, sentiment_mapper=None):
+    def probabilities(self, X: np.ndarray) -> np.ndarray:
         '''
-        :param test_y: Test features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :type test_y: list
-        :returns: A list of predicted samples for the test data.
-        :rtype: numpy.ndarray
+        The probability of each class label for all samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]]
+        :return: Probability of each class label for all samples, shape = \
+        [n_samples, n_classes]
         '''
 
         if self.model is None:
@@ -563,14 +569,19 @@ class LSTM():
                              '`fit` method.')
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
-        sequence_test_data = self._pre_process(test_data, training=False)
-        pred_values = self.model.predict(sequence_test_data)
-        if sentiment_mapper is None:
-            return pred_values
-        pred_labels = np.argmax(pred_values, axis=1)
-        pred_labels = [sentiment_mapper[pred_label] for
-                       pred_label in pred_labels]
-        return np.array(pred_labels)
+        sequence_test_data = self._pre_process(X, training=False)
+        predicted_values = self.model.predict(sequence_test_data)
+        return predicted_values
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        '''
+        Predict class labels for samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]
+        :return: Predicted class label per sample, shape = [n_samples]
+        '''
+
+        return np.argmax(self.probabilities(X), axis=1)
 
 
 
@@ -614,57 +625,109 @@ class LSTM():
         plot_model(self.model, to_file=file_path, show_shapes=True,
                    show_layer_names=True, rankdir=rankdir)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+
+        :return: Name of the machine learning model.
+        '''
+
         return 'LSTM'
+
 
 class TDLSTM(LSTM):
 
-    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False,
-                 inc_target=True):
+    def __init__(self, tokeniser: Callable[[str], List[str]],
+                 embeddings: 'bella.word_vectors.WordVectors',
+                 reproducible: Union[int, None] = None, pad_size: int = -1,
+                 lower: bool = True, patience: int = 10,
+                 batch_size: int = 32, epochs: int = 300,
+                 embedding_layer_kwargs: Dict[str, Any] = None,
+                 lstm_layer_kwargs: Dict[str, Any] = None,
+                 dense_layer_kwargs: Dict[str, Any] = None,
+                 optimiser: 'keras.optimizers.Optimizer' = optimizers.SGD(),
+                 include_target: bool = True) -> None:
         '''
-        :param pad_size: Applies to both the right and left hand side. However \
-        if -1 is set then the left and right maximum pad size is found \
-        independently.
-        :type pad_size: int
+        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`.
+        :param embeddings: Embedding (Word vectors) to be used e.g.
+                           :py:class:`bella.word_vectors.SSWE`
+        :param reproducible: Whether to be reproducible. If None then it is
+                             but quicker to run. Else provide a `int` that
+                             will represent the random seed value.
+        :param pad_size: The max number of tokens to use per sequence. If -1
+                         use the text sequence in the training data that has
+                         the most tokens as the pad size.
+        :param lower: Whether to lower case the words being processed.
+        :param patience: Number of epochs with no improvement before training
+                         is stopped.
+        :param batch_size: Number of samples per gradient update.
+        :param epochs: Number of times to train over the entire training set
+                       before stopping. If patience is set, then it may
+                       stop before reaching the number of epochs specified
+                       here.
+        :param embedding_layer_kwargs: Keyword arguments to pass to the
+                                       embedding layer which is a
+                                       :py:class:`keras.layers.Embedding`
+                                       object. If no parameters to pass leave
+                                       as None.
+        :param lstm_layer_kwargs: Keyword arguments to pass to the lstm
+                                  layer(s) which is a
+                                  :py:class:`keras.layers.LSTM` object. If no
+                                  parameters to pass leave as None.
+        :param dense_layer_kwargs: Keyword arguments to pass to the dense
+                                   (final layer) which is a
+                                   :py:class:`keras.layers.Dense` object. If no
+                                   parameters to pass leave as None.
+        :param optimiser: Optimiser to be used accepts any
+                          `keras optimiser <https://keras.io/optimizers/>`_.
+                          Default is :py:class:`keras.optimizers.SGD`
+        :param include_target: Wheather to include the target in the LSTM
+                               representations.
         '''
-        super().__init__(tokeniser, embeddings, pad_size=pad_size, lower=lower)
+
+        super().__init__(tokeniser, embeddings, reproducible, pad_size, lower,
+                         patience, batch_size, epochs, embedding_layer_kwargs,
+                         lstm_layer_kwargs, dense_layer_kwargs, optimiser)
+
         self.left_pad_size = pad_size
         self.left_test_pad_size = 0
         self.right_pad_size = pad_size
         self.right_test_pad_size = 0
-        self.inc_target = inc_target
+        self.include_target = include_target
+        del self.pad_size
 
     def load_model(self, model_arch_fp, model_weights_fp, verbose=0):
         super().load_model(model_arch_fp, model_weights_fp, verbose=verbose)
         self.left_test_pad_size = self.model.inputs[0].shape.dims[1].value
         self.right_test_pad_size = self.model.inputs[1].shape.dims[1].value
 
-
-    def predict(self, test_data, sentiment_mapper=None):
+    def probabilities(self, X: np.ndarray) -> np.ndarray:
         '''
-        :param test_y: Test features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :type test_y: list
-        :returns: A list of predicted samples for the test data.
-        :rtype: numpy.ndarray
+        The probability of each class label for all samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]]
+        :return: Probability of each class label for all samples, shape = \
+        [n_samples, n_classes]
         '''
 
         if self.model is None:
-            raise ValueError('The model has not been fitted please run the '\
+            raise ValueError('The model has not been fitted please run the '
                              '`fit` method.')
         # Convert from a sequence of dictionaries into texts and then integers
         # that represent the tokens in the text within the embedding space.
-        left_sequence, right_sequence = self._pre_process(test_data,
-                                                          training=False)
+        sequence_test_data = self._pre_process(X, training=False)
+        predicted_values = self.model.predict(sequence_test_data)
+        return predicted_values
 
-        pred_values = self.model.predict({'left_text_input': left_sequence,
-                                          'right_text_input': right_sequence})
-        if sentiment_mapper is None:
-            return pred_values
-        pred_labels = np.argmax(pred_values, axis=1)
-        pred_labels = [sentiment_mapper[pred_label] for
-                       pred_label in pred_labels]
-        return np.array(pred_labels)
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        '''
+        Predict class labels for samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]
+        :return: Predicted class label per sample, shape = [n_samples]
+        '''
+
+        return np.argmax(self.probabilities(X), axis=1)
 
     def _pre_process(self, data_dicts, training=False):
 
@@ -675,9 +738,9 @@ class TDLSTM(LSTM):
             # Thus these are a list of lists we therefore chose only the
             # first mentioned target as the paper linked to this method does
             # not specify which they used.
-            left_texts = [context(data, 'left', inc_target=self.inc_target) \
-                         for data in context_data_dicts]
-            right_texts = [context(data, 'right', inc_target=self.inc_target) \
+            left_texts = [context(data, 'left', inc_target=self.include_target)
+                          for data in context_data_dicts]
+            right_texts = [context(data, 'right', inc_target=self.include_target)
                            for data in context_data_dicts]
             left_texts = [texts[0] for texts in left_texts]
             right_texts = [texts[0] for texts in right_texts]
@@ -690,14 +753,15 @@ class TDLSTM(LSTM):
         left_text, right_text = context_texts(data_dicts)
         if training:
             if self.model is not None:
-                raise ValueError('When pre-process the data for training the '\
-                                 'the model should be None not {}'\
-                                 .format(self.model))
+                raise ValueError('When pre-process the data for training the '
+                                 f'the model should be None not {self.model}')
             left_pad_sequence = self.process_text(left_text, self.left_pad_size)
             self.left_test_pad_size, left_sequence = left_pad_sequence
 
-            right_pad_sequence = self.process_text(right_text, self.right_pad_size,
-                                                   padding='post', truncate='post')
+            right_pad_sequence = self.process_text(right_text,
+                                                   self.right_pad_size,
+                                                   padding='post',
+                                                   truncate='post')
             self.right_test_pad_size, right_sequence = right_pad_sequence
             return left_sequence, right_sequence
         else:
@@ -707,10 +771,10 @@ class TDLSTM(LSTM):
 
             right_pad_sequence = self.process_text(right_text,
                                                    self.right_test_pad_size,
-                                                   padding='post', truncate='post')
+                                                   padding='post',
+                                                   truncate='post')
             _, right_sequence = right_pad_sequence
-            return left_sequence, right_sequence
-
+            return [left_sequence, right_sequence]
 
     def create_training_text(self, train_data, validation_data):
         '''
@@ -731,78 +795,53 @@ class TDLSTM(LSTM):
         :rtype: tuple
         '''
 
-        train_sequences  = self._pre_process(train_data, training=True)
-        left_sequence_train, right_sequence_train = train_sequences
-        validation_sequences  = self._pre_process(validation_data, training=False)
-        left_sequence_val, right_sequence_val = validation_sequences
+        train_sequences = self._pre_process(train_data, training=True)
+        validation_sequences = self._pre_process(validation_data,
+                                                 training=False)
+        return train_sequences, validation_sequences
 
-        # Stack the validation data with the training data to complie with Keras.
-        left_data = np.vstack((left_sequence_train, left_sequence_val))
-        right_data = np.vstack((right_sequence_train, right_sequence_val))
-        return left_data, right_data
-
-    def fit(self, train_data, train_y, validation_size=0.2, verbose=0,
-            reproducible=True, embedding_layer_trainable=False,
-            lstm_dimension=None, optimiser=None, patience=None,
-            batch_size=32, epochs=100, org_initialisers=True):
+    def fit(self, X: np.ndarray, y: np.ndarray,
+            validation_data: Tuple[np.ndarray, np.ndarray],
+            verbose: int = 0) -> 'keras.callbacks.History':
         '''
-        :param train_data: Training features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :param train_y: Target values of the training data
-        :param validation_size: The fraction of the training data to be set aside \
-        for validation data
-        :param verbose: Verbosity of the traning the model. 0=silent, \
-        1=progress bar, and 2=one line per epoch
-        :param reproducible: Wether or not to make the model to be reproducible. \
-        This will slow done the training.
-        :param embedding_layer_trainable: Whether the word embeddings weights \
-        are updated during training.
-        :param lstm_dimension: Output of the LSTM layer. If None it is the \
-        which is the default then the dimension will be the same as the \
-        embedding vector.
-        :param optimiser: Optimiser to for the LSTM default is SGD. Accepts any \
-        `keras optimiser <https://keras.io/optimizers/>`_.
-        :param patience: Wether or not to use EarlyStopping default is not \
-        stated by the None value. If so this is the patience value e.g. 5.
-        :param batch_size: Number of samples per gradient update
-        :param epochs: Number of epochs to train the model.
-        :param org_initialisers: Whether to use the original weight initializers \
-        that were stated in the paper. If False then use Keras default initializers.
-        :type train_data: list
-        :type train_y: list
-        :type validation_size: float. Default 0.2
-        :type verbose: int. Default 1
-        :type reproducible: bool. Default True.
-        :type embedding_layer_trainable: bool. Default False
-        :type lstm_dimension: int. Default None
-        :type optimiser: Keras optimiser. Default None which uses SDG.
-        :type patience: int. Default None.
-        :type batch_size: int. Default 32
-        :type epochs: int. Default 100.
-        :type org_initialisers: bool. Default True
-        :returns: Nothing. The self.model will be fitted.
-        :rtype: None
+        Fit the model according to the given training data.
+
+        :param X: Training samples matrix, shape = [n_samples, n_features]
+        :param y: Training targets, shape = [n_samples]
+        :param validation_data: Tuple of `(x_val, y_val)`. Used to evaluate the
+                                model at each epoch. Will not be trained on
+                                this data.
+        :param verbose: 0 = silent, 1 = progress
+        :return: A record of training loss values and metrics values at
+                 successive epochs, as well as validation loss values and
+                 validation metrics values.
         '''
+        self._to_be_reproducible(self.reproducible)
 
-        self.model = None
-        self._to_be_reproducible(reproducible)
+        X_val, y_val = validation_data
+        if sum(y_val < 0) or sum(y < 0):
+            raise ValueError('The class labels have to be greater than 0')
+        X, X_val = self.create_training_text(X, X_val)
+        y, y_val = self.create_training_y(y, y_val)
+        num_classes = y.shape[1]
+        if verbose:
+            print(f'Number of classes in the data {num_classes}')
 
-        # Data pre-processing
-        data = self.validation_split(train_data, train_y,
-                                     validation_size=validation_size,
-                                     reproducible=reproducible)
-        temp_train, temp_train_y, validation_data, validation_y = data
-        left_data, right_data = self.create_training_text(temp_train, validation_data)
-        all_y = self.create_training_y(temp_train_y, validation_y)
-        num_classes = all_y.shape[1]
-
-        # LSTM model
+        # Embeddings
         embedding_matrix = self.embeddings.embedding_matrix
         vocab_size, vector_size = embedding_matrix.shape
-        if lstm_dimension is None:
-            lstm_dimension = vector_size
-        if optimiser is None:
-            optimiser = optimizers.SGD(lr=0.01)
+
+        embedding_layer_kwargs = self.embedding_layer_kwargs
+        embedding_layer_trainable = True
+        if 'trainable' in embedding_layer_kwargs:
+            embedding_layer_trainable = embedding_layer_kwargs.pop('trainable')
+
+        lstm_layer_kwargs = self.lstm_layer_kwargs
+        lstm_dimension = vector_size
+        if 'cell' in self.lstm_layer_kwargs:
+            lstm_dimension = lstm_layer_kwargs.pop('cell')
+
+        dense_layer_kwargs = self.dense_layer_kwargs
         # Model layers
         # Left LSTM
         left_input = layers.Input(shape=(self.left_test_pad_size,),
@@ -813,9 +852,13 @@ class TDLSTM(LSTM):
                                           input_length=self.left_test_pad_size,
                                           trainable=embedding_layer_trainable,
                                           weights=[embedding_matrix],
-                                          name='left_embedding_layer')(left_input)
+                                          name='left_embedding_layer',
+                                          **embedding_layer_kwargs
+                                          )(left_input)
         left_lstm_layer = layers.LSTM(lstm_dimension,
-                                      name='left_lstm_layer')(left_embedding_layer)
+                                      name='left_lstm_layer',
+                                      **lstm_layer_kwargs
+                                      )(left_embedding_layer)
         # Right LSTM
         right_input = layers.Input(shape=(self.right_test_pad_size,),
                                    name='right_text_input')
@@ -825,71 +868,42 @@ class TDLSTM(LSTM):
                                            input_length=self.right_test_pad_size,
                                            trainable=embedding_layer_trainable,
                                            weights=[embedding_matrix],
-                                           name='right_embedding_layer')(right_input)
+                                           name='right_embedding_layer',
+                                           **embedding_layer_kwargs
+                                           )(right_input)
         right_lstm_layer = layers.LSTM(lstm_dimension,
-                                       name='right_lstm_layer')(right_embedding_layer)
+                                       name='right_lstm_layer',
+                                       **lstm_layer_kwargs
+                                       )(right_embedding_layer)
         # Merge the outputs of the left and right LSTMs
         merge_layer = layers.concatenate([left_lstm_layer, right_lstm_layer],
                                          name='left_right_lstm_merge')
         predictions = layers.Dense(num_classes, activation='softmax',
-                                   name='output')(merge_layer)
-
-        if org_initialisers:
-            uniform_init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
-            lstm_init = {'kernel_initializer' : uniform_init,
-                         'recurrent_initializer' : uniform_init,
-                         'bias_initializer' : uniform_init}
-            dense_init = {'kernel_initializer' : uniform_init,
-                          'bias_initializer' : uniform_init}
-            embedding_init = {'embeddings_initializer' : uniform_init}
-            # Model layers
-            left_embedding_layer = layers\
-                                   .Embedding(input_dim=vocab_size,
-                                              output_dim=vector_size,
-                                              input_length=self.left_test_pad_size,
-                                              trainable=embedding_layer_trainable,
-                                              weights=[embedding_matrix],
-                                              name='left_embedding_layer',
-                                              **embedding_init)(left_input)
-            left_lstm_layer = layers.LSTM(lstm_dimension, name='left_lstm_layer',
-                                          **lstm_init)(left_embedding_layer)
-            right_embedding_layer = layers\
-                                    .Embedding(input_dim=vocab_size,
-                                               output_dim=vector_size,
-                                               input_length=self.right_test_pad_size,
-                                               trainable=embedding_layer_trainable,
-                                               weights=[embedding_matrix],
-                                               name='right_embedding_layer',
-                                               **embedding_init)(right_input)
-            right_lstm_layer = layers.LSTM(lstm_dimension, name='right_lstm_layer',
-                                           **lstm_init)(right_embedding_layer)
-            predictions = layers.Dense(num_classes, activation='softmax',
-                                       name='output', **dense_init)(merge_layer)
+                                   name='output',
+                                   **dense_layer_kwargs)(merge_layer)
 
         model = models.Model(inputs=[left_input, right_input],
                              outputs=predictions)
-        model.compile(optimizer=optimiser, metrics=['accuracy'],
+        model.compile(optimizer=self.optimiser, metrics=['accuracy'],
                       loss='categorical_crossentropy')
         with tempfile.NamedTemporaryFile() as weight_file:
             # Set up the callbacks
-            callbacks = None
-            if patience is not None:
-                model_checkpoint = ModelCheckpoint(weight_file.name,
-                                                   monitor='val_loss',
-                                                   save_best_only=True,
-                                                   save_weights_only=True,
-                                                   mode='min')
-                early_stopping = EarlyStopping(monitor='val_loss', mode='min',
-                                               patience=patience)
-                callbacks = [early_stopping, model_checkpoint]
-            history = model.fit([left_data, right_data], all_y,
-                                validation_split=validation_size,
-                                epochs=epochs, callbacks=callbacks,
-                                verbose=verbose, batch_size=batch_size)
+            model_checkpoint = ModelCheckpoint(weight_file.name,
+                                               monitor='val_loss',
+                                               save_best_only=True,
+                                               save_weights_only=True,
+                                               mode='min')
+            early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                           patience=self.patience)
+            callbacks = [early_stopping, model_checkpoint]
+            history = model.fit([*X], y,
+                                validation_data=([X_val[0], X_val[1]], y_val),
+                                epochs=self.epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=self.batch_size)
             # Load the best model from the saved weight file
-            if patience is not None:
-                model.load_weights(weight_file.name)
+            model.load_weights(weight_file.name)
         self.model = model
+        self.fitted = True
         return history
 
     def __repr__(self):
