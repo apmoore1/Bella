@@ -14,7 +14,7 @@ Mixin classes:
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import copy
-from typing import Any, List, Dict, Union
+from typing import Any, List, Dict, Union, Tuple
 from pathlib import Path
 
 import numpy as np
@@ -154,12 +154,16 @@ class BaseModel(ABC):
 
 class KearsModel(BaseModel):
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+    def fit(self, X: np.ndarray, y: np.ndarray,
+            validation_data: Tuple[np.ndarray, np.ndarray] = None) -> None:
         '''
         Fit the model according to the given training data.
 
         :param X: Training samples matrix, shape = [n_samples, n_features]
         :param y: Training targets, shape = [n_samples]
+        :param validation_data: Tuple of `(x_val, y_val)`. Used to evaluate the
+                                model at each epoch. Will not be trained on
+                                this data.
         :return: The `model` attribute will now be trained.
         '''
         pass

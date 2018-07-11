@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 from pathlib import Path
+from typing import Dict, Callable, Any, List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -18,18 +19,30 @@ from IPython.display import SVG
 
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
+import bella
 from bella.contexts import context
 from bella.neural_pooling import matrix_median
 from bella.notebook_helper import get_json_data, write_json_data
 
 class LSTM():
-    def __init__(self, tokeniser, embeddings, pad_size=-1, lower=False):
+    def __init__(self, tokeniser: Callable[[str], List[str]],
+                 embeddings: 'bella.word_vectors.WordVectors',
+                 reproducible: Union[int, None] = None, pad_size: int = -1,
+                 lower: bool = True, patience: int = 10,
+                 batch_size: int = 32, epochs: int = 300,
+                 embedding_layer_kwargs: Dict[str, Any] = None,
+                 lstm_layer_kwargs: Dict[str, Any] = None,
+                 dense_layer_kwargs: Dict[str, Any] = None):
         '''
-        :param tokeniser: The tokeniser function to tokenise the text.
-        :param embeddings: The embeddings to use
-        :param pad_size: The max number of tokens to use per sequence. If -1 \
-        use the text sequence in the training data that has the most tokens as \
-        the pad size.
+        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`.
+        :param embeddings: Embedding (Word vectors) to be used e.g.
+                           :py:class:`bella.word_vectors.SSWE`
+        :param reproducible: Whether to be reproducible. If None then it is
+                             but quicker to run. Else provide a `int` that
+                             will represent the random seed value.
+        :param pad_size: The max number of tokens to use per sequence. If -1
+                         use the text sequence in the training data that has
+                         the most tokens as the pad size.
         :param lower: Whether to lower case the words being processed.
         :param lstm_dimension: Output of the LSTM layer. If None it is the \
         which is the default then the dimension will be the same as the \
@@ -40,10 +53,6 @@ class LSTM():
         stated by the None value. If so this is the patience value e.g. 5.
         :param batch_size: Number of samples per gradient update
         :param epochs: Number of epochs to train the model.
-        :type tokeniser: function
-        :type embeddings: :py:class:`bella.word_vectors.WordVectors` instance
-        :type pad_size: int. Default -1
-        :type lower: bool. Default False
         :returns: The instance of TLSTM
         :rtype: :py:class:`bella.models.tdlstm.TLSTM`
         '''
@@ -403,22 +412,17 @@ class LSTM():
         return scorer(norm_true_values, pred_values, *args, **kwargs)
 
     @staticmethod
-    def _to_be_reproducible(reproducible):
-        if reproducible:
-            os.environ['PYTHONHASHSEED'] = '0'
-            np.random.seed(42)
-            rn.seed(42)
-            # Forces tensorflow to use only one thread
-            session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
-                                          inter_op_parallelism_threads=1)
-            tf.set_random_seed(1234)
+    def _to_be_reproducible(reproducible: int):
+        os.environ['PYTHONHASHSEED'] = f'{str(reproducible)}'
+        np.random.seed(reproducible)
+        rn.seed(reproducible)
+        # Forces tensorflow to use only one thread
+        session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+                                      inter_op_parallelism_threads=1)
+        tf.set_random_seed(reproducible)
 
-            sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-            K.set_session(sess)
-        else:
-            np.random.seed(None)
-            rn.seed(np.random.randint(0, 400))
-            tf.set_random_seed(np.random.randint(0, 400))
+        sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+        K.set_session(sess)
 
 
     def fit(self, train_data, train_y, validation_size=0.2, verbose=0,
