@@ -14,11 +14,18 @@ Mixin classes:
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import copy
-from typing import Any, List, Dict, Union, Tuple
+import os
 from pathlib import Path
+import pickle
+import random as rn
+import tempfile
+from typing import Any, List, Dict, Union, Tuple
 
+import keras
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 import numpy as np
 from sklearn.externals import joblib
+import tensorflow as tf
 
 import bella
 
@@ -152,11 +159,16 @@ class BaseModel(ABC):
         self._fitted = value
 
 
-class KearsModel(BaseModel):
+class KerasModel(BaseModel):
+
+    @abstractmethod
+    def keras_model(self, num_classes):
+        pass
 
     def fit(self, X: np.ndarray, y: np.ndarray,
             validation_data: Tuple[np.ndarray, np.ndarray],
-            verbose: int = 0) -> 'keras.callbacks.History':
+            verbose: int = 0,
+            continue_training: bool = False) -> 'keras.callbacks.History':
         '''
         Fit the model according to the given training data.
 
@@ -166,20 +178,52 @@ class KearsModel(BaseModel):
                                 model at each epoch. Will not be trained on
                                 this data.
         :param verbose: 0 = silent, 1 = progress
+        :param continue_training: Whether the model that has already been
+                                  trained should be trained further.
         :return: A record of training loss values and metrics values at
                  successive epochs, as well as validation loss values and
                  validation metrics values.
         '''
-        pass
+        X_val, y_val = validation_data
+        if sum(y_val < 0) or sum(y < 0):
+            raise ValueError('The class labels have to be greater than 0')
+        X, X_val = self.create_training_text(X, X_val)
+        y, y_val = self.create_training_y(y, y_val)
+        num_classes = y.shape[1]
+        if verbose:
+            print(f'Number of classes in the data {num_classes}')
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        '''
-        Predict class labels for samples in X.
+        if not continue_training:
+            self.fitted = False
+            self._to_be_reproducible(self.reproducible)
+            self.model = self.keras_model(num_classes)
+        elif self.fitted and not continue_training:
+            raise ValueError('The model is already fitted')
 
-        :param X: Test samples matrix, shape = [n_samples, n_features]
-        :return: Predicted class label per sample, shape = [n_samples]
-        '''
-        pass
+        model = self.model
+        if not continue_training:
+            model.compile(optimizer=self.optimiser(**self.optimiser_params),
+                          metrics=['accuracy'],
+                          loss='categorical_crossentropy')
+
+        with tempfile.NamedTemporaryFile() as weight_file:
+            # Set up the callbacks
+            model_checkpoint = ModelCheckpoint(weight_file.name,
+                                               monitor='val_loss',
+                                               save_best_only=True,
+                                               save_weights_only=True,
+                                               mode='min')
+            early_stopping = EarlyStopping(monitor='val_loss', mode='min',
+                                           patience=self.patience)
+            callbacks = [early_stopping, model_checkpoint]
+            history = model.fit(X, y, validation_data=(X_val, y_val),
+                                epochs=self.epochs, callbacks=callbacks,
+                                verbose=verbose, batch_size=self.batch_size)
+            # Load the best model from the saved weight file
+            model.load_weights(weight_file.name)
+        self.model = model
+        self.fitted = True
+        return history
 
     def probabilities(self, X: np.ndarray) -> np.ndarray:
         '''
@@ -189,29 +233,109 @@ class KearsModel(BaseModel):
         :return: Probability of each class label for all samples, shape = \
         [n_samples, n_classes]
         '''
-        pass
+
+        if self.fitted is False:
+            raise ValueError('The model has not been fitted please run the '
+                             '`fit` method.')
+        # Convert from a sequence of dictionaries into texts and then integers
+        # that represent the tokens in the text within the embedding space.
+        sequence_test_data = self._pre_process(X, training=False)
+        predicted_values = self.model.predict(sequence_test_data)
+        return predicted_values
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        '''
+        Predict class labels for samples in X.
+
+        :param X: Test samples matrix, shape = [n_samples, n_features]
+        :return: Predicted class label per sample, shape = [n_samples]
+        '''
+
+        return np.argmax(self.probabilities(X), axis=1)
 
     @staticmethod
-    def save(model: 'BaseModel', save_fp: Path) -> None:
+    def save(model: 'bella.models.base.KerasModel', save_fp: Path) -> None:
         '''
-        Saves the entire machine learning model to a file.
+        Given a Keras Model, mode, path to the folder to save too, and a name
+        to save the files it will save the data to restore the model.
 
         :param model: The machine learning model instance to be saved.
-        :param save_fp: File path of the location that the model is to be \
-        saved to.
+        :param save_fp: File path of the location that the model is to be
+                        saved.
         :return: Nothing.
+        :raises ValueError: If the model has not been fitted or if the model
+                            is not of type
+                            :py:class:`bella.models.base.KerasModel`
         '''
-        pass
+
+        if not isinstance(model, KerasModel):
+            raise ValueError('The model parameter has to be of type '
+                             f'KearsModel not {type(model)}')
+        if model.fitted:
+            model_fp = save_fp.with_suffix('.h5')
+            model.model.save(model_fp)
+
+            attributes_fp = save_fp.with_suffix('.pkl')
+            with attributes_fp.open('wb') as attributes_file:
+                # optimiser cannot be pickled
+                attributes = model.model_parameters()
+                del attributes['class_params']['optimiser']
+                pickle.dump(attributes, attributes_file)
+        else:
+            raise ValueError(f'The model {str(model)} has not been fitted. '
+                             'This can be done by using the `fit` method')
 
     @staticmethod
-    def load(load_fp: Path) -> 'bella.models.base.BaseModel':
+    def load(load_fp: Path) -> 'bella.models.base.KerasModel':
         '''
-        Loads the entire machine learning model from a file.
+        Loads an instance of this class from a file.
 
         :param load_fp: File path of the location that the model was saved to.
         :return: self
         '''
-        pass
+
+        model_fp = load_fp.with_suffix('.h5')
+        attributes_fp = load_fp.with_suffix('.pkl')
+        with attributes_fp.open('rb') as attributes_file:
+            attributes = pickle.load(attributes_file)
+        # optimiser has to be recovered as it could not be pickled in the
+        # model parameters
+        keras_model = keras.models.load_model(model_fp)
+        attributes['class_params']['optimiser'] = keras_model.optimizer
+        model_class = attributes.pop('class')
+        model = model_class(**attributes['class_params'])
+        for name, class_attr in attributes['class_attrs'].items():
+            setattr(model, name, class_attr)
+        model.model = keras_model
+        model.fitted = True
+        return model
+
+    @staticmethod
+    def _to_be_reproducible(reproducible: Union[int, None]) -> None:
+        '''
+        To make the method reproducible or not. If it is not needed then
+        we can use all the python threads.
+
+        :param reproducible: If int is provided this int is used as the seed
+                             values. Else None should be given if it is not
+                             to be reproducible.
+        '''
+        if reproducible is not None:
+            os.environ['PYTHONHASHSEED'] = '0'
+            np.random.seed(reproducible)
+            rn.seed(reproducible)
+            # Forces tensorflow to use only one thread
+            session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+                                          inter_op_parallelism_threads=1)
+            tf.set_random_seed(reproducible)
+
+            sess = tf.Session(graph=tf.get_default_graph(),
+                              config=session_conf)
+            keras.backend.set_session(sess)
+        else:
+            np.random.seed(None)
+            rn.seed(np.random.randint(0, 1000))
+            tf.set_random_seed(np.random.randint(0, 1000))
 
 
 class SKLearnModel(BaseModel):
@@ -338,7 +462,7 @@ class SKLearnModel(BaseModel):
     def save(model: 'bella.models.base.SKLearnModel',
              save_fp: Path, compress: int = 0) -> None:
         '''
-        Given a instance of this class will save it to a file.
+        Given an instance of this class will save it to a file.
 
         :param model: The machine learning model instance to be saved.
         :param save_fp: File path of the location that the model is to be
@@ -348,7 +472,8 @@ class SKLearnModel(BaseModel):
                          compressed the lower the read/write time.
         :return: Nothing.
         :raises ValueError: If the model has not been fitted or if the model
-                            is not of type 'bella.models.base.SKLearn'
+                            is not of type
+                            :py:class:`bella.models.base.SKLearn`
         '''
 
         if not isinstance(model, SKLearnModel):
