@@ -19,10 +19,11 @@ from pathlib import Path
 import pickle
 import random as rn
 import tempfile
-from typing import Any, List, Dict, Union, Tuple
+from typing import Any, List, Dict, Union, Tuple, Callable
 
 import keras
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras import preprocessing
 import numpy as np
 from sklearn.externals import joblib
 import tensorflow as tf
@@ -165,6 +166,84 @@ class KerasModel(BaseModel):
     def keras_model(self, num_classes):
         pass
 
+    @abstractmethod
+    def create_training_text(self, train_data: Dict[str, Any],
+                             validation_data: Dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def create_training_y(self, train_y: np.ndarray, validation_y: np.ndarray):
+        pass
+
+    @abstractmethod
+    def _pre_process(self, data_dicts: Dict[str, Any], training: bool):
+        pass
+
+    def process_text(self, texts: List[str], max_length: int,
+                     padding: str = 'pre', truncate: str = 'pre'
+                     ) -> Tuple[int, List[List[int]]]:
+        '''
+        Given a list of Strings, tokenised the text and lower case if set and
+        then convert the tokens into a integers representing the tokens in the
+        embeddings. Lastly it pads the data based on the max_length param.
+
+        If the max_length is smaller than the sentences size it truncates the
+        sentence. If max_length = -1 then the max_length is that of the longest
+        sentence in the texts.
+
+        :params texts: List of texts
+        :params max_length: How many tokens a sentence can contain. If it is
+                            -1 then it uses the sentence with the most tokens
+                            as the max_length parameter.
+        :params padding: Which side of the sentence to pad: `pre` beginning,
+                         `post` end.
+        :params truncate: Which side of the sentence to truncate: `pre`
+                          beginning `post` end.
+        :returns: A tuple of length 2 containg: 1. The max_length parameter,
+                  2. A list of a list of integers that have been padded that
+                  represent the texts as their embedding lookup.
+        :raises ValueError: If the mex_length argument is equal to or less
+                            than 0. Or if the calculated max_length is 0.
+        '''
+
+        if max_length == 0:
+            raise ValueError('The max length of a sequence cannot be zero')
+        elif max_length < -1:
+            raise ValueError('The max length has to be either -1 or above '
+                             f'zero not {max_length}')
+
+        # Process the text into integers based on the embeddings given
+        all_sequence_data = []
+        max_sequence = 0
+        for text in texts:
+            sequence_data = []
+            tokens = self.tokeniser(text)
+            for token in tokens:
+                if self.lower:
+                    token = token.lower()
+                # If the token does not exist it should lookup the unknown
+                # word vector
+                sequence_data.append(self.embeddings.word2index[token])
+            sequence_length = len(sequence_data)
+            if sequence_length > max_sequence:
+                max_sequence = sequence_length
+            all_sequence_data.append(sequence_data)
+        if max_sequence == 0:
+            raise ValueError('The max sequence length is 0 suggesting no '
+                             'data was provided for training or testing')
+        # Pad the sequences
+        # If max pad size is set and training the model set the
+        # test_pad_size to max sequence length
+        if max_length == -1:
+            max_length = max_sequence
+        return (max_length,
+                preprocessing.sequence.pad_sequences(all_sequence_data,
+                                                     maxlen=max_length,
+                                                     dtype='int32',
+                                                     value=0,
+                                                     padding=padding,
+                                                     truncating=truncate))
+
     def fit(self, X: np.ndarray, y: np.ndarray,
             validation_data: Tuple[np.ndarray, np.ndarray],
             verbose: int = 0,
@@ -188,6 +267,10 @@ class KerasModel(BaseModel):
         if sum(y_val < 0) or sum(y < 0):
             raise ValueError('The class labels have to be greater than 0')
         X, X_val = self.create_training_text(X, X_val)
+        if isinstance(X, tuple):
+            X = list(X)
+            X_val = list(X_val)
+
         y, y_val = self.create_training_y(y, y_val)
         num_classes = y.shape[1]
         if verbose:
@@ -336,6 +419,195 @@ class KerasModel(BaseModel):
             np.random.seed(None)
             rn.seed(np.random.randint(0, 1000))
             tf.set_random_seed(np.random.randint(0, 1000))
+
+    @property
+    def tokeniser(self) -> Callable[[str], List[str]]:
+        '''
+        tokeniser attribute
+
+        :return: The tokeniser used in the model
+        '''
+
+        return self._tokeniser
+
+    @tokeniser.setter
+    def tokeniser(self, value: Callable[[str], List[str]]) -> None:
+        '''
+        Sets the tokeniser attribute
+
+        :param value: The value to assign to the tokeniser attribute
+        '''
+
+        self.fitted = False
+        self._tokeniser = value
+
+    @property
+    def embeddings(self) -> 'bella.word_vectors.WordVectors':
+        '''
+        embeddings attribute
+
+        :return: The embeddings used in the model
+        '''
+
+        return self._embeddings
+
+    @embeddings.setter
+    def embeddings(self, value: 'bella.word_vectors.WordVectors') -> None:
+        '''
+        Sets the embeddings attribute
+
+        :param value: The value to assign to the embeddings attribute
+        '''
+
+        self.fitted = False
+        self._embeddings = value
+
+    @property
+    def lower(self) -> bool:
+        '''
+        lower attribute
+
+        :return: The lower used in the model
+        '''
+
+        return self._lower
+
+    @lower.setter
+    def lower(self, value: bool) -> None:
+        '''
+        Sets the lower attribute
+
+        :param value: The value to assign to the lower attribute
+        '''
+
+        self.fitted = False
+        self._lower = value
+
+    @property
+    def reproducible(self) -> Union[int, None]:
+        '''
+        reproducible attribute
+
+        :return: The reproducible used in the model
+        '''
+
+        return self._reproducible
+
+    @reproducible.setter
+    def reproducible(self, value: Union[int, None]) -> None:
+        '''
+        Sets the reproducible attribute
+
+        :param value: The value to assign to the reproducible attribute
+        '''
+
+        self.fitted = False
+        self._reproducible = value
+
+    @property
+    def patience(self) -> int:
+        '''
+        patience attribute
+
+        :return: The patience used in the model
+        '''
+
+        return self._patience
+
+    @patience.setter
+    def patience(self, value: int) -> None:
+        '''
+        Sets the patience attribute
+
+        :param value: The value to assign to the patience attribute
+        '''
+
+        self.fitted = False
+        self._patience = value
+
+    @property
+    def batch_size(self) -> int:
+        '''
+        batch_size attribute
+
+        :return: The batch_size used in the model
+        '''
+
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, value: int) -> None:
+        '''
+        Sets the batch_size attribute
+
+        :param value: The value to assign to the batch_size attribute
+        '''
+
+        self.fitted = False
+        self._batch_size = value
+
+    @property
+    def epochs(self) -> int:
+        '''
+        epochs attribute
+
+        :return: The epochs used in the model
+        '''
+
+        return self._epochs
+
+    @epochs.setter
+    def epochs(self, value: int) -> None:
+        '''
+        Sets the epochs attribute
+
+        :param value: The value to assign to the epochs attribute
+        '''
+
+        self.fitted = False
+        self._epochs = value
+
+    @property
+    def optimiser(self) -> 'keras.optimizers.Optimizer':
+        '''
+        optimiser attribute
+
+        :return: The optimiser used in the model
+        '''
+
+        return self._optimiser
+
+    @optimiser.setter
+    def optimiser(self, value: 'keras.optimizers.Optimizer') -> None:
+        '''
+        Sets the optimiser attribute
+
+        :param value: The value to assign to the optimiser attribute
+        '''
+
+        self.fitted = False
+        self._optimiser = value
+
+    @property
+    def optimiser_params(self) -> Union[Dict[str, Any], None]:
+        '''
+        optimiser_params attribute
+
+        :return: The optimiser_params used in the model
+        '''
+
+        return self._optimiser_params
+
+    @optimiser_params.setter
+    def optimiser_params(self, value: Union[Dict[str, Any], None]) -> None:
+        '''
+        Sets the optimiser_params attribute
+
+        :param value: The value to assign to the optimiser_params attribute
+        '''
+
+        self.fitted = False
+        self._optimiser_params = value
 
 
 class SKLearnModel(BaseModel):
