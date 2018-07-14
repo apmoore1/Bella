@@ -20,6 +20,7 @@ import pickle
 import random as rn
 import tempfile
 from typing import Any, List, Dict, Union, Tuple, Callable
+from multiprocessing.pool import Pool
 
 import keras
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -392,6 +393,26 @@ class KerasModel(BaseModel):
         model.model = keras_model
         model.fitted = True
         return model
+
+    @staticmethod
+    def evaluate_parameter(model, train, val, test, parameter_name,
+                           parameter):
+        setattr(model, parameter_name, parameter)
+        model.fit(train[0], train[1], val)
+        predictions = model.predict(test)
+        return (parameter, predictions)
+
+    @staticmethod
+    def evaluate_parameters(model, train, val, test, parameter_name,
+                            parameters, n_jobs=1):
+        func_args = ((model, train, val, test, parameter_name, parameter)
+                     for parameter in parameters)
+        if n_jobs == 1:
+            return [KerasModel.evaluate_parameter(*args)
+                    for args in func_args]
+        with Pool(n_jobs) as pool:
+            return pool.starmap(KerasModel.evaluate_parameter, func_args)
+
 
     @staticmethod
     def _to_be_reproducible(reproducible: Union[int, None]) -> None:
