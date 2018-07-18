@@ -1,4 +1,13 @@
-from pathlib import Path
+'''
+Module contains all of the classes that represent Machine Learning models
+that are within `Tang et al. 2016 paper \
+<https://aclanthology.info/papers/C16-1311/c16-1311>`_:
+
+1. :py:class:`bella.models.tdlstm.LSTM` -- LSTM model.
+2. :py:class:`bella.models.tdlstm.TDLSTM` -- TDLSTM model.
+3. :py:class:`bella.models.tdlstm.TCLSTM` -- TCLSTM model.
+'''
+
 from typing import Dict, Callable, Any, List, Union, Tuple
 
 import numpy as np
@@ -13,10 +22,38 @@ import bella
 from bella.models.base import KerasModel
 from bella.contexts import context
 from bella.neural_pooling import matrix_median
-from bella.notebook_helper import get_json_data, write_json_data
 
 
 class LSTM(KerasModel):
+    '''
+    Attributes:
+
+    1. pad_size -- The max number of tokens to use per sequence. If -1
+       use the text sequence in the training data that has the most tokens as
+       the pad size.
+    2. embedding_layer_kwargs -- Keyword arguments to pass to the embedding
+       layer which is a :py:class:`keras.layers.Embedding` object. Can be
+       None if no parameters to pass.
+    3. lstm_layer_kwargs -- Keyword arguments to pass to the lstm layer(s)
+       which is a :py:class:`keras.layers.LSTM` object. Can be
+       None if no parameters to pass.
+    4. dense_layer_kwargs -- Keyword arguments to pass to the dense (final
+       layer) which is a :py:class:`keras.layers.Dense` object. Can be
+       None if no parameters to pass.
+
+    Methods:
+
+    1. model_parameters -- Returns a dictionary containing the attributes of
+       the class instance, the parameters to give to the class constructior to
+       re-create this instance, and the class itself.
+    2. create_training_text -- Converts the training and validation data into a
+       format that the keras model can take as input.
+    3. create_training_y -- Converts the training and validation target values
+       from a vector of class lables into a matrix of binary values. of shape
+       [n_samples, n_classes].
+    4. keras_model -- The model that represents this class. This is a single
+       forward LSTM.
+    '''
 
     def __repr__(self) -> str:
         '''
@@ -43,7 +80,7 @@ class LSTM(KerasModel):
         :param embeddings: Embedding (Word vectors) to be used e.g.
                            :py:class:`bella.word_vectors.SSWE`
         :param reproducible: Whether to be reproducible. If None then it is
-                             but quicker to run. Else provide a `int` that
+                             quicker to run. Else provide a `int` that
                              will represent the random seed value.
         :param pad_size: The max number of tokens to use per sequence. If -1
                          use the text sequence in the training data that has
@@ -129,17 +166,18 @@ class LSTM(KerasModel):
         return {'class': self.__class__, 'class_attrs': class_attrs,
                 'class_params': class_params}
 
-    def _pre_process(self, data_dicts: Dict[str, str],
-                     training: bool = False) -> List[List[int]]:
+    def _pre_process(self, data_dicts: List[Dict[str, str]],
+                     training: bool = False) -> np.ndarray:
         '''
-        Converts the text in the data_dicts into a list of a list of integers
-        representing the text as their embedding lookups, so that it can
-        be used as input to the keras model.
+        Converts the text in the data_dicts into a matrix of shape
+        [n_samples, pad_size] where each integer in the matrix represents
+        the word embedding lookup. This is then used as input into the
+        keras model.
 
         The text from the data_dicts are converted by the
         :py:meth:`process_text` method.
 
-        :param data_dicts: A list of dictonaries that contain a `text` key.
+        :param data_dicts: A list of dictonaries that contains a `text` field.
         :param training: Whether the text should be processed for training or
                          for prediction. prediction = False, training = True
         :return: The output of :py:meth:`process_text` method.
@@ -156,7 +194,8 @@ class LSTM(KerasModel):
                           ) -> Tuple[np.ndarray, np.ndarray]:
         '''
         Converts the training and validation target values from a vector of
-        class lables into a matrix of binary values.
+        class lables into a matrix of binary values of shape [n_samples,
+        n_classes].
 
         To convert the vector of classes to a matrix we the
         :py:func:`keras.utils.to_categorical` function.
@@ -171,13 +210,19 @@ class LSTM(KerasModel):
         validation_y = to_categorical(validation_y).astype(np.float32)
         return train_y, validation_y
 
-    def create_training_text(self, train_data: Dict[str, str],
-                             validation_data: Dict[str, str]
-                             ) -> Tuple[List[List[int]], List[List[int]]]:
+    def create_training_text(self, train_data: List[Dict[str, str]],
+                             validation_data: List[Dict[str, str]]
+                             ) -> Tuple[np.ndarray, np.ndarray]:
         '''
         Converts the training and validation data into a format that the keras
         model can take as input.
 
+        :param train_data: Data to be trained on. Which is a list of
+                           dictionaries where each dictionary has a `text`
+                           field containing text.
+        :param validation_data: Data to evaluate the model at training time.
+                                Which is a list of dictionaries where each
+                                dictionary has a `text` field containing text.
         :return: A tuple of length two containing the train and validation
                  input that are both the output of :py:meth:`_pre_process`
         '''
@@ -187,7 +232,7 @@ class LSTM(KerasModel):
 
     def keras_model(self, num_classes: int) -> 'keras.models.Model':
         '''
-        The model that represents this class. This is a Single forward LSTM.
+        The model that represents this class. This is a single forward LSTM.
 
         :param num_classes: Number of classes to predict.
         :return: Forward LSTM keras model.
@@ -358,6 +403,12 @@ class LSTM(KerasModel):
 
 
 class TDLSTM(LSTM):
+    '''
+    Attributes:
+
+    1. include_target -- Wheather to include the target in the LSTM
+       representations.
+    '''
 
     def __repr__(self):
         '''
@@ -450,9 +501,45 @@ class TDLSTM(LSTM):
         attributes['class_params'] = class_params
         return attributes
 
-    def _pre_process(self, data_dicts, training=False):
+    def _pre_process(self, data_dicts: List[Dict[str, Any]],
+                     training: bool = False) -> List[np.ndarray]:
+        '''
+        Converts the text in the data_dicts into a List of size two
+        representing the left and right context of the target word
+        respectively. Each List is made up of a matrix of of integers
+        representing the text as their embedding lookups. These two Lists
+        are the inputs into the keras model.
 
-        def context_texts(context_data_dicts):
+        Two find the left and right contexts it uses the `spans` field of
+        the dictionaries in the `data_dicts`. The `spans` field is a list of
+        Tuples where each Tuple represents a occurence of the Target, each
+        Tuple contains the index of the starting and ending character index
+        (Expects the List to be of size 1 as there should be only one target
+        per target sample. This case is not True for the
+        `Dong et al. <https://aclanthology.info/papers/P14-2009/p14-2009>`_
+        dataset therefore it only takes the first target instance in the
+        sentence as the target).
+
+        The texts are converted into integers using the
+        :py:meth:`process_text` method.
+
+        :param data_dicts: A list of dictonaries that contains a `text` and
+                           `spans` field.
+        :param training: Whether the text should be processed for training or
+                         for prediction. prediction = False, training = True
+        :return: A list of two contaning the left and right context of
+                 the target both represented by the output of
+                 :py:meth:`process_text` method.
+        '''
+
+        def context_texts(context_data_dicts: List[Dict[str, Any]]
+                          ) -> Tuple[List[str], List[str]]:
+            '''
+            :param context_data_dicts: A list of dictonaries that contains a
+                                       `text` and `spans` field.
+            :return: A list of the left and right text contexts for all the
+                     dictionaries.
+            '''
             # Context returns all of the left and right context occurrences
             # therefore if a target is mentioned Twice and are associated then
             # for a single text two left and right occurrences are returned.
@@ -461,7 +548,8 @@ class TDLSTM(LSTM):
             # not specify which they used.
             left_texts = [context(data, 'left', inc_target=self.include_target)
                           for data in context_data_dicts]
-            right_texts = [context(data, 'right', inc_target=self.include_target)
+            right_texts = [context(data, 'right',
+                                   inc_target=self.include_target)
                            for data in context_data_dicts]
             left_texts = [texts[0] for texts in left_texts]
             right_texts = [texts[0] for texts in right_texts]
@@ -495,23 +583,32 @@ class TDLSTM(LSTM):
         _, right_sequence = right_pad_sequence
         return [left_sequence, right_sequence]
 
-    def create_training_text(self, train_data, validation_data):
+    def create_training_text(self, train_data: List[Dict[str, Any]],
+                             validation_data: List[Dict[str, Any]]
+                             ) -> Tuple[List[np.ndarray],
+                                        List[np.ndarray]]:
         '''
-        :param train_data: Training features. Specifically a list of dict like \
-        structures that contain `text` key.
-        :param train_y: Target values
-        :validation_size: The fraction of the training data to be set aside \
-        for validation data
-        :type train_data: list
-        :type train_y: list
-        :type validation_size: float Default 0.2
-        :returns: A tuple of length 2 where the first value is a list of \
-        Integers that reprsent the words in the text features where each Integer \
-        corresponds to a Word Vector in the embedding vector. Second value are \
-        the target values. Both lists in the tuples contain training data in the \
-        first part of the list and the second part of the list based on the \
-        validation split contains the validation data.
-        :rtype: tuple
+        Converts the training and validation data into a format that the keras
+        model can take as input.
+
+        :param train_data: Data to be trained on. Which is a list of
+                           dictionaries where each dictionary has a `text`
+                           field containing text and a field `spans` containing
+                           a list of Tuples where each Tuple represents a
+                           occurence of the Target, each Tuple contains the
+                           index of the starting and ending character index
+                           (Expects the List to be of size 1 as there should
+                           be only one target per target sample. This case is
+                           not True for the
+                           `Dong et al. <https://aclanthology.info/papers/P14-\
+                           2009/p14-2009>`_ dataset therefore it only takes
+                           the first target instance in the sentence as the
+                           target).
+        :param validation_data: Data to evaluate the model at training time.
+                                Expects the same data as the `train_data`
+                                parameter.
+        :return: A tuple of length two containing the train and validation
+                 input that are both the output of :py:meth:`_pre_process`
         '''
 
         return super().create_training_text(train_data, validation_data)
@@ -618,8 +715,39 @@ class TCLSTM(TDLSTM):
 
         return 'TCLSTM'
 
-    def _pre_process(self, data_dicts, training=False):
-        def context_median_targets(pad_size):
+    def _pre_process(self, data_dicts: List[Dict[str, Any]],
+                     training: bool = False) -> List[np.ndarray]:
+        '''
+        Converts the text in the data_dicts into a list of size four
+        representing the left context, left targets, right context and
+        right targets. Where the contexts come are the same as those from
+        TDLSTM :py:meth:`bella.models.tdlstm.TDLSTM._pre_process` method.
+
+        The targets are a matrix of size [word_embedding_dimension, pad_size]
+        and each vector in the matrix is the word embedding representation
+        of the target word. If the target word is made up of multiple words
+        it is then the average of the words vector representation (we use the
+        median as the average). Both the contexts and the target matrix are
+        used as input into the keras model.
+
+        The texts are converted into integers using the
+        :py:meth:`process_text` method.
+
+        :param data_dicts: A list of dictonaries that contains a `text` and
+                           `spans` field.
+        :param training: Whether the text should be processed for training or
+                         for prediction. prediction = False, training = True
+        :return: A list of four contaning the left context, left vectors,
+                 right context, and right vectors.
+        '''
+        def context_median_targets(pad_size: int):
+            '''
+            :param pad_size: The number of timesteps within the LSTM
+            :return: Matrix of size [word_embedding_dimension, pad_size] where
+                     each word embedding represents the target word or if
+                     multiple words make up the target the word embedding is
+                     the median of the words embeddings.
+            '''
             vector_size = self.embeddings.vector_size
             target_matrix = np.zeros((len(data_dicts),
                                       pad_size, vector_size))
@@ -646,15 +774,40 @@ class TCLSTM(TDLSTM):
         return [left_sequence, left_target_vectors,
                 right_sequence, right_target_vectors]
 
-    def create_training_text(self, train_data, validation_data):
+    def create_training_text(self, train_data: List[Dict[str, Any]],
+                             validation_data: List[Dict[str, Any]]
+                             ) -> Tuple[List[np.ndarray],
+                                        List[np.ndarray]]:
         '''
-        :param train_data: :param train_data: Training features. Specifically \
-        a list of dict like structures that contain `target` key.
+        Converts the training and validation data into a format that the keras
+        model can take as input.
+
+        :param train_data: See :py:meth:`bella.models.tdlstm.\
+                           TDLSTM.create_training_text` `train_data`
+                           parameter.
+        :param validation_data: See :py:meth:`bella.models.tdlstm.\
+                                TDLSTM.create_training_text` `validation_data`
+                                parameter.
+        :return: A tuple of length two containing the train and validation
+                 input that are both the output of :py:meth:`_pre_process`
         '''
 
         return super().create_training_text(train_data, validation_data)
 
-    def keras_model(self, num_classes):
+    def keras_model(self, num_classes: int) -> 'keras.models.Model':
+        '''
+        The model that represents this class. This is the same as the
+        :py:meth:`bella.models.tdlstm.TDLSTM.keras_model` model, however
+        the words in before inputting into the LSTM are concatenated with
+        the word embedding of the target. If the target is more than one word
+        then the word embedding of the target is the average (median in our
+        case) embeddings of the target words.
+
+        :param num_classes: Number of classes to predict.
+        :return: Two LSTMs one forward from the left context and the other
+                 backward from the right context taking into account the
+                 target vector embedding.
+        '''
         # Embeddings
         embedding_matrix = self.embeddings.embedding_matrix
         vocab_size, vector_size = embedding_matrix.shape
