@@ -1,14 +1,25 @@
 '''
-Module contains all of the classes that are either abstract or Mixin that \
-are used in the machine learning models.
+Module contains all of the main base classes for the machine learning models
+these are grouped into 3 categories; 1. Mixin, 2. Abstract, and 3. Concrete.
 
-Abstract classes:
+
+Mixin classes - This is a function based class that contains functions that
+do not rely on the type of model and are useful for all:
+
+1. :py:class:`bella.models.base.ModelMixin`
+
+Abstract classes - This is used to enforce all the functions that all
+the machine learning models must have. This is also the class that inherits
+the Mixin class:
 
 1. :py:class:`bella.models.base.BaseModel`
 
-Mixin classes:
+Concrete classes - These are more concete classes that still contain some
+abstract methods. However they are the classes to inherit from to create a
+machine learning model base on a certain framework e.g. SKlearn or Keras:
 
 1. :py:class:`bella.models.base.SKLearnModel`
+2. :py:class:`bella.models.base.KerasModel`
 '''
 
 from abc import ABC, abstractmethod
@@ -19,7 +30,7 @@ from pathlib import Path
 import pickle
 import random as rn
 import tempfile
-from typing import Any, List, Dict, Union, Tuple, Callable
+from typing import Any, List, Dict, Union, Tuple, Callable, Tuple
 from multiprocessing.pool import Pool
 
 import keras
@@ -27,12 +38,75 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras import preprocessing
 import numpy as np
 from sklearn.externals import joblib
+from sklearn.model_selection import StratifiedShuffleSplit
 import tensorflow as tf
 
 import bella
+from bella.data_types import TargetCollection, Target
 
 
-class BaseModel(ABC):
+class ModelMixin():
+    '''
+    Mixin class for all of the machine learning models. Contain functions
+    only so they are as generic as possible.
+
+    Functions:
+
+    1. train_val_split -- Splits the training dataset into a train and
+       validation set in a stratified split.
+    '''
+
+    @staticmethod
+    def _convert_to_targets(data: List[Dict[str, Any]]
+                            ) -> List['bella.data_types.Target']:
+        '''
+        Converts a list of dictionaries into a list of
+        :py:class:`bella.data_types.Target`.
+        '''
+
+        all_targets = []
+        for target in data:
+            all_targets.append(Target(**target))
+        return all_targets
+
+    @staticmethod
+    def train_val_split(train: 'bella.data_types.TargetCollection',
+                        split_size: float = 0.2, seed: Union[None, int] = 42
+                        ) -> Tuple[Tuple[np.ndarray, np.ndarray],
+                                   Tuple[np.ndarray, np.ndarray]]:
+        '''
+        Splits the training dataset into a train and validation set in a
+        stratified split.
+
+        :param train: The training dataset that needs to be split into
+        :param split_size: Fraction of the dataset to assign to the
+                           validation set.
+        :param seed: Seed value to give to the stratified splitter. If
+                     None then it uses the radnom state of numpy.
+        :return: Two tuples of length two where each tuple is the train
+                 and validation splits respectively, and each tuple contains
+                 the data (X) and class labels (y) respectively. Returns
+                 ((X_train, y_train), (X_val, y_val))
+        '''
+        splitter = StratifiedShuffleSplit(n_splits=1, test_size=split_size,
+                                          random_state=seed)
+        data = np.asarray(train.data_dict())
+        sentiment = np.asarray(train.sentiment_data())
+        for train_indexs, test_indexs in splitter.split(data, sentiment):
+            train_data = data[train_indexs]
+            test_data = data[test_indexs]
+
+        train = TargetCollection(ModelMixin._convert_to_targets(train_data))
+        val = TargetCollection(ModelMixin._convert_to_targets(test_data))
+
+        X_train = np.array(train.data_dict())
+        y_train = np.array(train.sentiment_data())
+        X_val = np.array(val.data_dict())
+        y_val = np.array(val.sentiment_data())
+        return (X_train, y_train), (X_val, y_val)
+
+
+class BaseModel(ModelMixin, ABC):
     '''
     Abstract class for all of the machine learning models.
 
@@ -53,6 +127,11 @@ class BaseModel(ABC):
 
     1. save -- Saves the given machine learning model instance to a file.
     2. load -- Loads the entire machine learning model from a file.
+    3. evaluate_parameter -- fit and predict given training, validation and
+       test data the given model when the given parameter is changed on the
+       model.
+    4. evaluate_parameters -- same as evaluate_parameter however it
+       evaluates over many parameter values for the same parameter.
     '''
 
     @abstractmethod
@@ -64,7 +143,6 @@ class BaseModel(ABC):
         :param y: Training targets, shape = [n_samples]
         :return: The `model` attribute will now be trained.
         '''
-        pass
 
     @abstractmethod
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -74,7 +152,6 @@ class BaseModel(ABC):
         :param X: Test samples matrix, shape = [n_samples, n_features]
         :return: Predicted class label per sample, shape = [n_samples]
         '''
-        pass
 
     @abstractmethod
     def probabilities(self, X: np.ndarray) -> np.ndarray:
@@ -85,7 +162,6 @@ class BaseModel(ABC):
         :return: Probability of each class label for all samples, shape = \
         [n_samples, n_classes]
         '''
-        pass
 
     @abstractmethod
     def __repr__(self) -> str:
@@ -94,7 +170,6 @@ class BaseModel(ABC):
 
         :return: Name of the machine learning model.
         '''
-        pass
 
     @staticmethod
     @abstractmethod
@@ -107,7 +182,6 @@ class BaseModel(ABC):
         saved to.
         :return: Nothing.
         '''
-        pass
 
     @staticmethod
     @abstractmethod
@@ -118,7 +192,63 @@ class BaseModel(ABC):
         :param load_fp: File path of the location that the model was saved to.
         :return: self
         '''
-        pass
+
+    @abstractmethod
+    @staticmethod
+    def evaluate_parameter(model: 'bella.models.base.BaseModel',
+                           train: Tuple[np.ndarray, np.ndarray],
+                           val: Union[None, Tuple[np.ndarray, np.ndarray]],
+                           test: np.ndarray, parameter_name: str,
+                           parameter: Any) -> Tuple[Any, np.ndarray]:
+        '''
+        Given a model will set the `parameter_name` to `parameter` fit the
+        model and return the a Tuple of parameter changed and predictions of
+        the model on the test data, using the train and validation data for
+        fitting.
+
+        :param model: :py:class:`bella.models.base.BaseModel` instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Tuple of `(X_val, y_val)` or None is not required.
+                    This is only required if the model requires validation
+                    data like the :py:class:`bella.models.base.KerasModel`
+                    models do.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change e.g. optimiser
+        :param parameter: value to assign to the parameter e.g.
+                          :py:class:`keras.optimizers.RMSprop`
+        :return: A tuple of (parameter value, predictions)
+        '''
+
+    @abstractmethod
+    @staticmethod
+    def evaluate_parameters(model: 'bella.models.base.BaseModel',
+                            train: Tuple[np.ndarray, np.ndarray],
+                            val: Union[None, Tuple[np.ndarray, np.ndarray]],
+                            test: np.ndarray, parameter_name: str,
+                            parameters: List[Any], n_jobs: int
+                            ) -> List[Tuple[Any, np.ndarray]]:
+        '''
+        Performs :py:func:`bella.models.base.BaseModel.evaluate_parameter` on
+        one `parameter_name` but with multiple parameter values.
+
+        This is useful if you would like to know the affect of changing the
+        values of a parameter. It can also perform the task in a
+        multiprocessing manner if `n_jobs` > 1.
+
+        :param model: :py:class:`bella.models.base.BaseModel` instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Tuple of `(X_val, y_val)` or None is not required.
+                    This is only required if the model requires validation
+                    data like the :py:class:`bella.models.base.KerasModel`
+                    models do.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change e.g. optimiser
+        :param parameters: A list of values to assign to the parameter e.g.
+                           [:py:class:`keras.optimizers.RMSprop`]
+        :param n_jobs: Number of cpus to use for multiprocessing if 1 then
+                       will not multiprocess.
+        :return: A list of tuples of (parameter value, predictions)
+        '''
 
     @property
     def model(self) -> Any:
@@ -162,27 +292,104 @@ class BaseModel(ABC):
 
 
 class KerasModel(BaseModel):
+    '''
+    Concrete class that is designed to be used as the base class for all
+    machine learning models that are based on the
+    `Keras library <https://keras.io>`_.
+
+    Attributes:
+
+    1. tokeniser -- Tokeniser model uses e.g. :py:meth:`str.split`.
+    2. embeddings -- the word embeddings the model uses. e.g.
+       :py:class:`bella.word_vectors.SSWE`
+    3. lower -- if the model lower cases the words when pre-processing the data
+    4. reproducible -- Whether to be reproducible. If None then it is quicker
+       to run. Else provide a `int` that will represent the random seed value.
+    5. patience -- Number of epochs with no improvement before training
+       is stopped.
+    6. batch_size -- Number of samples per gradient update.
+    7. epcohs -- Number of times to train over the entire training set
+       before stopping.
+    8. optimiser -- Optimiser the model uses.
+       e.g. :py:class:`keras.optimizers.SGD`
+    9. optimiser_params -- Parameters for the optimiser. If None uses default
+       for the optimiser being used.
+
+    Abstract Methods:
+
+    1. keras_model -- Keras machine Learning model that represents the class
+       e.g. single forward LSTM.
+    2. create_training_text -- Converts the training and validation data into
+       a format that the keras model can take as input.
+    3. create_training_y -- Converts the training and validation targets into a
+       format that can be used by the keras model.
+
+    Methods:
+
+    1. fit -- Fit the model according to the given training and validation
+       data.
+    2. probabilities -- The probability of each class label for all samples
+       in X.
+    3. predict -- Predict class labels for samples in X.
+
+    Functions:
+
+    1. save -- Given a instance of this class will save it to a file.
+    2. load -- Loads an instance of this class from a file.
+    3. evaluate_parameter -- fit and predict given training, validation and
+       test data the given model when the given parameter is changed on the
+       model.
+    4. evaluate_parameters -- same as evaluate_parameter however it
+       evaluates over many parameter values for the same parameter.
+    '''
 
     @abstractmethod
-    def keras_model(self, num_classes):
+    def keras_model(self, num_classes: int) -> 'keras.models.Model':
+        '''
+        Keras machine Learning model that represents the class e.g.
+        single forward LSTM.
+
+        :returns: Keras machine learning model
+        '''
         pass
 
     @abstractmethod
-    def create_training_text(self, train_data: Dict[str, Any],
-                             validation_data: Dict[str, Any]):
-        pass
+    def create_training_text(self, train_data: List[Dict[str, Any]],
+                             validation_data: List[Dict[str, Any]]
+                             ) -> Tuple[Any, Any]:
+        '''
+        Converts the training and validation data into a format that the keras
+        model can take as input.
+
+        :return: A tuple of length two containing the keras model training and
+                 validation input respectively.
+        '''
 
     @abstractmethod
-    def create_training_y(self, train_y: np.ndarray, validation_y: np.ndarray):
-        pass
+    def create_training_y(self, train_y: np.ndarray, validation_y: np.ndarray
+                          ) -> Tuple[np.ndarray, np.ndarray]:
+        '''
+        Converts the training and validation targets into a format that can
+        be used by the keras model
+
+        :return: A tuple of length containing two array the first for
+                 training and the second for validation.
+        '''
 
     @abstractmethod
     def _pre_process(self, data_dicts: Dict[str, Any], training: bool):
-        pass
+        '''
+        Converts the training or validation data into a format that will be
+        used by the keras model.
+
+        This function is normally used to process the training and the
+        validation to be returned together by
+        :py:meth:`bella.models.base.KerasModel.create_training_text`
+        '''
 
     def process_text(self, texts: List[str], max_length: int,
                      padding: str = 'pre', truncate: str = 'pre'
-                     ) -> Tuple[int, List[List[int]]]:
+                     ) -> Tuple[int, np.ndarray]:
         '''
         Given a list of Strings, tokenised the text and lower case if set and
         then convert the tokens into a integers representing the tokens in the
@@ -201,8 +408,8 @@ class KerasModel(BaseModel):
         :params truncate: Which side of the sentence to truncate: `pre`
                           beginning `post` end.
         :returns: A tuple of length 2 containg: 1. The max_length parameter,
-                  2. A list of a list of integers that have been padded that
-                  represent the texts as their embedding lookup.
+                  2. A matrix of shape [n_samples, pad_size] where each integer
+                  in the matrix represents the word embedding lookup.
         :raises ValueError: If the mex_length argument is equal to or less
                             than 0. Or if the calculated max_length is 0.
         '''
@@ -250,7 +457,7 @@ class KerasModel(BaseModel):
             verbose: int = 0,
             continue_training: bool = False) -> 'keras.callbacks.History':
         '''
-        Fit the model according to the given training data.
+        Fit the model according to the given training and validation data.
 
         :param X: Training samples matrix, shape = [n_samples, n_features]
         :param y: Training targets, shape = [n_samples]
@@ -395,16 +602,62 @@ class KerasModel(BaseModel):
         return model
 
     @staticmethod
-    def evaluate_parameter(model, train, val, test, parameter_name,
-                           parameter):
+    def evaluate_parameter(model: 'bella.models.base.KerasModel',
+                           train: Tuple[np.ndarray, np.ndarray],
+                           val: Tuple[np.ndarray, np.ndarray],
+                           test: np.ndarray, parameter_name: str,
+                           parameter: Any) -> Tuple[Any, np.ndarray]:
+        '''
+        Given a model will set the `parameter_name` to `parameter` fit the
+        model and return the a Tuple of parameter changed and predictions of
+        the model on the test data, using the train and validation data for
+        fitting.
+
+        :param model: KerasModel instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Tuple of `(X_val, y_val)`. Used to evaluate the
+                    model at each epoch. Will not be trained on
+                    this data.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change e.g. optimiser
+        :param parameter: value to assign to the parameter e.g.
+                          :py:class:`keras.optimizers.RMSprop`
+        :return: A tuple of (parameter value, predictions)
+        '''
+
         setattr(model, parameter_name, parameter)
         model.fit(train[0], train[1], val)
         predictions = model.predict(test)
         return (parameter, predictions)
 
     @staticmethod
-    def evaluate_parameters(model, train, val, test, parameter_name,
-                            parameters, n_jobs=1):
+    def evaluate_parameters(model: 'bella.models.base.KerasModel',
+                            train: Tuple[np.ndarray, np.ndarray],
+                            val: Tuple[np.ndarray, np.ndarray],
+                            test: np.ndarray, parameter_name: str,
+                            parameters: List[Any], n_jobs: int
+                            ) -> List[Tuple[Any, np.ndarray]]:
+        '''
+        Performs :py:func:`bella.models.base.KerasModel.evaluate_parameter` on
+        one `parameter_name` but with multiple parameter values.
+
+        This is useful if you would like to know the affect of changing the
+        values of a parameter. It can also perform the task in a
+        multiprocessing manner if `n_jobs` > 1.
+
+        :param model: :py:class:`bella.models.base.KerasModel` instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Tuple of `(X_val, y_val)`. Used to evaluate the
+                    model at each epoch. Will not be trained on
+                    this data.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change e.g. optimiser
+        :param parameters: A list of values to assign to the parameter e.g.
+                           [:py:class:`keras.optimizers.RMSprop`]
+        :param n_jobs: Number of cpus to use for multiprocessing if 1 then
+                       will not multiprocess.
+        :return: A list of tuples of (parameter value, predictions)
+        '''
         func_args = ((model, train, val, test, parameter_name, parameter)
                      for parameter in parameters)
         if n_jobs == 1:
@@ -412,7 +665,6 @@ class KerasModel(BaseModel):
                     for args in func_args]
         with Pool(n_jobs) as pool:
             return pool.starmap(KerasModel.evaluate_parameter, func_args)
-
 
     @staticmethod
     def _to_be_reproducible(reproducible: Union[int, None]) -> None:
@@ -633,8 +885,8 @@ class KerasModel(BaseModel):
 
 class SKLearnModel(BaseModel):
     '''
-    Concrete class that is designed to be used as a Mixin for all machine
-    learning models that are based on the
+    Concrete class that is designed to be used as the base class for all
+    machine learning models that are based on the
     `scikit learn library <http://scikit-learn.org/stable/>`_.
 
     At the moment expects all of the machine learning models to use a
@@ -674,6 +926,11 @@ class SKLearnModel(BaseModel):
 
     1. save -- Given a instance of this class will save it to a file.
     2. load -- Loads an instance of this class from a file.
+    3. evaluate_parameter -- fit and predict given training, validation and
+       test data the given model when the given parameter is changed on the
+       model.
+    4. evaluate_parameters -- same as evaluate_parameter however it
+       evaluates over many parameter values for the same parameter.
 
     Abstract Functions:
 
@@ -788,6 +1045,69 @@ class SKLearnModel(BaseModel):
         '''
 
         return joblib.load(load_fp)
+
+    @staticmethod
+    def evaluate_parameter(model: 'bella.models.base.KerasModel',
+                           train: Tuple[np.ndarray, np.ndarray],
+                           val: None,
+                           test: np.ndarray, parameter_name: str,
+                           parameter: Any) -> Tuple[Any, np.ndarray]:
+        '''
+        Given a model will set the `parameter_name` to `parameter` fit the
+        model and return the a Tuple of parameter changed and predictions of
+        the model on the test data, using the train and validation data for
+        fitting.
+
+        :param model: :py:class:`bella.models.base.SKLearn` instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Use None. This is only kept to keep the API clean.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change
+                               e.g. word_vectors
+        :param parameter: value to assign to the parameter e.g.
+                          :py:class:`bella.word_vectors.SSWE`
+        :return: A tuple of (parameter value, predictions)
+        '''
+
+        model.model_parameters = {parameter_name: parameter}
+        model.fit(train[0], train[1])
+        predictions = model.predict(test)
+        return (parameter, predictions)
+
+    @staticmethod
+    def evaluate_parameters(model: 'bella.models.base.KerasModel',
+                            train: Tuple[np.ndarray, np.ndarray],
+                            val: None,
+                            test: np.ndarray, parameter_name: str,
+                            parameters: List[Any], n_jobs: int
+                            ) -> List[Tuple[Any, np.ndarray]]:
+        '''
+        Performs :py:func:`bella.models.base.KerasModel.evaluate_parameter` on
+        one `parameter_name` but with multiple parameter values.
+
+        This is useful if you would like to know the affect of changing the
+        values of a parameter. It can also perform the task in a
+        multiprocessing manner if `n_jobs` > 1.
+
+        :param model: :py:class:`bella.models.base.SKLearn` instance
+        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.
+        :param val: Use None. This is only kept to keep the API clean.
+        :param test: `X_test` data to predict on.
+        :param parameter_name: Name of the parameter to change e.g.
+                               word_vectors
+        :param parameters: A list of values to assign to the parameter e.g.
+                           [:py:class:`bella.word_vectors.SSWE`]
+        :param n_jobs: Number of cpus to use for multiprocessing if 1 then
+                       will not multiprocess.
+        :return: A list of tuples of (parameter value, predictions)
+        '''
+        func_args = ((model, train, val, test, parameter_name, parameter)
+                     for parameter in parameters)
+        if n_jobs == 1:
+            return [KerasModel.evaluate_parameter(*args)
+                    for args in func_args]
+        with Pool(n_jobs) as pool:
+            return pool.starmap(KerasModel.evaluate_parameter, func_args)
 
     @classmethod
     @abstractmethod
