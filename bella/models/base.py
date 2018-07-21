@@ -193,8 +193,8 @@ class BaseModel(ModelMixin, ABC):
         :return: self
         '''
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def evaluate_parameter(model: 'bella.models.base.BaseModel',
                            train: Tuple[np.ndarray, np.ndarray],
                            val: Union[None, Tuple[np.ndarray, np.ndarray]],
@@ -219,8 +219,8 @@ class BaseModel(ModelMixin, ABC):
         :return: A tuple of (parameter value, predictions)
         '''
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def evaluate_parameters(model: 'bella.models.base.BaseModel',
                             train: Tuple[np.ndarray, np.ndarray],
                             val: Union[None, Tuple[np.ndarray, np.ndarray]],
