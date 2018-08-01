@@ -91,7 +91,7 @@ setup(name='bella_tdsa',
           'wcwidth==0.1.7',
           'webencodings==0.5.1',
           'Werkzeug==0.12.2',
-          'widgetsnbextension==3.0.7',
+          'widgetsnbextension>=3.0.7',
           'twokenize==1.0.0',
           'tqdm==4.23.4'
       ],
