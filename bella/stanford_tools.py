@@ -39,7 +39,7 @@ def tokenise(text):
     output_dict = stanford_nlp.annotate(text, {'annotators': 'ssplit,tokenize',
                                                'tokenize.language': 'English',
                                                'outputFormat': 'json'})
-    output_dict = json.loads(output_dict)
+    output_dict = json.loads(output_dict, strict=False)
     tokens = [token['originalText'] for s in output_dict['sentences']
               for token in s['tokens']]
     return tokens
