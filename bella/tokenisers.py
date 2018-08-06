@@ -71,10 +71,16 @@ def moses(text: str) -> List[str]:
 
     This is a wrapper of `this <https://pypi.org/project/mosestokenizer/>`_
 
+    It expects the text not to contain any new lines therefore we split the
+    text by new lines and then join the tokens in each line together.
+
     :param text: A string to be tokenised.
     :returns: A list of tokens where each token is a String.
     '''
     if isinstance(text, str):
         with MosesTokenizer('en') as tokeniser:
-            return tokeniser(text)
+            new_line_tokens = [tokeniser(new_line_text)
+                               for new_line_text in text.split('\n')]
+            return [tokens for new_line in new_line_tokens
+                    for tokens in new_line]
     raise ValueError(f'The paramter must be of type str not {type(text)}')
