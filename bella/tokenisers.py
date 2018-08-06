@@ -65,6 +65,25 @@ def stanford(text: str) -> List[str]:
     raise ValueError(f'The paramter must be of type str not {type(text)}')
 
 
+class Moses(object):
+    '''
+    Singleton Class instance
+    '''
+
+    instance = None
+
+    def __new__(cls):
+        if Moses.instance is None:
+            Moses.instance = MosesTokenizer('en')
+        return Moses.instance
+
+    def __getattr__(self, name):
+        return getattr(self.instance, name)
+
+    def __setattr__(self, name, value):
+        return setattr(self.instance, name, value)
+
+
 def moses(text: str) -> List[str]:
     '''
     Tokeniser used in the `moses toolkit <https://github.com/moses-smt>`_
@@ -78,9 +97,9 @@ def moses(text: str) -> List[str]:
     :returns: A list of tokens where each token is a String.
     '''
     if isinstance(text, str):
-        with MosesTokenizer('en') as tokeniser:
-            new_line_tokens = [tokeniser(new_line_text)
-                               for new_line_text in text.split('\n')]
-            return [tokens for new_line in new_line_tokens
-                    for tokens in new_line]
+        tokeniser = Moses()
+        new_line_tokens = [tokeniser(new_line_text)
+                           for new_line_text in text.split('\n')]
+        return [tokens for new_line in new_line_tokens
+                for tokens in new_line]
     raise ValueError(f'The paramter must be of type str not {type(text)}')
