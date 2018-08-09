@@ -406,7 +406,21 @@ class TDParsePlus(TDParseMinus):
                       If no scaling is to be used set this to None.
         '''
 
-        self.model = Pipeline([
+        # Inherit from SKLearnModel __init__ method
+        # The parameters here go into the self.get_parameters method
+        super(TargetInd, self).__init__(word_vectors, parser, senti_lexicon,
+                                        tokeniser, lower, C, random_state,
+                                        scale)
+
+    @staticmethod
+    def pipeline() -> 'sklearn.pipeline.Pipeline':
+        '''
+        Machine Learning model that is used as the base template for the model
+        attribute.
+
+        :returns: The template machine learning model
+        '''
+        return Pipeline([
             ('union', FeatureUnion([
                 ('dependency', Pipeline([
                     ('context', syntactic_context.SyntacticContext()),
@@ -577,11 +591,6 @@ class TDParsePlus(TDParseMinus):
             ('scale', MinMaxScaler()),
             ('svm', LinearSVC())
         ])
-        # Inherit from SKLearnModel __init__ method
-        # The parameters here go into the self.get_parameters method
-        super(TargetInd, self).__init__(word_vectors, parser, senti_lexicon,
-                                        tokeniser, lower, C, random_state,
-                                        scale)
 
     @classmethod
     def get_parameters(cls,

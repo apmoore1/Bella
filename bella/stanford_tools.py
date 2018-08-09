@@ -16,16 +16,6 @@ class StanfordNlp(object):
             StanfordNlp.instance = StanfordCoreNLP('http://localhost', 9000)
         return StanfordNlp.instance
 
-    def __init__(self, ip_address='http://localhost', port=9000) -> None:
-        '''
-        :param ip_address: Address of the Stanford Core NLP server
-        :param port: port that the Stanford Core NLP server is listening to
-        :type ip_address: str
-        :type port: int
-        '''
-
-        self.instance = self.instance(ip_address, port)
-
     def __getattr__(self, name):
         return getattr(self.instance, name)
 
@@ -39,7 +29,7 @@ def tokenise(text):
     output_dict = stanford_nlp.annotate(text, {'annotators': 'ssplit,tokenize',
                                                'tokenize.language': 'English',
                                                'outputFormat': 'json'})
-    output_dict = json.loads(output_dict)
+    output_dict = json.loads(output_dict, strict=False)
     tokens = [token['originalText'] for s in output_dict['sentences']
               for token in s['tokens']]
     return tokens
