@@ -30,15 +30,17 @@ from pathlib import Path
 import pickle
 import random as rn
 import tempfile
-from typing import Any, List, Dict, Union, Tuple, Callable, Tuple
+from typing import Any, List, Dict, Union, Tuple, Callable
 from multiprocessing.pool import Pool
 
 import keras
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras import preprocessing
 import numpy as np
+import pandas as pd
 from sklearn.externals import joblib
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 import tensorflow as tf
 
 import bella
@@ -1047,7 +1049,7 @@ class SKLearnModel(BaseModel):
         return joblib.load(load_fp)
 
     @staticmethod
-    def evaluate_parameter(model: 'bella.models.base.KerasModel',
+    def evaluate_parameter(model: 'bella.models.base.SKLearnModel',
                            train: Tuple[np.ndarray, np.ndarray],
                            val: None,
                            test: np.ndarray, parameter_name: str,
@@ -1075,7 +1077,7 @@ class SKLearnModel(BaseModel):
         return (parameter, predictions)
 
     @staticmethod
-    def evaluate_parameters(model: 'bella.models.base.KerasModel',
+    def evaluate_parameters(model: 'bella.models.base.SKLearnModel',
                             train: Tuple[np.ndarray, np.ndarray],
                             val: None,
                             test: np.ndarray, parameter_name: str,
@@ -1104,10 +1106,40 @@ class SKLearnModel(BaseModel):
         func_args = ((model, train, val, test, parameter_name, parameter)
                      for parameter in parameters)
         if n_jobs == 1:
-            return [KerasModel.evaluate_parameter(*args)
+            return [SKLearnModel.evaluate_parameter(*args)
                     for args in func_args]
         with Pool(n_jobs) as pool:
-            return pool.starmap(KerasModel.evaluate_parameter, func_args)
+            return pool.starmap(SKLearnModel.evaluate_parameter, func_args)
+
+    @staticmethod
+    def grid_search_model(model: 'bella.models.base.SKLearnModel',
+                          X: np.ndarray, y: np.ndarray, n_cpus: int = 1,
+                          num_folds: int = 5, **kwargs) -> pd.DataFrame:
+        '''
+        Given a model class it will perform a Grid Search over the parameters
+        you give to the models :py:func:`bella.models.base.SKLearnModel\
+        .get_cv_parameters` function via the keyword arguments. Returns a
+        pandas dataframe representation of the grid search results.
+
+        :param model: The class of the model to use not an instance of the
+                      model.
+        :param X: Training samples matrix, shape = [n_samples, n_features]
+        :param y: Training targets, shape = [n_samples]
+        :param n_cpus: Number of estimators to fit in parallel. Default 1.
+        :param num_folds: Number of Stratified cross validation folds.
+                          Default 5.
+        :param kwargs: Keyword arguments to give to the models
+                       :py:func:`bella.models.base.SKLearnModel\
+                       .get_cv_parameters` function.
+        :return: Pandas dataframe representation of the grid search results.
+        '''
+        stratified_folds = StratifiedKFold(num_folds)
+        grid_params = model.get_cv_parameters(**kwargs)
+        grid_model = GridSearchCV(model.pipeline(), grid_params,
+                                  cv=stratified_folds, n_jobs=n_cpus,
+                                  return_train_score=False)
+        grid_model.fit(X, y)
+        return pd.DataFrame(grid_model.cv_results_)
 
     @classmethod
     @abstractmethod
