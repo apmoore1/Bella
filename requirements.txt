@@ -92,7 +92,7 @@ testpath==0.3.1
 tornado>=4.5.2
 tqdm==4.23.4
 traitlets==4.3.2
-tweebo-parser-python-api==1.0.2
+tweebo-parser-python-api==1.0.3
 twokenize==1.0.0
 urllib3==1.22
 wcwidth==0.1.7
