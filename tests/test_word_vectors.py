@@ -224,8 +224,8 @@ class TestWordVectors(TestCase):
                           min_count=1)
 
         # Test creating vectors from data
-        data_path = os.path.abspath(read_config('test_data', CONFIG_FP)
-                                    ['sherlock_holmes'])
+        data_path = os.path.abspath(read_config('sherlock_holmes_test', 
+                                                CONFIG_FP))
         with open(data_path, 'r') as data:
             data = map(tokenisers.whitespace, data)
             with tempfile.NamedTemporaryFile() as temp_file:

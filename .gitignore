@@ -7,7 +7,6 @@ docs/source/**
 .DS_Store
 ._.DS_Store
 ._config.yaml
-config.yaml
 
 mypy_cache
 
