@@ -29,8 +29,15 @@ from bella.models.target import TargetInd
 
 class TDParseMinus(TargetInd):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParse Minus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any,
@@ -188,8 +195,15 @@ class TDParseMinus(TargetInd):
 
 class TDParse(TDParseMinus):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParse'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any,
@@ -378,8 +392,15 @@ class TDParse(TDParseMinus):
 
 class TDParsePlus(TDParseMinus):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParsePlus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any, senti_lexicon: 'bella.lexicons.Lexicon',
