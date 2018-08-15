@@ -20,18 +20,8 @@ class TweeboParser(object):
 
     def __new__(cls):
         if TweeboParser.instance is None:
-            TweeboParser.instance = API()
+            TweeboParser.instance = API(log_errors=True)
         return TweeboParser.instance
-
-    def __init__(self, ip_address='http://0.0.0.0', port=8000):
-        '''
-        :param ip_address: Address of the Tweebo Parser API Server
-        :param port: port that the Tweebo Parser API server is listening to
-        :type ip_address: str
-        :type port: int
-        '''
-
-        self.instance = self.instance(ip_address, port)
 
     def __getattr__(self, name):
         return getattr(self.instance, name)
