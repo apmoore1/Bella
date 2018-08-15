@@ -14,10 +14,6 @@ import numpy as np
 from keras import models, optimizers, layers
 from keras.utils import to_categorical
 
-# Displaying the Neural Network models
-from keras.utils.vis_utils import model_to_dot, plot_model
-from IPython.display import SVG
-
 import bella
 from bella.models.base import KerasModel
 from bella.contexts import context
@@ -55,14 +51,15 @@ class LSTM(KerasModel):
        forward LSTM.
     '''
 
+    @classmethod
+    def name(cls) -> str:
+        return 'LSTM'
+
     def __repr__(self) -> str:
         '''
         Name of the machine learning model.
-
-        :return: Name of the machine learning model.
         '''
-
-        return 'LSTM'
+        return self.name()
 
     def __init__(self, tokeniser: Callable[[str], List[str]],
                  embeddings: 'bella.word_vectors.WordVectors',
@@ -361,46 +358,6 @@ class LSTM(KerasModel):
         self.fitted = False
         self._dense_layer_kwargs = value
 
-    def visulaise(self, plot_format='vert'):
-        '''
-        :param plot_format: Whether the plot is shown vertical or horizontal. \
-        Vertical is default and denoted as `vert` else horizontal is `hoz`
-        :type plot_format: String
-        :returns: A plot showing the structure of the Neural Network when using \
-        a Jupyter or IPython notebook
-        :rtype: IPython.core.display.SVG
-        '''
-
-        if self.model is None:
-            raise ValueError('The model has to be fitted before being able '\
-                             'to visulaise it.')
-        rankdir = 'TB'
-        if plot_format == 'hoz':
-            rankdir = 'LR'
-        dot_model = model_to_dot(self.model, show_shapes=True,
-                                 show_layer_names=True, rankdir=rankdir)
-        return SVG(dot_model.create(prog='dot', format='svg'))
-
-    def visulaise_to_file(self, file_path, plot_format='vert'):
-        '''
-        :param file_path: File path to save the plot of the Neural Network.
-        :param plot_format: Whether the plot is shown vertical or horizontal. \
-        Vertical is default and denoted as `vert` else horizontal is `hoz`
-        :type file_path: String
-        :type plot_format: String. Default 'vert'
-        :returns: Nothing. Saves the visual to the file path given.
-        :rtype: None
-        '''
-
-        if self.model is None:
-            raise ValueError('The model has to be fitted before being able '\
-                             'to visulaise it.')
-        rankdir = 'TB'
-        if plot_format == 'hoz':
-            rankdir = 'LR'
-        plot_model(self.model, to_file=file_path, show_shapes=True,
-                   show_layer_names=True, rankdir=rankdir)
-
 
 class TDLSTM(LSTM):
     '''
@@ -410,14 +367,15 @@ class TDLSTM(LSTM):
        representations.
     '''
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
+        return 'TDLSTM'
+
+    def __repr__(self) -> str:
         '''
         Name of the machine learning model.
-
-        :return: Name of the machine learning model.
         '''
-
-        return 'TDLSTM'
+        return self.name()
 
     def __init__(self, tokeniser: Callable[[str], List[str]],
                  embeddings: 'bella.word_vectors.WordVectors',
@@ -706,14 +664,15 @@ class TDLSTM(LSTM):
 
 class TCLSTM(TDLSTM):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
+        return 'TCLSTM'
+
+    def __repr__(self) -> str:
         '''
         Name of the machine learning model.
-
-        :return: Name of the machine learning model.
         '''
-
-        return 'TCLSTM'
+        return self.name()
 
     def _pre_process(self, data_dicts: List[Dict[str, Any]],
                      training: bool = False) -> List[np.ndarray]:
