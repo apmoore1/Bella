@@ -125,6 +125,10 @@ class BaseModel(ModelMixin, ABC):
        in X.
     4. __repr__ -- Name of the machine learning model.
 
+    Class Methods:
+
+    1. name -- -- Returns the name of the model.
+
     Functions:
 
     1. save -- Saves the given machine learning model instance to a file.
@@ -250,6 +254,15 @@ class BaseModel(ModelMixin, ABC):
         :param n_jobs: Number of cpus to use for multiprocessing if 1 then
                        will not multiprocess.
         :return: A list of tuples of (parameter value, predictions)
+        '''
+
+    @classmethod
+    @abstractmethod
+    def name(cls) -> str:
+        '''
+        Returns the name of the model.
+
+        :return: Name of the model
         '''
 
     @property
@@ -933,6 +946,17 @@ class SKLearnModel(BaseModel):
        model.
     4. evaluate_parameters -- same as evaluate_parameter however it
        evaluates over many parameter values for the same parameter.
+    5. grid_search_model -- Given a model class it will perform a Grid Search
+       over the parameters you give to the models
+       :py:func:`bella.models.base.SKLearnModel.get_cv_parameters` function
+       via the keyword arguments. Returns a pandas dataframe representation of
+       the grid search results.
+    6. get_grid_score -- Given the return of the :py:func:`grid_search_model`
+       will return the grid scores as a List of the mean test accuracy result.
+    7. models_best_parameter -- Given a list of models and their base model
+       arguments, it will find the best parameter value out of the values
+       given for that parameter while keeping the base model arguments
+       constant for each model.
 
     Abstract Functions:
 
@@ -1140,6 +1164,88 @@ class SKLearnModel(BaseModel):
                                   return_train_score=False)
         grid_model.fit(X, y)
         return pd.DataFrame(grid_model.cv_results_)
+
+    @staticmethod
+    def get_grid_score(grid_scores: pd.DataFrame,
+                       associated_param: Union[None, str] = None
+                       ) -> Union[List[float], List[Tuple[float, str]]]:
+        '''
+        Given the return of the :py:func:`grid_search_model` will return
+        the grid scores as a List of the mean test accuracy result.
+
+        :param grid_scores: Return of the :py:func:`grid_search_model`
+        :param associated_param: Optional. The name of the parameter you want
+                                 to associate to the score. E.g. lexicon as you
+                                 have grid searched over different lexicons and
+                                 you want the return to be associated with the
+                                 lexicon name e.g. [(0.68, 'MPQA),
+                                 (0.70, 'NRC')]
+        :return: A list of test scores from the grid search and if
+                 associated_param is not None a list of scores and parameter
+                 names.
+        '''
+        extracted_scores = grid_scores['mean_test_score'].astype(float)
+        extracted_scores = extracted_scores.round(4) * 100
+        extracted_scores = extracted_scores.tolist()
+        if associated_param is not None:
+            if associated_param not in grid_scores:
+                for column_name in grid_scores.columns:
+                    if associated_param in column_name:
+                        associated_param = column_name
+            associated_param = grid_scores[associated_param]
+            associated_param = associated_param.apply(str).tolist()
+            extracted_scores = list(zip(extracted_scores, associated_param))
+        return extracted_scores
+
+    @staticmethod
+    def models_best_parameter(models_kwargs: List[Tuple['bella.models.base.SKLearnModel',
+                                                        Dict[str, Any]]],
+                              param_name: str, param_values: List[Any],
+                              X: List[Any], y: np.ndarray, n_cpus: int = 1,
+                              num_folds: int = 5
+                              ) -> Dict['bella.models.base.SKLearnModel', str]:
+        '''
+        Given a list of models and their base model arguments, it will
+        find the best parameter value out of the values given for that
+        parameter while keeping the base model arguments constant for
+        each model.
+
+        This essentially performs 5 fold cross validation grid search
+        for the one parameter given, across all models given.
+
+        :param models_kwargs: A list of tuples where each tuple contains
+                              a model and the models keyword arguments to
+                              give to its `get_cv_parameters` method. These
+                              arguments are the models standard arguments
+                              that are not to be changed.
+        :param param_name: Name of the parameter to be changed. This name
+                           has to be the name of the keyword argument in
+                           the models `get_cv_parameters` method.
+        :param param_values: The different values to assign to the param_name
+                             argument.
+        :param X: The training samples.
+        :param y: The training target samples.
+        :return: A dictionary of model and the name of the best parameter.
+        '''
+        model_best_param = {}
+        for model, model_kwargs in models_kwargs:
+            temp_model_kwargs = {**model_kwargs, param_name: param_values}
+            grid_results = model.grid_search_model(model, X, y, n_cpus=n_cpus,
+                                                   num_folds=num_folds,
+                                                   **temp_model_kwargs)
+            param_scores = model.get_grid_score(grid_results, param_name)
+            if not param_scores:
+                for alt_param_name in param_name.split('_'):
+                    param_scores = model.get_grid_score(grid_results,
+                                                        alt_param_name)
+                    if param_scores:
+                        break
+                else:
+                    raise Exception('Cannot find the param name from the '
+                                    'grid search results')
+            best_param = sorted(param_scores, key=lambda x: x[0])[-1][1]
+            model_best_param[model] = best_param
+        return model_best_param
 
     @classmethod
     @abstractmethod
