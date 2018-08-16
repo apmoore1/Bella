@@ -121,6 +121,7 @@ class TestWordVectors(TestCase):
                          'normalization {} should be {}'\
                          .format(hello_embedding, unit_hello_vec))
 
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_padded_vector(self):
         hello_vec = np.asarray([0.5, 0.3, 0.4], dtype=np.float32)
         another_vec = np.asarray([0.3333, 0.2222, 0.1111])
@@ -170,7 +171,7 @@ class TestWordVectors(TestCase):
         self.assertEqual('<unk>', word_vector.padding_word)
 
 
-
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_gensim_word2vec(self):
         '''
         Tests the :py:class:`bella.word_vectors.GensimVectors`
@@ -224,7 +225,7 @@ class TestWordVectors(TestCase):
                           min_count=1)
 
         # Test creating vectors from data
-        data_path = os.path.abspath(read_config('sherlock_holmes_test', 
+        data_path = os.path.abspath(read_config('sherlock_holmes_test',
                                                 CONFIG_FP))
         with open(data_path, 'r') as data:
             data = map(tokenisers.whitespace, data)
