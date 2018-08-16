@@ -128,10 +128,6 @@ def target_normalisation(target_dict, renormalise=False, parser=None):
     :rtype: tuple
     '''
 
-    if not isinstance(target_dict, Target):
-        raise TypeError('target_dict parameter has to be of type Target and '\
-                        'not {}'.format(type(target_dict)))
-
     sorted_spans = sorted(target_dict['spans'], key=lambda span: span[0],
                           reverse=True)
     org_text = target_dict['text']

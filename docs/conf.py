@@ -174,4 +174,16 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'python': ('https://docs.python.org/3.6/', None),
+                       'numpy': ('https://docs.scipy.org/doc/numpy-1.13.0/', None),
+                       'scikit': ('http://scikit-learn.org/0.19/', None)}
+
+
+def skip(app, what, name, obj, skip, options):
+    if name == "__init__":
+        skip = False
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
