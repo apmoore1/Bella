@@ -7,8 +7,9 @@ that are within `Wang et al. paper \
 2. :py:class:`bella.models.target.TDParse` -- TDParse model
 3. :py:class:`bella.models.tdparse.TDParsePlus` -- TDParse Plus model
 '''
-from typing import Any, List, Callable, Dict, Union
+from typing import Any, List, Callable, Dict
 
+import sklearn
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import LinearSVC
@@ -29,8 +30,15 @@ from bella.models.target import TargetInd
 
 class TDParseMinus(TargetInd):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParse Minus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any,
@@ -188,8 +196,15 @@ class TDParseMinus(TargetInd):
 
 class TDParse(TDParseMinus):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParse'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any,
@@ -378,8 +393,15 @@ class TDParse(TDParseMinus):
 
 class TDParsePlus(TDParseMinus):
 
-    def __repr__(self):
+    @classmethod
+    def name(cls) -> str:
         return 'TDParsePlus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  parser: Any, senti_lexicon: 'bella.lexicons.Lexicon',

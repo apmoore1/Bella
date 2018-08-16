@@ -10,8 +10,9 @@ that are within `Vo and Zhang 2015 paper \
 4. :py:class:`bella.models.target.TargetDepPlus` -- Target Dependent Plus model
 '''
 
-from typing import Any, List, Callable, Dict, Union
+from typing import Any, List, Callable, Dict
 
+import sklearn
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import LinearSVC
@@ -54,6 +55,7 @@ class TargetInd(SKLearnModel):
     2. get_cv_parameters -- Transform the given parameters into a list of
        dictonaries that is accepted as `param_grid` parameter in
        :py:class:`sklearn.model_selection.GridSearchCV`
+    3. name -- -- Returns the name of the model.
 
     Functions:
 
@@ -63,8 +65,15 @@ class TargetInd(SKLearnModel):
        for the model attribute.
     '''
 
-    def __repr__(self) -> str:
+    @classmethod
+    def name(cls) -> str:
         return 'Target Independent'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  tokeniser: Callable[[str], List[str]] = ark_twokenize,
@@ -258,8 +267,15 @@ class TargetInd(SKLearnModel):
 
 class TargetDepMinus(TargetInd):
 
-    def __repr__(self) -> str:
+    @classmethod
+    def name(cls) -> str:
         return 'Target Dependent Minus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  tokeniser: Callable[[str], List[str]] = ark_twokenize,
@@ -469,8 +485,15 @@ class TargetDep(TargetInd):
     <https://ijcai.org/Proceedings/15/Papers/194.pdf>`_.
     '''
 
-    def __repr__(self) -> str:
+    @classmethod
+    def name(cls) -> str:
         return 'Target Dependent'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  tokeniser: Callable[[str], List[str]] = ark_twokenize,
@@ -705,8 +728,15 @@ class TargetDep(TargetInd):
 
 class TargetDepPlus(TargetInd):
 
-    def __repr__(self) -> str:
+    @classmethod
+    def name(cls) -> str:
         return 'Target Dependent Plus'
+
+    def __repr__(self) -> str:
+        '''
+        Name of the machine learning model.
+        '''
+        return self.name()
 
     def __init__(self, word_vectors: List['bella.word_vectors.WordVectors'],
                  senti_lexicon: 'bella.lexicons.Lexicon',

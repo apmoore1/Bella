@@ -14,7 +14,6 @@ class TestHelper(TestCase):
     '''
     Contains the following functions:
     1. :py:func:`bella.helper.test_read_config`
-    2. :py:func:`bella.helper.test_package_dir`
     '''
 
     def test_read_config(self):
@@ -22,12 +21,8 @@ class TestHelper(TestCase):
         Tests :py:func:`bella.helper.read_config`
         '''
 
-        # Check if it can handle nested values - which should be converted to
-        # a dictionary
-        self.assertIsInstance(read_config('lexicons', CONFIG_FP), dict)
-
-        self.assertEqual(read_config('test_data', CONFIG_FP)['dong_data'],
-                         './tests/test_data/dong_test_data.txt')
+        dong_test_fp = 'tests/test_data/dong_test_data.txt'
+        assert dong_test_fp in read_config('dong_data_test', CONFIG_FP)
         with self.assertRaises(ValueError,
                                msg='nothing here should not be in the '
                                    'config.yaml'):
