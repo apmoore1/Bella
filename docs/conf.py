@@ -170,9 +170,6 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-
-
-
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6/', None),
                        'numpy': ('https://docs.scipy.org/doc/numpy-1.13.0/', None),
