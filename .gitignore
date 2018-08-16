@@ -7,7 +7,7 @@ docs/source/**
 .DS_Store
 ._.DS_Store
 ._config.yaml
-
+.ipynb_checkpoints
 mypy_cache
 
 
