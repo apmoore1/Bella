@@ -53,13 +53,13 @@ All the word vectors are automatically downloaded for you and they are stored in
 
 ## Model Zoo
 
-The model zoo can be found in the ["model zoo"](https://github.com/apmoore1/Bella/tree/master/model%20zoo) folder.
+The model zoo can be found on the Git Lab repository [here](https://delta.lancs.ac.uk/mooreap/bella-models).
 
 ## The notebooks
 
 Can be found [here](./notebooks)
 
-The best order to look at the notebooks is first look at the data with this [notebook](./notebooks/datasets.ipynb). Then looking at the [notebook](./notebooks/Model%20Example.ipynb) that describes how to load and use the saved models from the [model zoo](#model-zoo). Then go and explore the rest if you would like: 
+The best order to look at the notebooks is first look at the data with this [notebook](./notebooks/datasets.ipynb). Then looking at the [notebook](./notebooks/Model%20Example.ipynb) that describes how to load and use the saved models from the [model zoo](#model-zoo). Then go and explore the rest if you would like:
 
 1. The Mass evaluation notebooks are the following
    * [Mass Evaluation - TDParse](./notebooks/Mass%20Evaluation%20-%20TDParse.ipynb) for the Target dependent models
@@ -72,5 +72,3 @@ The best order to look at the notebooks is first look at the data with this [not
 5. For the statistics of the datasets and where to find them see this [notebook](./notebooks/datasets.ipynb)
 6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean%20dataset%20splitting.ipynb)
 7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
-
-

@@ -20,9 +20,8 @@ mitchel_org_train: ../aspect datasets/mitchel/train.1
 mitchel_org_test: ../aspect datasets/mitchel/test.1
 mitchel_train: ../aspect datasets/mitchel/train.xml
 mitchel_test: ../aspect datasets/mitchel/test.xml
-results_folder: ../alt_results
-model_zoo_folder: ../alt_zoo
-model_zoo_folder1: ../alt_zoo1
+results_folder: ./results
+model_zoo_folder: ../model_zoo
 #
 # Lexicon paths
 #
