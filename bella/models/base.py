@@ -38,6 +38,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras import preprocessing
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.externals import joblib
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
@@ -72,7 +73,7 @@ class ModelMixin():
         return all_targets
 
     @staticmethod
-    def train_val_split(train: 'bella.data_types.TargetCollection',
+    def train_val_split(train: 'TargetCollection',
                         split_size: float = 0.2, seed: Union[None, int] = 42
                         ) -> Tuple[Tuple[np.ndarray, np.ndarray],
                                    Tuple[np.ndarray, np.ndarray]]:
@@ -201,7 +202,7 @@ class BaseModel(ModelMixin, ABC):
 
     @staticmethod
     @abstractmethod
-    def evaluate_parameter(model: 'bella.models.base.BaseModel',
+    def evaluate_parameter(model: 'BaseModel',
                            train: Tuple[np.ndarray, np.ndarray],
                            val: Union[None, Tuple[np.ndarray, np.ndarray]],
                            test: np.ndarray, parameter_name: str,

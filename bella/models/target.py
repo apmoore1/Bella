@@ -10,8 +10,9 @@ that are within `Vo and Zhang 2015 paper \
 4. :py:class:`bella.models.target.TargetDepPlus` -- Target Dependent Plus model
 '''
 
-from typing import Any, List, Callable, Dict, Union
+from typing import Any, List, Callable, Dict
 
+import sklearn
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import LinearSVC

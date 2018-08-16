@@ -11,6 +11,7 @@ that are within `Tang et al. 2016 paper \
 from typing import Dict, Callable, Any, List, Union, Tuple
 
 import numpy as np
+import keras
 from keras import models, optimizers, layers
 from keras.utils import to_categorical
 

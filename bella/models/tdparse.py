@@ -7,8 +7,9 @@ that are within `Wang et al. paper \
 2. :py:class:`bella.models.target.TDParse` -- TDParse model
 3. :py:class:`bella.models.tdparse.TDParsePlus` -- TDParse Plus model
 '''
-from typing import Any, List, Callable, Dict, Union
+from typing import Any, List, Callable, Dict
 
+import sklearn
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import LinearSVC
