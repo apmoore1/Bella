@@ -251,6 +251,9 @@ class TestWordVectors(TestCase):
                 self.assertEqual('sherlock', data_vector.name, msg='The name '\
                                  'of the instance should be sherlock and not {}'\
                                  .format(data_vector.name))
+    
+
+    @pytest.mark.skip(reason="Takes a long time to test only add on large tests")
     def test_pre_trained(self):
         '''
         Tests the :py:class:`bella.word_vectors.PreTrained`
