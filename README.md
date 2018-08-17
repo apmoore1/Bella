@@ -45,7 +45,7 @@ These lexicons are required to be downloaded if you use any methods that require
 
 ## Word Vectors
 
-All the word vectors are automatically downloaded for you and they are stored in the root directory called '.Bella' which is created in your user directory e.g. on Linux that would be `~/.Bella/`. The word vectors included in this repository are the following:
+All the word vectors are automatically downloaded for you and they are stored in the root directory called `.Bella/Vectors` which is created in your user directory e.g. on Linux that would be `~/.Bella/Vectors/`. The word vectors included in this repository are the following:
 1. SSWE
 2. Word Vectors trained on sentences that contain emojis
 3. Glove Common Crawl
@@ -56,6 +56,21 @@ All the word vectors are automatically downloaded for you and they are stored in
 ## Model Zoo
 
 The model zoo can be found on the Git Lab repository [here](https://delta.lancs.ac.uk/mooreap/bella-models).
+
+These models can be automatically downloaded through the code like the word vectors and stored in the `.Bella/Models` directory which is automatically placed in your home directory for instance on Linux that would be `~/.Bella/Models`. An example of how to download and use a model is shown below:
+```
+from bella import helper
+from bella.models.target import TargetDep
+
+target_dep = helper.download_model(TargetDep, 'SemEval 14 Restaurant')
+test_example_multi = [{'text' : 'This bread is tasty but the sauce is too rich', 'target': 'sauce', 
+                     'spans': [(28, 33)]}]
+
+target_dep.predict(test_example_multi)
+```
+This example will download the Target Dependent model which is from [Vo and Zhang](https://www.ijcai.org/Proceedings/15/Papers/194.pdf) paper that has been trained on the SemEval 2014 Resturant data and predict the sentiment of **sauce** from that example. As you can see the example is not simple as it has two different sentiments within the same sentence with two targets; 1. **bread** with a positive sentiment and 2. **sauce** which has a negative sentiment of which that target is the one being predicted for in this example.
+
+To see a more in depth guide to the pre-trained models and output from them go to [this notebook](./notebooks/Pre-Trained%20Model%20Example.ipynb).
 
 ## The notebooks
 
