@@ -11,6 +11,8 @@ Target Dependent Sentiment Analysis (TDSA) framework.
 4. Start Stanford CoreNLP server: `docker run -p 9000:9000 -d --rm mooreap/corenlp`
 5. Start the TweeboParser API server: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker`
 
+The docker Stanford and Tweebo server are only required if you are going to use the TDParse methods/models or if you are going to use any of the Stanford Tools else you do not need them.
+
 To stop the docker servers running:
 
 1. Find the name assigned to the docker image using: docker ps
