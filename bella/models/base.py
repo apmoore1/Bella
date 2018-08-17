@@ -1235,15 +1235,8 @@ class SKLearnModel(BaseModel):
                                                    num_folds=num_folds,
                                                    **temp_model_kwargs)
             param_scores = model.get_grid_score(grid_results, param_name)
-            if not param_scores:
-                for alt_param_name in param_name.split('_'):
-                    param_scores = model.get_grid_score(grid_results,
-                                                        alt_param_name)
-                    if param_scores:
-                        break
-                else:
-                    raise Exception('Cannot find the param name from the '
-                                    'grid search results')
+            param_scores = sorted(param_scores, key=lambda x: x[1],
+                                  reverse=True)
             best_param = sorted(param_scores, key=lambda x: x[0])[-1][1]
             model_best_param[model] = best_param
         return model_best_param
