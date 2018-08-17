@@ -14,6 +14,8 @@ from pathlib import Path
 import requests
 from ruamel.yaml import YAML
 
+import bella
+
 
 BELLA_MODEL_DIR = Path.home().joinpath('.Bella', 'Models')
 
