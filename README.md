@@ -38,7 +38,7 @@ All of the dataset are required to be downloaded and are not stored in this repo
 
 ## Lexicons
 
-These lexicons are required to be downloaded if you use any methods that require them. Please see the use of the [config file](./config.yaml) for stroing the location of the lexicons:
+These lexicons are required to be downloaded if you use any methods that require them. Please see the use of the [config file](./config.yaml) for storing the location of the lexicons:
 1. MPQA can be found [here](http://mpqa.cs.pitt.edu/lexicons/subj_lexicon/)
 2. NRC [here](http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm)
 3. Hu and Liu [here](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html#lexicon)
