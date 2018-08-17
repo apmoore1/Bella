@@ -58,13 +58,13 @@ All the word vectors are automatically downloaded for you and they are stored in
 The model zoo can be found on the Git Lab repository [here](https://delta.lancs.ac.uk/mooreap/bella-models).
 
 These models can be automatically downloaded through the code like the word vectors and stored in the `.Bella/Models` directory which is automatically placed in your home directory for instance on Linux that would be `~/.Bella/Models`. An example of how to download and use a model is shown below:
-```
+```python
 from bella import helper
 from bella.models.target import TargetDep
 
 target_dep = helper.download_model(TargetDep, 'SemEval 14 Restaurant')
 test_example_multi = [{'text' : 'This bread is tasty but the sauce is too rich', 'target': 'sauce', 
-                     'spans': [(28, 33)]}]
+                       'spans': [(28, 33)]}]
 
 target_dep.predict(test_example_multi)
 ```
