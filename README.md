@@ -27,8 +27,8 @@ Both of these servers will run with as many threads as your machine has CPUs to 
 ## Dataset
 
 All of the dataset are required to be downloaded and are not stored in this repository. We recomend using the [config file](./config.yaml) to state where the datasets are stored like we did but this is not a requirement as you can state where they are stored explictly in the code. For more details on the datasets and downloading them see the [dataset notebook](https://github.com/apmoore1/Bella/blob/master/notebooks/datasets.ipynb) The datasets used:
-1. [SemEval 2014 Resturant dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version 2 and the test dataset.
-2. [SemEval 2014 Laptop dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version2 and the test dataset.
+1. [SemEval 2014 Resturant dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version 2 and the test dataset of which the gold standatd test can be found [here](http://metashare.ilsp.gr:8080/repository/browse/semeval-2014-absa-test-data-gold-annotations/b98d11cec18211e38229842b2b6a04d77591d40acd7542b7af823a54fb03a155/).
+2. [SemEval 2014 Laptop dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version2 and the test dataset of which the gold standard test can be found [here](http://metashare.ilsp.gr:8080/repository/browse/semeval-2014-absa-test-data-gold-annotations/b98d11cec18211e38229842b2b6a04d77591d40acd7542b7af823a54fb03a155/).
 3. [Election dataset](https://figshare.com/articles/EACL_2017_-_Multi-target_UK_election_Twitter_sentiment_corpus/4479563/1)
 4. [Dong et al.](https://aclanthology.coli.uni-saarland.de/papers/P14-2009/p14-2009) [Twitter dataset](https://github.com/bluemonk482/tdparse/tree/master/data/lidong)
 5. [Youtubean dataset](https://github.com/epochx/opinatt/blob/master/samsung_galaxy_s5.xml) [by Marrese-Taylor et al.](https://www.aclweb.org/anthology/W17-5213)
