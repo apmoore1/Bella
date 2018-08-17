@@ -11,6 +11,8 @@ Target Dependent Sentiment Analysis (TDSA) framework.
 4. Start Stanford CoreNLP server: `docker run -p 9000:9000 -d --rm mooreap/corenlp`
 5. Start the TweeboParser API server: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker`
 
+The docker Stanford and Tweebo server are only required if you are going to use the TDParse methods/models or if you are going to use any of the Stanford Tools else you do not need them.
+
 To stop the docker servers running:
 
 1. Find the name assigned to the docker image using: docker ps
@@ -25,8 +27,8 @@ Both of these servers will run with as many threads as your machine has CPUs to 
 ## Dataset
 
 All of the dataset are required to be downloaded and are not stored in this repository. We recomend using the [config file](./config.yaml) to state where the datasets are stored like we did but this is not a requirement as you can state where they are stored explictly in the code. For more details on the datasets and downloading them see the [dataset notebook](https://github.com/apmoore1/Bella/blob/master/notebooks/datasets.ipynb) The datasets used:
-1. [SemEval 2014 Resturant dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version 2 and the test dataset.
-2. [SemEval 2014 Laptop dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version2 and the test dataset.
+1. [SemEval 2014 Resturant dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version 2 and the test dataset of which the gold standatd test can be found [here](http://metashare.ilsp.gr:8080/repository/browse/semeval-2014-absa-test-data-gold-annotations/b98d11cec18211e38229842b2b6a04d77591d40acd7542b7af823a54fb03a155/).
+2. [SemEval 2014 Laptop dataset](http://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools). We used Train dataset version2 and the test dataset of which the gold standard test can be found [here](http://metashare.ilsp.gr:8080/repository/browse/semeval-2014-absa-test-data-gold-annotations/b98d11cec18211e38229842b2b6a04d77591d40acd7542b7af823a54fb03a155/).
 3. [Election dataset](https://figshare.com/articles/EACL_2017_-_Multi-target_UK_election_Twitter_sentiment_corpus/4479563/1)
 4. [Dong et al.](https://aclanthology.coli.uni-saarland.de/papers/P14-2009/p14-2009) [Twitter dataset](https://github.com/bluemonk482/tdparse/tree/master/data/lidong)
 5. [Youtubean dataset](https://github.com/epochx/opinatt/blob/master/samsung_galaxy_s5.xml) [by Marrese-Taylor et al.](https://www.aclweb.org/anthology/W17-5213)
@@ -36,14 +38,14 @@ All of the dataset are required to be downloaded and are not stored in this repo
 
 ## Lexicons
 
-These lexicons are required to be downloaded if you use any methods that require them. Please see the use of the [config file](./config.yaml) for stroing the location of the lexicons:
+These lexicons are required to be downloaded if you use any methods that require them. Please see the use of the [config file](./config.yaml) for storing the location of the lexicons:
 1. MPQA can be found [here](http://mpqa.cs.pitt.edu/lexicons/subj_lexicon/)
 2. NRC [here](http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm)
 3. Hu and Liu [here](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html#lexicon)
 
 ## Word Vectors
 
-All the word vectors are automatically downloaded for you and they are stored in the root directory called '.Bella' which is created in your user directory e.g. on Linux that would be `~/.Bella/`. The word vectors included in this repository are the following:
+All the word vectors are automatically downloaded for you and they are stored in the root directory called `.Bella/Vectors` which is created in your user directory e.g. on Linux that would be `~/.Bella/Vectors/`. The word vectors included in this repository are the following:
 1. SSWE
 2. Word Vectors trained on sentences that contain emojis
 3. Glove Common Crawl
@@ -54,6 +56,21 @@ All the word vectors are automatically downloaded for you and they are stored in
 ## Model Zoo
 
 The model zoo can be found on the Git Lab repository [here](https://delta.lancs.ac.uk/mooreap/bella-models).
+
+These models can be automatically downloaded through the code like the word vectors and stored in the `.Bella/Models` directory which is automatically placed in your home directory for instance on Linux that would be `~/.Bella/Models`. An example of how to download and use a model is shown below:
+```
+from bella import helper
+from bella.models.target import TargetDep
+
+target_dep = helper.download_model(TargetDep, 'SemEval 14 Restaurant')
+test_example_multi = [{'text' : 'This bread is tasty but the sauce is too rich', 'target': 'sauce', 
+                     'spans': [(28, 33)]}]
+
+target_dep.predict(test_example_multi)
+```
+This example will download the Target Dependent model which is from [Vo and Zhang](https://www.ijcai.org/Proceedings/15/Papers/194.pdf) paper that has been trained on the SemEval 2014 Resturant data and predict the sentiment of **sauce** from that example. As you can see the example is not simple as it has two different sentiments within the same sentence with two targets; 1. **bread** with a positive sentiment and 2. **sauce** which has a negative sentiment of which that target is the one being predicted for in this example.
+
+To see a more in depth guide to the pre-trained models and output from them go to [this notebook](./notebooks/Pre-Trained%20Model%20Example.ipynb).
 
 ## The notebooks
 
@@ -72,3 +89,4 @@ The best order to look at the notebooks is first look at the data with this [not
 5. For the statistics of the datasets and where to find them see this [notebook](./notebooks/datasets.ipynb)
 6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean%20dataset%20splitting.ipynb)
 7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
+8. Pre-Trained Model examples [notebook](./notebooks/Pre-Trained%20Model%20Example.ipynb)
