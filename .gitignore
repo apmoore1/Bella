@@ -9,7 +9,8 @@ docs/source/**
 ._config.yaml
 .ipynb_checkpoints
 mypy_cache
-
+build/
+dist/
 
 
 
