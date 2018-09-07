@@ -604,14 +604,15 @@ class TargetCollection(MutableMapping):
         return sum(all_sentence_lengths) / len(all_sentence_lengths)
 
     def word_list(self, tokeniser: Callable[[str], List[str]],
-                  min_df: int = 0) -> List[str]:
+                  min_df: int = 0, lower: bool = True) -> List[str]:
         '''
-        :param tokeniser: Tokeniser function to tokenise the text \
-        of each target/sample
-        :param min_df: Optional. The minimum percentage of documents a \
-        token must occur in.
-        :return: A word list of all tokens that occur in this data collection \
-        given min_df.
+        :param tokeniser: Tokeniser function to tokenise the text 
+                          of each target/sample
+        :param min_df: Optional. The minimum percentage of documents a 
+                       token must occur in.
+        :param lower: Optional. Whether to lower the text. 
+        :return: A word list of all tokens that occur in this data collection 
+                 given min_df.
         '''
 
         token_df = defaultdict(lambda: 0)
@@ -620,7 +621,9 @@ class TargetCollection(MutableMapping):
             num_df += 1
             tokens = tokeniser(target['text'])
             for token in tokens:
-                token_df[token.lower()] += 1
+                if lower:
+                    token = token.lower()
+                token_df[token] += 1
         min_df_value = int((num_df / 100) * min_df)
         word_list = [token for token, df in token_df.items()
                      if df > min_df_value]
