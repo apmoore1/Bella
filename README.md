@@ -94,3 +94,8 @@ The best order to look at the notebooks is first look at the data with this [not
 6. For the code on creating training and test splits for the YouTuBean dataset see this [notebook](./notebooks/YouTuBean%20dataset%20splitting.ipynb)
 7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
 8. Pre-Trained Model examples [notebook](./notebooks/Pre-Trained%20Model%20Example.ipynb)
+
+## Different Licenses
+
+As we use a lot of tools we list here if any of the tools that we use are licensed under a different license to that of this repository:
+1. The Moses tokeniser is licensed under [GNU Lesser General Public License version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html) or, at your option, any later version.
