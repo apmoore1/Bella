@@ -11,6 +11,6 @@ docs/source/**
 mypy_cache
 build/
 dist/
-
-
+.vscode
+bella_tdsa.egg-info
 
