@@ -11,6 +11,10 @@ Target Dependent Sentiment Analysis (TDSA) framework.
 4. Start Stanford CoreNLP server: `docker run -p 9000:9000 -d --rm mooreap/corenlp`
 5. Start the TweeboParser API server: `docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker`
 
+If you want to use the moses tokeniser that has been taken from the [Moses project](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/tokenizer/python-tokenizer/moses.py) the following will need to be installed:
+1. `python -m nltk.downloader perluniprops`
+2. `python -m nltk.downloader nonbreaking_prefixes`
+
 The docker Stanford and Tweebo server are only required if you are going to use the TDParse methods/models or if you are going to use any of the Stanford Tools else you do not need them.
 
 To stop the docker servers running:

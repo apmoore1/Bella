@@ -14,10 +14,10 @@ Functions:
 '''
 from typing import List
 
-from mosestokenizer import MosesTokenizer
 import twokenize
 
 from bella import stanford_tools
+from bella.moses_tools import MosesTokenizer
 
 
 def whitespace(text: str) -> List[str]:
@@ -65,41 +65,21 @@ def stanford(text: str) -> List[str]:
     raise ValueError(f'The paramter must be of type str not {type(text)}')
 
 
-class Moses(object):
-    '''
-    Singleton Class instance
-    '''
-
-    instance = None
-
-    def __new__(cls):
-        if Moses.instance is None:
-            Moses.instance = MosesTokenizer('en')
-        return Moses.instance
-
-    def __getattr__(self, name):
-        return getattr(self.instance, name)
-
-    def __setattr__(self, name, value):
-        return setattr(self.instance, name, value)
-
-
-def moses(text: str) -> List[str]:
+def moses(text: str, aggressive_dash_splits: bool = False, 
+          escape: bool = True) -> List[str]:
     '''
     Tokeniser used in the `moses toolkit <https://github.com/moses-smt>`_
 
-    This is a wrapper of `this <https://pypi.org/project/mosestokenizer/>`_
-
-    It expects the text not to contain any new lines therefore we split the
-    text by new lines and then join the tokens in each line together.
-
     :param text: A string to be tokenised.
+    :param aggressive_dash_splits: Option to trigger dash split rules
+    :param escape: Whether to escape characters e.g. "'s" escaped equals 
+                   "&apos;s"
     :returns: A list of tokens where each token is a String.
     '''
+
     if isinstance(text, str):
-        tokeniser = Moses()
-        new_line_tokens = [tokeniser(new_line_text)
-                           for new_line_text in text.split('\n')]
-        return [tokens for new_line in new_line_tokens
-                for tokens in new_line]
+        moses = MosesTokenizer()
+        return moses.tokenize(text, 
+                              aggressive_dash_splits=aggressive_dash_splits,
+                              escape=escape)
     raise ValueError(f'The paramter must be of type str not {type(text)}')
