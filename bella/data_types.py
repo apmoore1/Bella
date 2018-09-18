@@ -434,19 +434,18 @@ class TargetCollection(MutableMapping):
     def add_pred_sentiment(self, sent_preds, mapper=None):
         '''
         :param sent_preds: A list of predicted sentiments for all Target \
-        instances stored.
+        instances stored or a numpy array where columns are number of \
+        different predicted runs and the rows represent the associated \
+        Target instance.
         :param mapper: A dictionary mapping the predicted sentiment to \
         alternative values e.g. Integer values to String values.
-        :type sent_preds: list
+        :type sent_preds: list or numpy array
         :type mapper: dict
         :returns: Nothing. Adds the predicted sentiments to the Target \
         instances stored.
         :rtype: None
         '''
 
-        if not isinstance(sent_preds, list):
-            raise TypeError('The predicted sentiments have to be of type list '\
-                            'not {}'.format(type(sent_preds)))
         if len(sent_preds) != len(self):
             raise ValueError('The length of the predicted sentiments {} is not '\
                              'equal to the number Target instances stored {}'\
