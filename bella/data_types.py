@@ -159,19 +159,19 @@ class Target(MutableMapping):
         if key != 'predicted':
             raise KeyError('The Only key that can be changed is the `predicted`'\
                            ' key not {}'.format(key))
-        raise_type = False
-        sent_value = self._storage['sentiment']
-        if isinstance(sent_value, int):
-            if not isinstance(value, (int, np.int32, np.int64)):
-                raise_type = True
-        elif not isinstance(value, type(sent_value)):
-            raise_type = True
+        #raise_type = False
+        #sent_value = self._storage['sentiment']
+        #if isinstance(sent_value, int):
+        #    if not isinstance(value, (int, np.int32, np.int64)):
+        #        raise_type = True
+        #elif not isinstance(value, type(sent_value)):
+        #    raise_type = True
 
-        if raise_type:
-            raise TypeError('Value to be stored for the `predicted` sentiment '\
-                            'has to be the same data type as the sentiment '\
-                            'value {} and not {}.'\
-                            .format(sent_value, type(value)))
+        #if raise_type:
+        #    raise TypeError('Value to be stored for the `predicted` sentiment '\
+        #                    'has to be the same data type as the sentiment '\
+        #                    'value {} and not {}.'\
+        #                    .format(sent_value, type(value)))
         self._storage[key] = value
 
     def __repr__(self):

@@ -159,14 +159,14 @@ class TestTarget(TestCase):
         with self.assertRaises(KeyError, msg='Should not allow you to set keys '\
                                'other than `predicted`'):
             target_example_int['sentiment'] = 0
-        with self.assertRaises(TypeError, msg='Should not allow you to set '\
-                               'predicted sentiment to a data type that is not '\
-                               'the same as the sentiment value data type'):
-            target_example_int['predicted'] = 'pos'
-        with self.assertRaises(TypeError, msg='Should not allow you to set '\
-                               'predicted sentiment to a data type that is not '\
-                               'the same as the sentiment value data type'):
-            target_example_string['predicted'] = 1
+        #with self.assertRaises(TypeError, msg='Should not allow you to set '\
+        #                       'predicted sentiment to a data type that is not '\
+        #                       'the same as the sentiment value data type'):
+        #    target_example_int['predicted'] = 'pos'
+        #with self.assertRaises(TypeError, msg='Should not allow you to set '\
+        #                       'predicted sentiment to a data type that is not '\
+        #                       'the same as the sentiment value data type'):
+        #    target_example_string['predicted'] = 1
 
 
 
@@ -481,15 +481,15 @@ class TestTarget(TestCase):
                                'TargetCollection should have copied them.'):
             target_example_1['predicted']
 
-        with self.assertRaises(TypeError, msg='Should only accept list type '\
-                               'not tuples'):
-            target_col_int.add_pred_sentiment((2, 5, 4))
+        #with self.assertRaises(TypeError, msg='Should only accept list type '\
+        #                       'not tuples'):
+        #    target_col_int.add_pred_sentiment((2, 5, 4))
         with self.assertRaises(ValueError, msg='Should accept lists that are '\
                                ' the same size as the TargetCollection'):
             target_col_int.add_pred_sentiment([1, 2, 3, 4])
-        with self.assertRaises(TypeError, msg='When using the mapper should not '\
-                               'accept Strings when expecting Integer'):
-            target_col_int.add_pred_sentiment([1, 1, 0], mapper={1 : 'pos', 0: 'neg'})
+        #with self.assertRaises(TypeError, msg='When using the mapper should not '\
+        #                       'accept Strings when expecting Integer'):
+        #    target_col_int.add_pred_sentiment([1, 1, 0], mapper={1 : 'pos', 0: 'neg'})
 
     def test_target_coll_subset_by_sent(self):
         '''
