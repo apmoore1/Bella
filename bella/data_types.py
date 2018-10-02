@@ -10,15 +10,20 @@ data store that contains multiple Target instances.
 from collections.abc import MutableMapping
 from collections import OrderedDict, defaultdict
 import copy
-from typing import List, Callable
+import json
+from pathlib import Path
+from typing import List, Callable, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+from sklearn.model_selection import train_test_split
 import seaborn as sns
 
 from bella.tokenisers import whitespace
 from bella.stanford_tools import constituency_parse
+
+BELLA_DATASET_DIR: Path = Path.home().joinpath('.Bella', 'Datasets')
 
 class Target(MutableMapping):
     '''
@@ -227,25 +232,29 @@ class TargetCollection(MutableMapping):
 
     Functions:
 
-    1. add -- Given a Target instance with an `id` key adds it to the data \
-    store.
-    2. data -- Returns all of the Target instances stored as a list of Target \
-    instances.
+    1. add -- Given a Target instance with an `id` key adds it to the data 
+       store.
+    2. data -- Returns all of the Target instances stored as a list of Target 
+       instances.
     3. stored_sentiments -- Returns a set of unique sentiments stored.
-    4. sentiment_data -- Returns the list of all sentiment values stored in \
-    the Target instances stored.
-    5. add_pred_sentiment -- Adds a list of predicted sentiment values to the \
-    Target instances stored.
-    6. confusion_matrix -- Returns the confusion matrix between the True and \
-    predicted sentiment values.
-    7. subset_by_sentiment -- Creates a new TargetCollection based on the \
-    number of unique sentiments in a sentence.
+    4. sentiment_data -- Returns the list of all sentiment values stored in 
+       the Target instances stored.
+    5. add_pred_sentiment -- Adds a list of predicted sentiment values to the 
+       Target instances stored.
+    6. confusion_matrix -- Returns the confusion matrix between the True and 
+       predicted sentiment values.
+    7. subset_by_sentiment -- Creates a new TargetCollection based on the 
+       number of unique sentiments in a sentence.
+    8. to_json_file -- Returns a Path to a json file that has stored the 
+                       data as a sample json encoded per line. If the split 
+                       argument is set will return two Paths the first being 
+                       the training file and the second the test.
     '''
 
     def __init__(self, list_of_target=None):
         '''
-        :param list_of_target: An interator of Target instances e.g. a List of \
-        Target instances.
+        :param list_of_target: An interator of Target instances e.g. a List of 
+                               Target instances.
         :type list_of_target: Iterable. Default None (Optional)
         :returns: Nothing. Constructor.
         :rtype: None
@@ -521,6 +530,90 @@ class TargetCollection(MutableMapping):
             if length_condition(target_text):
                 all_relevent_targets.append(target)
         return TargetCollection(all_relevent_targets)
+
+    def to_json_file(self, dataset_name: Union[str, List[str]], 
+                     split: Union[float, None] = None, cache: bool = True, 
+                     **split_kwargs) -> Union[Path, List[Path]]:
+        '''
+        Returns a Path to a json file that has stored the data as a sample json 
+        encoded per line. If the split argument is set will return two Paths 
+        the first being the training file and the second the test.
+
+        The Path does not need to be specified as it saves it to the 
+        `~/.Bella/datasets/.` directory within your user space under the 
+        dataset_name.
+
+        If the split argument is used. NOTE that splitting is done in a 
+        stratified fashion
+
+        :param dataset_name: Name to associate to the dataset e.g. 
+                             `SemEval 2014 rest train`. If split is not None 
+                             then use a List of Strings e.g. 
+                             [`SemEval 2014 rest train`, 
+                             `SemEval 2014 rest dev`]
+        :param split: Whether or not to split the dataset into train, test 
+                      split. If not use None else specify the fraction of 
+                      the data to use for the test split.
+        :param cache: If the data is already saved use the Cache. Default 
+                      is to use the cached data.
+        :param split_kwargs: Keywords argument to give to the train_test_split 
+                             function that is used for splitting.
+        '''
+        def create_json_file(fp: Path, data: List[Dict[str, Any]]) -> None:
+            '''
+            Given the a list of dictionaries that represent the Target data 
+            converts these samples into json encoded samples which are saved on 
+            each line within the file at the given file path(fp)
+
+            :param fp: File path that will store the json samples one per line
+            :param data: List of dictionaries that represent the Target data.
+            :return: Nothing that data will be saved to the file.
+            '''
+            with fp.open('w+') as json_file:
+                for index, target_data in enumerate(data):
+                    json_encoded_data = json.dumps(target_data)
+                    if index != 0:
+                        json_encoded_data = f'\n{json_encoded_data}'
+                    json_file.write(json_encoded_data)
+        
+        # If splitting the data there has to be two dataset names else one name
+        if split is None:
+            assert isinstance(dataset_name, str)
+        elif isinstance(split, float):
+            assert isinstance(dataset_name, list)
+            assert len(dataset_name) == 2
+        
+        BELLA_DATASET_DIR.mkdir(parents=True, exist_ok=True)
+
+        dataset_names = dataset_name
+        if not isinstance(dataset_name, list):
+            dataset_names = [dataset_name]
+        all_paths_exist = True
+        dataset_paths = []
+        for name in dataset_names:
+            dataset_path = BELLA_DATASET_DIR.joinpath(name)
+            if not dataset_path.exists():
+                all_paths_exist = False
+            dataset_paths.append(dataset_path)
+        # Caching
+        if cache and all_paths_exist:
+            print(f'Using cache for the follwoing datasets: {dataset_names}')
+            if split is None:
+                return dataset_paths[0]
+            return dataset_paths
+
+        target_data = self.data_dict()
+        if split is None:
+            create_json_file(dataset_paths[0], target_data)
+            return dataset_paths[0]
+        # Splitting
+        sentiment_data = self.sentiment_data()
+        X_train, X_test, _, _ = train_test_split(target_data, sentiment_data, 
+                                                 stratify=sentiment_data, 
+                                                 test_size=split)
+        create_json_file(dataset_paths[0], X_train)
+        create_json_file(dataset_paths[1], X_test)
+        return dataset_paths
 
     # Not tested
     def targets_per_sentence(self):
