@@ -41,8 +41,8 @@ def tokeniser(*text_fps,
                     data = json.loads(line)
                     text = data[text_field]
                     tokens = tokeniser_function(text)
-                    yield tokens
-    
+                    tokenised_text = ' '.join(tokens)
+                    yield tokenised_text
     tok = Tokenizer(**tokenizer_kwargs)
     tok.fit_on_texts(load_text_data())
     return tok
