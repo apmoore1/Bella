@@ -168,9 +168,10 @@ class LeftRightTargetSequence(TargetSequence):
             batch_targets = self.targets[idx * self.batch_size:
                                          (idx + 1) * self.batch_size]
             batch_targets = self.process_texts(batch_targets)
+            print('that')
             return ([batch_left_texts, batch_right_texts, batch_targets], 
                     batch_labels)
-    
+        print('this')
         return ([batch_left_texts, batch_right_texts], batch_labels)
         
 
