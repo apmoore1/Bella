@@ -2,14 +2,17 @@
 Contains functions that perform depdency parsing.
 '''
 from collections import defaultdict
+from pathlib import Path
 from typing import List, Tuple
 
 import networkx as nx
+from ruamel.yaml import YAML
 from tweebo_parser import API
 
 from bella.dependency_tokens import DependencyToken
 from bella import stanford_tools
 
+BELLA_CONFIG_FP = Path.home().joinpath('.Bella', 'config.yaml')
 
 class TweeboParser(object):
     '''
@@ -18,9 +21,34 @@ class TweeboParser(object):
 
     instance = None
 
+    @staticmethod
+    def get_config() -> Tuple[str, int]:
+        hostname = '0.0.0.0'
+        port = 8000
+        yaml = YAML()
+        config_data = {}
+        if BELLA_CONFIG_FP.exists():
+            with BELLA_CONFIG_FP.open('r') as config_file:
+                config_data = yaml.load(config_file)
+                if 'tweebo_parser' in config_data:
+                    tweebo_config = config_data['tweebo_parser']
+                    if 'hostname' in tweebo_config:
+                        hostname = tweebo_config['hostname']
+                    if 'port' in tweebo_config:
+                        port = tweebo_config['port']
+
+        config_data['tweebo_parser'] = {}
+        config_data['tweebo_parser']['hostname'] = hostname
+        config_data['tweebo_parser']['port'] = port
+        with BELLA_CONFIG_FP.open('w') as config_file:
+            yaml.dump(config_data, config_file)
+        return hostname, port
+
     def __new__(cls):
         if TweeboParser.instance is None:
-            TweeboParser.instance = API(log_errors=True)
+            hostname, port = cls.get_config()
+            TweeboParser.instance = API(hostname=hostname, port=port, 
+                                        log_errors=True)
         return TweeboParser.instance
 
     def __getattr__(self, name):

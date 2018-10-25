@@ -1,8 +1,12 @@
 import json
+from pathlib import Path
+from typing import Tuple
 
 from nltk.tree import Tree
+from ruamel.yaml import YAML
 from stanfordcorenlp import StanfordCoreNLP
 
+BELLA_CONFIG_FP = Path.home().joinpath('.Bella', 'config.yaml')
 
 class StanfordNlp(object):
     '''
@@ -11,9 +15,33 @@ class StanfordNlp(object):
 
     instance = None
 
+    @staticmethod
+    def get_config() -> Tuple[str, int]:
+        hostname = 'http://localhost'
+        port = 9000
+        yaml = YAML()
+        config_data = {}
+        if BELLA_CONFIG_FP.exists():
+            with BELLA_CONFIG_FP.open('r') as config_file:
+                config_data = yaml.load(config_file)
+                if 'stanford_core_nlp' in config_data:
+                    stanford_config = config_data['stanford_core_nlp']
+                    if 'hostname' in stanford_config:
+                        hostname = stanford_config['hostname']
+                    if 'port' in stanford_config:
+                        port = stanford_config['port']
+        
+        config_data['stanford_core_nlp'] = {}
+        config_data['stanford_core_nlp']['hostname'] = hostname
+        config_data['stanford_core_nlp']['port'] = port
+        with BELLA_CONFIG_FP.open('w') as config_file:
+            yaml.dump(config_data, config_file)
+        return hostname, port
+
     def __new__(cls):
         if StanfordNlp.instance is None:
-            StanfordNlp.instance = StanfordCoreNLP('http://localhost', 9000)
+            hostname, port = cls.get_config()
+            StanfordNlp.instance = StanfordCoreNLP(hostname, port)
         return StanfordNlp.instance
 
     def __getattr__(self, name):

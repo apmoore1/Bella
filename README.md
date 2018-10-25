@@ -95,6 +95,21 @@ The best order to look at the notebooks is first look at the data with this [not
 7. For the code on creating training and test splits for [Mitchell et al.](https://www.aclweb.org/anthology/D13-1171) dataset see this [notebook](./notebooks/Mitchel%20et%20al%20dataset%20splitting.ipynb)
 8. Pre-Trained Model examples [notebook](./notebooks/Pre-Trained%20Model%20Example.ipynb)
 
+## Docker Servers
+
+Both Tweebo and Stanford by default will run on your localhost and port 8000 and 9000 respectively by default. If you would like to run them on a different *port* or *hostname* you can change the `.Bella/config.yaml` file which is created in your local home directory the first time you run something **successfully** through the Stanford or Tweebo tools. The file once created which is only done automatically for you when you **successfully** run something through the Stanford or Tweebo tools will look like this which is a yaml formatted file:
+```yaml
+tweebo_parser:
+  hostname: 0.0.0.0
+  port: 7000
+stanford_core_nlp:
+  hostname: http://localhost
+  port: 8000
+```
+If you want Tweebo or Stanford to run on a different *port* or *hostname* just change this file. For instance the example shown above is different to default as Stanford is running on *port* 8000 and not 9000 and Tweebo is running on *port* 7000 instead of 8000.
+
+If you would like the tools to run on different *hostname* and *port* from the start without having to **successfully** run them through the tools before hand just create this file `.Bella/config.yaml` in your local home directory with the same structure as the example but with the *hostname* and *port* you want to use.
+
 ## Different Licenses
 
 As we use a lot of tools we list here if any of the tools that we use are licensed under a different license to that of this repository:
