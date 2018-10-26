@@ -1,14 +1,58 @@
+import copy
 import json
+import random as rn
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Optional, Any
 
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical
-from keras.utils import Sequence
 import numpy as np
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.utils import Sequence
 
 from bella.contexts import context
+
+
+class Transformer():
+    def __init__(self):
+        pass
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        return sample
+
+
+class TargetAugmentation(Transformer):
+    def __init__(self, target_to_targets, probability):
+        self.target_to_targets = target_to_targets
+        self.probability = probability
+
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        sample = copy.deepcopy(sample)
+        target = sample['target']
+        # If the target cannot be matched to other targets ignore
+        if target not in self.target_to_targets:
+            return sample
+
+        # If wihtin the probability
+        random_number = rn.random()
+        if random_number < self.probability:
+            # Selecting new Target
+            alternative_targets = self.target_to_targets[target]
+            alternative_target = rn.choice(alternative_targets)
+            # Replacing the old target within the text with the new target
+            left_context = context(sample, 'left')[0]
+            right_context = context(sample, 'right')[0]
+            alternative_text = left_context + alternative_target + right_context
+            # Finding the span of the new target within the new text
+            start = len(left_context)
+            end = len(alternative_target) + start
+            alternative_span = [(start, end)]
+            # Changing the sample
+            sample['text'] = alternative_text
+            sample['target'] = alternative_target
+            sample['spans'] = alternative_span
+
+        return sample
+
 
 class TargetSequence(Sequence):
 
@@ -94,7 +138,7 @@ class LeftRightTargetSequence(TargetSequence):
 
     def __init__(self, json_fp: Path, batch_size: int, tokeniser: Tokenizer,  
                  tokeniser_function: Callable[[str], List[str]] = str.split,
-                 n_classes: int = 3, sort_field: str = 'text',
+                 n_classes: int = 3, sort_field: Optional[str] = 'text',
                  include_target_in_sequence: bool = True,
                  include_target_in_batches: bool = True):
         '''
@@ -128,11 +172,12 @@ class LeftRightTargetSequence(TargetSequence):
         self.tokeniser_function = tokeniser_function
         self.include_target_in_sequence = include_target_in_sequence
         self.include_target_in_batches = include_target_in_batches
-    
+
         with json_fp.open('r') as json_file:
             for line in json_file:
                 data.append(json.loads(line))
-        data = sorted(data, key=self.sort_by(sort_field))
+        if sort_field:
+            data = sorted(data, key=self.sort_by(sort_field))
         self.left_texts = []
         self.right_texts = []
         if self.include_target_in_batches:
@@ -147,7 +192,10 @@ class LeftRightTargetSequence(TargetSequence):
             self.right_texts.append(right_text)
             if self.include_target_in_batches:
                 self.targets.append(target['target'])
-            self.labels.append(target['sentiment'])
+            self.labels.append(self.label_mapper[target['sentiment']])
+
+    def __len__(self):
+        return int(np.ceil(len(self.left_texts) / float(self.batch_size)))
     
     def __getitem__(self, idx: int) -> Tuple[Tuple[np.ndarray, np.ndarray], 
                                              np.ndarray]:
@@ -168,10 +216,117 @@ class LeftRightTargetSequence(TargetSequence):
             batch_targets = self.targets[idx * self.batch_size:
                                          (idx + 1) * self.batch_size]
             batch_targets = self.process_texts(batch_targets)
-            print('that')
+
             return ([batch_left_texts, batch_right_texts, batch_targets], 
                     batch_labels)
-        print('this')
         return ([batch_left_texts, batch_right_texts], batch_labels)
         
 
+class LeftRightAugmentSequence(Sequence):
+
+    def __init__(self, json_fp: Path, batch_size: int, tokeniser: Tokenizer,  
+                 tokeniser_function: Callable[[str], List[str]] = str.split,
+                 n_classes: int = 3, sort_field: Optional[str] = 'text',
+                 include_target_in_sequence: bool = True,
+                 include_target_in_batches: bool = True,
+                 transformers: Optional[List[Transformer]] = None):
+        '''
+        :param json_fp: File path to the Target Dependent Sentiment data 
+                        that has a json encoded sample per new line in the 
+                        file.
+        :param batch_size: size of batches to return e.g. 32 
+        :param tokeniser: Maps tokens to indexs that map onto the embeddings
+        :param tokeniser_function: Tokeniser like `moses` to use to split the 
+                                   text into tokens. Default white space
+        :param n_classes: Number of class labels. Default = 3
+        :param sort_field: Field within the json encoded data to sort the 
+                           data by. Used to make the model fitting process 
+                           quicker. It is a basic form of sentence bucketing
+        '''
+        data = []
+        self.label_mapper = {-1: 0, 0: 1, 1: 2}
+        self.inv_label_mapper = {0: -1, 1: 0, 2: 1}
+        self.n_classes = n_classes
+        self.batch_size = batch_size
+        self.tokeniser = tokeniser
+        self.tokeniser_function = tokeniser_function
+        self.include_target_in_sequence = include_target_in_sequence
+        self.include_target_in_batches = include_target_in_batches
+        self.transformers = transformers
+    
+        with json_fp.open('r') as json_file:
+            for line in json_file:
+                data.append(json.loads(line))
+        if sort_field:
+            data = sorted(data, key=self.sort_by(sort_field))
+        self.data = data
+    
+    def __len__(self):
+        return int(np.ceil(len(self.data) / float(self.batch_size)))
+
+    def __getitem__(self, idx: int) -> Tuple[Tuple[np.ndarray, np.ndarray], 
+                                             np.ndarray]:
+        target_samples = self.data[idx * self.batch_size: 
+                                   (idx + 1) * self.batch_size]
+        if self.transformers is not None:
+            for transformer in self.transformers:
+                target_samples = [transformer(target_sample) 
+                                  for target_sample in target_samples]
+        left_texts = []
+        right_texts = []
+        targets = []
+        labels = []
+        for target in target_samples:
+            left_text = context(target, 'left', 
+                                self.include_target_in_sequence)[0].strip()
+            right_text = context(target, 'right', 
+                                 self.include_target_in_sequence)[0].strip()
+            
+            left_texts.append(left_text)
+            right_texts.append(right_text)
+
+            if self.include_target_in_batches:
+                targets.append(target['target'])
+            labels.append(self.label_mapper[target['sentiment']])
+
+        left_texts = self.process_texts(left_texts)
+        right_texts = self.process_texts(right_texts, padding='post', 
+                                         truncating='post')
+        labels = to_categorical(labels, num_classes=self.n_classes)
+        
+        if self.include_target_in_batches:
+            targets = self.process_texts(targets)
+            return ([left_texts, right_texts, targets], labels)
+        
+        return ([left_texts, right_texts], labels)
+
+    def sort_by(self, field: str) -> Callable[[Dict[str, str]], int]:
+        '''
+        Returns a function that outputs the length of a String that has been 
+        split where the String is the value from a dictionary where the 
+        key is the argument to this function. The Returned function input is 
+        thus a dictionary that has to contain a key that is the String input 
+        to this function.
+
+        :param field: A key within the dinctionary that is input to the 
+                      returned argument, where the value of the key 
+                      sorts the list of dictionaries that are being sorted.
+        :return: A function that outputs the length of a String that has been 
+                 split where the String is the value from a dictionary where the 
+                 key is the argument to this function. The Returned function 
+                 input is thus a dictionary that has to contain a key that is 
+                 the String input to this function.
+        '''
+        def field_sort(target: Dict[str, str]) -> int:
+            return len(target[field].split())
+        return field_sort
+
+    def process_texts(self, texts: List[str], **pad_kwargs) -> np.ndarray:
+        all_tokens = [self.tokeniser_function(text) for text in texts]
+        tokenised_texts = [' '.join(tokens) for tokens in all_tokens]
+        token_ids = self.tokeniser.texts_to_sequences(tokenised_texts)
+        padded_token_ids = pad_sequences(token_ids, **pad_kwargs)
+        return padded_token_ids
+
+
+        

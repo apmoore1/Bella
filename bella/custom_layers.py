@@ -24,20 +24,86 @@ class Average(keras.layers.Layer):
             return tf.reduce_mean(x, axis=1)
 
     def call(self, x, mask=None):
-        x = tf.Print(x, [mask], message='Next step ', summarize=4*8)
         avg = self.mask_average(x, mask)
-        avg = tf.Print(avg, [avg], message='Average ', summarize=6*4)
         return avg
-        
-
-    #def compute_output_shape(self, input_shape):
-    #    return (input_shape[0], input_shape[-1])
     
     def compute_mask(self, x, mask):
-        if not self.mask_zero:
-            return None
-        return mask
+        if self.mask_zero is not None:
+            return mask
+        return None
 
+class ConcatMask(keras.layers.Layer):
+
+    def __init__(self, mask_zero=True, **kwargs):
+            super().__init__(**kwargs)
+            self.mask_zero = mask_zero
+            self.supports_masking = True
+
+    def call(self, x, mask=None):
+        context_embeddings = x[0]
+        target_embedding = x[1]
+        return tf.concat([context_embeddings, target_embedding], 2)
+    
+    def compute_mask(self, x, mask):
+        if self.mask_zero is not None:
+            return mask[0]
+        return None
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+class Expand(keras.layers.Layer):
+
+    def __init__(self, mask_zero=True, **kwargs):
+            super().__init__(**kwargs)
+            self.mask_zero = mask_zero
+            self.supports_masking = True
+
+    def call(self, x, mask=None):
+        return tf.expand_dims(x, axis=1)
+    
+    def compute_mask(self, x, mask):
+        if self.mask_zero is not None:
+            mask
+        return None
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+class Ones(keras.layers.Layer):
+
+    def __init__(self, mask_zero=True, **kwargs):
+            super().__init__(**kwargs)
+            self.mask_zero = mask_zero
+            self.supports_masking = True
+
+    def call(self, x, mask=None):
+        return tf.ones(tf.shape(x))
+    
+    def compute_mask(self, x, mask):
+        if self.mask_zero is not None:
+            mask
+        return None
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+# Not needed anymore
 class ExpandedAverage(Average):
     '''
     Calculates the Average and then expands the average vector so that it 
@@ -51,19 +117,18 @@ class ExpandedAverage(Average):
     def __init__(self, mask_zero=True, **kwargs):
         super().__init__(mask_zero=mask_zero, **kwargs)
 
-    def call(self, x, mask=None, expansion_shape=None):
-        if expansion_shape is None:
-            average_expansion = tf.ones(tf.shape(x), name='Intial_Expansion')
-        else:
-            average_expansion = tf.ones(tf.shape(expansion_shape), 
-                                        name='Intial_Expansion')
-        average_expansion_shape = tf.shape(average_expansion)
+    def call(self, y, mask=None):#, expansion_shape=None):
+        #if expansion_shape is None:
+        #    average_expansion = tf.ones(tf.shape(x), name='Intial_Expansion')
+        #else:
+        x, expansion_shape = y
+        mask = tf.Print(mask, [mask], message='Mask: ', summarize=6*4)
+        mask = tf.Print(mask, [x], message='x: ', summarize=6*4)
+        mask = tf.Print(mask, [expansion_shape], message='Sequence: ', summarize=6*4)
+        average_expansion = tf.ones(tf.shape(expansion_shape), 
+                                    name='Intial_Expansion')
         avg = super().call(x, mask)
-        avg = tf.Print(avg, [average_expansion_shape], message='Yes ')
-        avg = tf.Print(avg, [avg], message='Average1 ', summarize=6*4)
+        avg = tf.expand_dims(avg, axis=1)
         average_expansion = tf.multiply(average_expansion, avg, 
                                         name='Average_Expansion')
         return average_expansion
-
-    #def compute_output_shape(self, input_shape):
-    #    return (input_shape[0], input_shape[-1])

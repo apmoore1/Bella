@@ -14,7 +14,7 @@ import ftfy
 
 from bella.data_types import Target, TargetCollection
 
-def dong(file_path):
+def dong(file_path, **target_collection_kwargs):
     '''
     Given file path to the
     `Li Dong <https://github.com/bluemonk482/tdparse/tree/master/data/lidong>`_
@@ -32,7 +32,7 @@ def dong(file_path):
     file_name, _ = os.path.splitext(os.path.basename(file_path))
     sentiment_range = [-1, 0, 1]
 
-    sentiment_data = TargetCollection()
+    sentiment_data = TargetCollection(**target_collection_kwargs)
     with open(file_path, 'r') as dong_file:
         sent_dict = {}
         for index, line in enumerate(dong_file):
@@ -73,7 +73,7 @@ def dong(file_path):
 
 
 def _semeval_extract_data(sentences, file_name, conflict=False,
-                          sentence_ids_skip=None):
+                          sentence_ids_skip=None, **target_collection_kwargs):
     '''
     :param sentences: A `sentences` named element
     :param file_name: Name of the file being parsed
@@ -92,7 +92,8 @@ def _semeval_extract_data(sentences, file_name, conflict=False,
     sentiment_mapper = {'conflict' : -2, 'negative' : -1,
                         'neutral' : 0, 'positive' : 1}
 
-    def extract_aspect_terms(aspect_terms, sentence_id):
+    def extract_aspect_terms(aspect_terms, sentence_id, 
+                             raise_error_no_category=False):
         '''
         :param aspect_terms: An aspectTerms element within the xml tree
         :param sentence_id: Id of the sentence that the aspects came from.
@@ -119,6 +120,12 @@ def _semeval_extract_data(sentences, file_name, conflict=False,
             else:
                 raise KeyError('There is no `target` attribute in the opinions '\
                                'element {}'.format(aspect_term))
+            # Extract the category if it exists
+            if 'category' in aspect_term:
+                aspect_term_data['category'] = aspect_term['category']
+            elif raise_error_no_category:
+                raise KeyError('These is no `category` attribute in the '
+                               f'opinions element {aspect_term}') 
             aspect_term_data['sentiment'] = sentiment
             aspect_term_data['spans'] = [(int(aspect_term['from']),
                                           int(aspect_term['to']))]
@@ -146,7 +153,7 @@ def _semeval_extract_data(sentences, file_name, conflict=False,
             data['text'] = text
         return aspect_data
 
-    all_aspect_term_data = TargetCollection()
+    all_aspect_term_data = TargetCollection(**target_collection_kwargs)
     for sentence in sentences:
         aspect_term_data = None
         text_index = None
@@ -176,13 +183,14 @@ def _semeval_extract_data(sentences, file_name, conflict=False,
     return all_aspect_term_data
 
 
-def semeval_15_16(file_path, sep_16_from_15=False):
+def semeval_15_16(file_path, sep_16_from_15=False, sep_15_from_14=False,
+                  raise_error_no_category=False, **target_collection_kwargs):
     '''
     Parser for the SemEval 2015 and 2016 datasets.
 
-    :param file_path: File path to the semeval 2014 data
-    :param sep_16_from_15: Ensure that the test sets of semeval 2016 is complete \
-    seperate from the semeval test set of 2015
+    :param file_path: File path to the semeval 2015/16 data
+    :param sep_16_from_15: Ensure that the test sets of semeval 2016 is complete 
+                           seperate from the semeval test set of 2015
     :type file_path: String
     :type sep_16_from_15: bool. Default False
     :returns: A TargetCollection containing Target instances.
@@ -195,24 +203,25 @@ def semeval_15_16(file_path, sep_16_from_15=False):
     tree = ET.parse(file_path)
     reviews = tree.getroot()
     all_aspect_term_data = []
+
+    ids_to_skip = []
+    if sep_16_from_15:
+        ids_to_skip = ["en_SnoozeanAMEatery_480032670:4"]
+    elif sep_15_from_14:
+        ids_to_skip = ['1253117:2',
+                       '397331:1']
     if reviews.tag != 'Reviews':
-        raise ValueError('The root of all semeval 15/16 xml files should '\
-                         'be reviews and not {}'\
-                         .format(reviews.tag))
+        raise ValueError('The root of all semeval 15/16 xml files should '
+                         f'be reviews and not {reviews.tag}')
     for review in reviews:
         review_id = review.attrib['rid']
         for sentences in review:
-            if sep_16_from_15:
-                ids_to_skip = ["en_SnoozeanAMEatery_480032670:4"]
-                review_targets = _semeval_extract_data(sentences, file_name,
-                                                       sentence_ids_skip=ids_to_skip)
-                all_aspect_term_data.extend(review_targets.data())
-            else:
-                review_targets = _semeval_extract_data(sentences, file_name).data()
-                all_aspect_term_data.extend(review_targets)
-    return TargetCollection(all_aspect_term_data)
+            review_targets = _semeval_extract_data(sentences, file_name,
+                                                   sentence_ids_skip=ids_to_skip)
+            all_aspect_term_data.extend(review_targets.data())
+    return TargetCollection(all_aspect_term_data, **target_collection_kwargs)
 
-def semeval_14(file_path, conflict=False):
+def semeval_14(file_path, conflict=False, **target_collection_kwargs):
     '''
     Parser for the SemEval 2014 datasets.
 
@@ -232,7 +241,8 @@ def semeval_14(file_path, conflict=False):
         raise ValueError('The root of all semeval xml files should '\
                          'be sentences and not {}'\
                          .format(sentences.tag))
-    return _semeval_extract_data(sentences, file_name, conflict=conflict)
+    return _semeval_extract_data(sentences, file_name, conflict=conflict,
+                                 **target_collection_kwargs)
 
 def election(folder_path, include_dnr=False, include_additional=False):
     '''
