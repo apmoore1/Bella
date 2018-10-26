@@ -27,6 +27,7 @@ class TweeboParser(object):
         port = 8000
         yaml = YAML()
         config_data = {}
+        BELLA_CONFIG_FP.parent.mkdir(parents=True, exist_ok=True)
         if BELLA_CONFIG_FP.exists():
             with BELLA_CONFIG_FP.open('r') as config_file:
                 config_data = yaml.load(config_file)
