@@ -12,7 +12,7 @@ from collections import OrderedDict, defaultdict
 import copy
 import json
 from pathlib import Path
-from typing import List, Callable, Union, Dict, Any
+from typing import List, Callable, Union, Dict, Tuple, Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,7 @@ class Target(MutableMapping):
     '''
 
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
-                 sentence_id=None):
+                 sentence_id=None, category=None):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -115,6 +115,9 @@ class Target(MutableMapping):
                 raise TypeError('`sentence_id` has to be a String and not {}'\
                                 .format(type(sentence_id)))
             temp_dict['sentence_id'] = sentence_id
+
+        if category is not None:
+            temp_dict['category'] = category
 
         self._storage = temp_dict
         if predicted is not None:
@@ -246,18 +249,33 @@ class TargetCollection(MutableMapping):
     7. subset_by_sentiment -- Creates a new TargetCollection based on the 
        number of unique sentiments in a sentence.
     8. to_json_file -- Returns a Path to a json file that has stored the 
-                       data as a sample json encoded per line. If the split 
-                       argument is set will return two Paths the first being 
-                       the training file and the second the test.
+       data as a sample json encoded per line. If the split argument is set 
+       will return two Paths the first being the training file and the second 
+       the test.
+    9. categories_targets -- Returns two dictionaries. The first is a category
+       to target list and the second is a target to category list. Their is 
+       the option to have a coarse grained cateogires option.
+    10. target_set -- Returns a set of all the targets within this dataset.
+    11. subset_by_ids -- Returns a TargetCollection which is a subset of the 
+        current one. Where the samples included in the subset are those with 
+        a `target_id` that is within the ids List.
+    12. dataset_metric_scores -- Given a metric like accuracy returns all of 
+        the metric scores for the dataset. This assumes that the dataset has 
+        the `predicted` sentiment slot assigned.
+
+    Static functions:
+    
+    1. target_targets -- Returns a dictionary of targets as keys and values 
+       are a list of realted targets.
     '''
 
-    def __init__(self, list_of_target=None):
+    def __init__(self, list_of_target=None, name: Optional[str]=None):
         '''
         :param list_of_target: An interator of Target instances e.g. a List of 
                                Target instances.
         :type list_of_target: Iterable. Default None (Optional)
         :returns: Nothing. Constructor.
-        :rtype: None
+    :rtyEpe: None
         '''
 
         self._storage = OrderedDict()
@@ -266,6 +284,7 @@ class TargetCollection(MutableMapping):
                 raise TypeError('The list_of_target argument has to be iterable')
             for target in list_of_target:
                 self.add(target)
+        self.name = name if name is not None else 'TargetCollection'
 
     def __getitem__(self, key):
         return self._storage[key]
@@ -440,19 +459,19 @@ class TargetCollection(MutableMapping):
             raise ValueError('We have only added {} predictions to {} targets'\
                              .format(count, len(self)))
 
-    def add_pred_sentiment(self, sent_preds, mapper=None):
+    def add_pred_sentiment(self, sent_preds: Union[List[Any], np.ndarray], 
+                           mapper: Optional[Dict[Any, Any]] = None) -> None:
         '''
-        :param sent_preds: A list of predicted sentiments for all Target \
-        instances stored or a numpy array where columns are number of \
-        different predicted runs and the rows represent the associated \
-        Target instance.
-        :param mapper: A dictionary mapping the predicted sentiment to \
-        alternative values e.g. Integer values to String values.
+        :param sent_preds: A list of predicted sentiments for all Target 
+                           instances stored or a numpy array where columns are 
+                           number of different predicted runs and the rows 
+                           represent the associated Target instance.
+        :param mapper: A dictionary mapping the predicted sentiment to 
+                       alternative values e.g. Integer values to String values.
         :type sent_preds: list or numpy array
         :type mapper: dict
-        :returns: Nothing. Adds the predicted sentiments to the Target \
-        instances stored.
-        :rtype: None
+        :returns: Nothing. Adds the predicted sentiments to the Target 
+                   instances stored.
         '''
 
         if len(sent_preds) != len(self):
@@ -614,6 +633,148 @@ class TargetCollection(MutableMapping):
         create_json_file(dataset_paths[0], X_train)
         create_json_file(dataset_paths[1], X_test)
         return dataset_paths
+
+    def categories_targets(self, filter: int = 2, coarse: bool = False
+                           ) -> Tuple[Dict[str, List[str]], 
+                                      Dict[str, List[str]]]:
+        '''
+        Returns two dictionaries. The first is a category to target list and 
+        the second is a target to category list. Their is the option to have a 
+        coarse grained cateogires option.
+        '''
+        if 'category' not in self.data()[0]:
+            raise ValueError('The current TargetCollection must contain '
+                             'targets that have a category key')
+
+        temp_category_targets = defaultdict(set)
+        for data in self.data():
+            category = data['category']
+            if coarse:
+                category = category.split('#')[0]
+            target = data['target']
+            temp_category_targets[category].add(target)
+        
+        category_targets = {}
+        target_categories = defaultdict(list)
+        categories_filtered = []
+        for category, targets in temp_category_targets.items():
+            if len(targets) < filter:
+                categories_filtered.append(category)
+                continue
+            category_targets[category] = list(targets)
+            for target in targets:
+                target_categories[target].append(category)
+        # Which categories are filtered
+        print(f'Filtered {len(categories_filtered)} categories which are:')
+        for category in categories_filtered:
+            print(category)
+
+        return category_targets, dict(target_categories)
+
+    @staticmethod
+    def target_targets(target_set: set, 
+                       category_targets: Dict[str, List[str]]
+                       ) -> Dict[str, List[str]]:
+        '''
+        Returns a dictionary of targets as keys and values are a list of 
+        realted targets.
+
+        The related targets have all come from category_targets dictionary. 
+        Where a target is related if it is in the same category. If it is in 
+        multiple categories then all targets from each of those categories 
+        are related.
+
+        :param target_set: A list of targets that are candiate keys in the 
+                           returned dictionary.
+        :param category_targets: A dictionary of latent categories as keys 
+                                 and related targets as values.
+        :returns: Dictionary of targets and their related targets as values 
+                  where the related targets have come from the category_targets
+                  dictionary.
+        '''
+        target_rel_targets = {}
+        for target in target_set:
+            rel_targets = []
+            for _, cat_targets in category_targets.items():
+                if target in cat_targets or target.lower() in cat_targets:
+                    rel_targets.extend(cat_targets)
+                else:
+                    lower_cat_targets = [cat_target.lower() 
+                                         for cat_target in cat_targets]
+                    if target.lower() in lower_cat_targets:
+                        rel_targets.extend(cat_targets)
+            if rel_targets:
+                rel_targets = list(set(rel_targets))
+
+                to_remove = set()
+                for rel_target in rel_targets:
+                    temp_rel_target = rel_target.lower()
+                    if target.lower() == temp_rel_target:
+                        to_remove.add(rel_target)
+                for target_to_remove in to_remove:
+                    rel_targets.remove(target_to_remove)
+                if not to_remove:
+                    raise ValueError('The target that maps to the list of '
+                                     'related target should be in the related '
+                                     'targets before being filtered out')
+                target_rel_targets[target] = rel_targets
+        return target_rel_targets
+
+    def target_set(self, lower: bool = False) -> set:
+        '''
+        Returns a set of all the targets within this dataset.
+
+        :param lower: Whether to return the targets lower cased.
+        :returns: A set of all the targets within this dataset.
+        '''
+        targets = set()
+        for data in self.data():
+            target = data['target']
+            if lower:
+                target = target.lower()
+            targets.add(target)
+        return targets
+
+    def subset_by_ids(self, ids: List[str]) -> 'TargetCollection':
+        '''
+        Returns a TargetCollection which is a subset of the current one. 
+        Where the samples included in the subset are those with a `target_id`
+        that is within the ids List.
+
+        :param ids: A list of `target_id`s that are to be included in the 
+                    subset
+        :returns: A subset of the current TargetCollection where the subset 
+                  only includes samples that have a `target_id` in the ids 
+                  given.
+        '''
+        subset_data = []
+        for data_id in ids:
+            rel_data = dict(self[data_id].items())
+            rel_data['target_id'] = data_id
+            subset_data.append(Target(**rel_data))
+        return TargetCollection(subset_data)
+
+    def dataset_metric_scores(self, 
+                              metric: Callable[[np.ndarray, np.ndarray], 
+                                               float], 
+                              **metric_kwargs) -> np.ndarray:
+        '''
+        Given a metric like accuracy returns all of the metric scores for the 
+        dataset. This assumes that the dataset has the `predicted` sentiment 
+        slot assigned.
+
+        :param metric: Metric function e.g. f1_score
+        :param metric_kwargs: Keyword arguments to provide to the metric 
+                              function e.g. `average` = `macro`
+        :returns: An array of metric results. One for each column in the 
+                  predicted sentiment array.
+        '''
+        true_labels = self.sentiment_data()
+        pred_matrix = self.sentiment_data(sentiment_field='predicted')
+        score_vector = np.apply_along_axis(metric, 0, pred_matrix, 
+                                           true_labels, **metric_kwargs)
+        return score_vector
+
 
     # Not tested
     def targets_per_sentence(self):
