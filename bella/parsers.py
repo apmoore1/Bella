@@ -9,21 +9,23 @@ import json
 import os
 import re
 import xml.etree.ElementTree as ET
+from typing import Tuple
+from pathlib import Path
 
 import ftfy
 
 from bella.data_types import Target, TargetCollection
 
-def dong(file_path, **target_collection_kwargs):
+def dong(file_path: Path, **target_collection_kwargs) -> TargetCollection:
     '''
     Given file path to the
     `Li Dong <https://github.com/bluemonk482/tdparse/tree/master/data/lidong>`_
     sentiment data it will parse the data and return it as a list of dictionaries.
 
     :param file_path: File Path to the annotated data
-    :type file_path: String
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
     :returns: A TargetCollection containing Target instances.
-    :rtype: TargetCollection
     '''
 
     file_path = os.path.abspath(file_path)
@@ -73,7 +75,8 @@ def dong(file_path, **target_collection_kwargs):
 
 
 def _semeval_extract_data(sentences, file_name, conflict=False,
-                          sentence_ids_skip=None, **target_collection_kwargs):
+                          sentence_ids_skip=None, **target_collection_kwargs
+                          ) -> TargetCollection:
     '''
     :param sentences: A `sentences` named element
     :param file_name: Name of the file being parsed
@@ -183,18 +186,19 @@ def _semeval_extract_data(sentences, file_name, conflict=False,
     return all_aspect_term_data
 
 
-def semeval_15_16(file_path, sep_16_from_15=False, sep_15_from_14=False,
-                  raise_error_no_category=False, **target_collection_kwargs):
+def semeval_15_16(file_path: Path, sep_16_from_15: bool = False, 
+                  sep_15_from_14: bool = False, 
+                  raise_error_no_category: bool = False, 
+                  **target_collection_kwargs) -> TargetCollection:
     '''
     Parser for the SemEval 2015 and 2016 datasets.
 
     :param file_path: File path to the semeval 2015/16 data
     :param sep_16_from_15: Ensure that the test sets of semeval 2016 is complete 
                            seperate from the semeval test set of 2015
-    :type file_path: String
-    :type sep_16_from_15: bool. Default False
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
     :returns: A TargetCollection containing Target instances.
-    :rtype: TargetCollection
     '''
 
     file_path = os.path.abspath(file_path)
@@ -221,16 +225,16 @@ def semeval_15_16(file_path, sep_16_from_15=False, sep_15_from_14=False,
             all_aspect_term_data.extend(review_targets.data())
     return TargetCollection(all_aspect_term_data, **target_collection_kwargs)
 
-def semeval_14(file_path, conflict=False, **target_collection_kwargs):
+def semeval_14(file_path: Path, conflict: bool = False, 
+               **target_collection_kwargs) -> TargetCollection:
     '''
     Parser for the SemEval 2014 datasets.
 
     :param file_path: File path to the semeval 2014 data
     :param conflict: determine if to include the conflict sentiment value
-    :type file_path: String
-    :type conflict: bool. Default False.
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
     :returns: A TargetCollection containing Target instances.
-    :rtype: TargetCollection
     '''
     file_path = os.path.abspath(file_path)
     file_name, _ = os.path.splitext(os.path.basename(file_path))
@@ -244,22 +248,22 @@ def semeval_14(file_path, conflict=False, **target_collection_kwargs):
     return _semeval_extract_data(sentences, file_name, conflict=conflict,
                                  **target_collection_kwargs)
 
-def election(folder_path, include_dnr=False, include_additional=False):
+
+def election(folder_path: Path, include_dnr: bool = False, 
+             include_additional: bool = False
+             ) -> Tuple[TargetCollection, TargetCollection]:
     '''
     Data can be downloaded from
     `FigShare <https://figshare.com/articles/EACL_2017_-_Multi-target_\
     UK_election_Twitter_sentiment_corpus/4479563/1>`_
 
-    :param folder_path: Path to the folder containing the data after it has \
-    been unziped and all folders within it have been unziped.
+    :param folder_path: Path to the folder containing the data after it has
+                        been unziped and all folders within it have been 
+                        unziped.
     :param include_dnr: determine if to include the `doesnotapply` label
-    :param include_additional: NOTE: This does not work at the moment. \
-    Determine if to parse the additional data.
-    :type folder_path: String
-    :type include_dnr: bool. Default False
-    :type include_additional: bool. Default False
+    :param include_additional: NOTE: This does not work at the moment. 
+                               Determine if to parse the additional data.
     :returns: A TargetCollection containing Target instances.
-    :rtype: TargetCollection
     '''
 
     sentiment_mapper = {'negative' : -1, 'neutral' : 0, 'positive' : 1}
@@ -387,6 +391,53 @@ def election(folder_path, include_dnr=False, include_additional=False):
 
     return train_data, test_data
 
+def election_train(folder_path: Path, include_dnr: bool = False, 
+                   include_additional: bool = False, **target_collection_kwargs
+                   ) -> TargetCollection:
+    '''
+    Data can be downloaded from
+    `FigShare <https://figshare.com/articles/EACL_2017_-_Multi-target_\
+    UK_election_Twitter_sentiment_corpus/4479563/1>`_. This function parses 
+    and returns only the training data.
+
+    :param folder_path: Path to the folder containing the data after it has
+                        been unziped and all folders within it have been 
+                        unziped.
+    :param include_dnr: determine if to include the `doesnotapply` label
+    :param include_additional: NOTE: This does not work at the moment. 
+                               Determine if to parse the additional data.
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
+    :returns: A TargetCollection containing Target instances.
+    '''
+
+    train_data, _ = election(folder_path, include_dnr=include_dnr, 
+                             include_additional=include_additional)
+    return TargetCollection(train_data.data(), **target_collection_kwargs)
+
+def election_test(folder_path: Path, include_dnr: bool = False, 
+                   include_additional: bool = False, **target_collection_kwargs
+                   ) -> TargetCollection:
+    '''
+    Data can be downloaded from
+    `FigShare <https://figshare.com/articles/EACL_2017_-_Multi-target_\
+    UK_election_Twitter_sentiment_corpus/4479563/1>`_. This function parses 
+    and returns only the test data.
+
+    :param folder_path: Path to the folder containing the data after it has
+                        been unziped and all folders within it have been 
+                        unziped.
+    :param include_dnr: determine if to include the `doesnotapply` label
+    :param include_additional: NOTE: This does not work at the moment. 
+                               Determine if to parse the additional data.
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
+    :returns: A TargetCollection containing Target instances.
+    '''
+
+    _, test_data = election(folder_path, include_dnr=include_dnr, 
+                            include_additional=include_additional)
+    return TargetCollection(test_data.data(), **target_collection_kwargs)
 
 def hu_liu(file_path):
     '''
@@ -468,7 +519,7 @@ def hu_liu(file_path):
     return sentiment_data
 
 
-def mitchel(file_name):
+def mitchel(file_name: Path, **target_collection_kwargs) -> TargetCollection:
     '''
     Parser for the dataset introduced by `Mitchel et al. \
     <https://www.aclweb.org/anthology/D13-1171>`_. The dataset can be downloaded
@@ -477,9 +528,9 @@ def mitchel(file_name):
     choose one of the folds e.g. train_1 and test_1 to get the full dataset.
 
     :param file_path: path to either the train or test data.
-    :type file_path: String
+    :param target_collection_kwargs: Keywords to parse to the TargetCollection 
+                                     constructor that is returned.
     :returns: A TargetCollection containing Target instances.
-    :rtype: TargetCollection
     '''
 
     def extract_targets(current_target, end_span, start_span, targets,
@@ -512,7 +563,7 @@ def mitchel(file_name):
         return sentiment_data
 
     sentiment_mapper = {'negative' : -1, 'neutral' : 0, 'positive' : 1}
-    sentiment_data = TargetCollection()
+    sentiment_data = TargetCollection(**target_collection_kwargs)
 
     with open(file_name, 'r') as fp:
         tweet_id = None
