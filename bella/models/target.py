@@ -138,6 +138,27 @@ class TargetInd(SKLearnModel):
         ])
 
     @classmethod
+    def normalise_parameter_names(cls, parameter_dict: Dict[str, Any]
+                                  ) -> Dict[str, Any]:
+        '''
+        Converts the output of :py:meth:`get_parameters` into a dictionary that 
+        can be used as input into :py:meth:`get_parameters`.
+
+        :returns: A dictonary that can be used as keyword arguments into the 
+                  :py:meth:`get_parameters` method
+        '''
+
+        parameter_names = ['word_vectors__', '__tokeniser', '__lower', 'scale',
+                           '__C', '__random_state']
+        name_parameter = {}
+        for parameter_name in parameter_names:
+            for name, parameter in parameter_dict.items():
+                if parameter_name in name:
+                    real_parameter_name = parameter_name.strip('_')
+                    name_parameter[real_parameter_name] = parameter
+        return name_parameter
+
+    @classmethod
     def get_parameters(cls,
                        word_vectors: List['bella.word_vectors.WordVectors'],
                        tokeniser: Callable[[str], List[str]] = ark_twokenize,
@@ -944,6 +965,29 @@ class TargetDepPlus(TargetInd):
             ('scale', MinMaxScaler()),
             ('svm', LinearSVC())
         ])
+
+    @classmethod
+    def normalise_parameter_names(cls, parameter_dict: Dict[str, Any]
+                                  ) -> Dict[str, Any]:
+        '''
+        Converts the output of :py:meth:`get_parameters` into a dictionary that 
+        can be used as input into :py:meth:`get_parameters`.
+
+        :returns: A dictonary that can be used as keyword arguments into the 
+                  :py:meth:`get_parameters` method
+        '''
+
+        parameter_names = ['word_vectors__', '__tokeniser', '__lower', 'scale',
+                           '__C', '__random_state', '__lexicon']
+        name_parameter = {}
+        for parameter_name in parameter_names:
+            for name, parameter in parameter_dict.items():
+                if parameter_name in name:
+                    real_parameter_name = parameter_name.strip('_')
+                    if parameter_name == '__lexicon':
+                        real_parameter_name = 'senti_lexicon'
+                    name_parameter[real_parameter_name] = parameter
+        return name_parameter
 
     @classmethod
     def get_parameters(cls,

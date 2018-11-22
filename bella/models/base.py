@@ -929,6 +929,10 @@ class SKLearnModel(BaseModel):
     2. get_cv_parameters -- Transform the given parameters into a list of
        dictonaries that is accepted as `param_grid` parameter in
        :py:class:`sklearn.model_selection.GridSearchCV`
+    3. normalise_parameter_names -- Converts the output of 
+       :py:meth:`get_parameters` into a dictionary that can be used as input 
+       into :py:meth:`get_parameters`. This is required so that the 
+       :py:func:`evaluate_parameters` can work this class.
 
     Methods:
 
@@ -1096,7 +1100,10 @@ class SKLearnModel(BaseModel):
         :return: A tuple of (parameter value, predictions)
         '''
 
-        model.model_parameters = {parameter_name: parameter}
+        original_parameters = model._model_parameters
+        original_parameters = model.normalise_parameter_names(original_parameters)
+        original_parameters[parameter_name] = parameter
+        model.model_parameters = original_parameters
         model.fit(train[0], train[1])
         predictions = model.predict(test)
         return (parameter, predictions)
@@ -1240,6 +1247,20 @@ class SKLearnModel(BaseModel):
             best_param = sorted(param_scores, key=lambda x: x[0])[-1][1]
             model_best_param[model] = best_param
         return model_best_param
+
+    @classmethod
+    @abstractmethod
+    def normalise_parameter_names(cls, parameter_dict: Dict[str, Any]
+                                  ) -> Dict[str, Any]:
+        '''
+        Converts the output of :py:meth:`get_parameters` into a dictionary that 
+        can be used as input into :py:meth:`get_parameters`.
+
+        :returns: A dictonary that can be used as keyword arguments into the 
+                  :py:meth:`get_parameters` method
+        '''
+
+        pass
 
     @classmethod
     @abstractmethod
