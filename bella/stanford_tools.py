@@ -2,11 +2,13 @@ import json
 from pathlib import Path
 from typing import Tuple
 
+from filelock import FileLock
 from nltk.tree import Tree
 from ruamel.yaml import YAML
 from stanfordcorenlp import StanfordCoreNLP
 
 BELLA_CONFIG_FP = Path.home().joinpath('.Bella', 'config.yaml')
+BELLA_CONFIG_LOCK_FP = Path.home().joinpath('.Bella', 'config.yaml.lock')
 
 class StanfordNlp(object):
     '''
@@ -22,21 +24,24 @@ class StanfordNlp(object):
         yaml = YAML()
         config_data = {}
         BELLA_CONFIG_FP.parent.mkdir(parents=True, exist_ok=True)
-        if BELLA_CONFIG_FP.exists():
-            with BELLA_CONFIG_FP.open('r') as config_file:
-                config_data = yaml.load(config_file)
-                if 'stanford_core_nlp' in config_data:
-                    stanford_config = config_data['stanford_core_nlp']
-                    if 'hostname' in stanford_config:
-                        hostname = stanford_config['hostname']
-                    if 'port' in stanford_config:
-                        port = stanford_config['port']
-        
-        config_data['stanford_core_nlp'] = {}
-        config_data['stanford_core_nlp']['hostname'] = hostname
-        config_data['stanford_core_nlp']['port'] = port
-        with BELLA_CONFIG_FP.open('w') as config_file:
-            yaml.dump(config_data, config_file)
+
+        lock = FileLock(BELLA_CONFIG_LOCK_FP)
+        with lock.acquire(60):
+            if BELLA_CONFIG_FP.exists():
+                with BELLA_CONFIG_FP.open('r') as config_file:
+                    config_data = yaml.load(config_file)
+                    if 'stanford_core_nlp' in config_data:
+                        stanford_config = config_data['stanford_core_nlp']
+                        if 'hostname' in stanford_config:
+                            hostname = stanford_config['hostname']
+                        if 'port' in stanford_config:
+                            port = stanford_config['port']
+            
+            config_data['stanford_core_nlp'] = {}
+            config_data['stanford_core_nlp']['hostname'] = hostname
+            config_data['stanford_core_nlp']['port'] = port
+            with BELLA_CONFIG_FP.open('w') as config_file:
+                yaml.dump(config_data, config_file)
         return hostname, port
 
     def __new__(cls):

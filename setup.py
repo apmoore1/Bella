@@ -15,6 +15,7 @@ setup(name='bella_tdsa',
       author_email='andrew.p.moore94@gmail.com',
       license='MIT',
       install_requires=[
+          'filelock>=3.0.10',
           'Keras>=2.1.3',
           'tensorflow>=1.3.0',
           'scikit-learn==0.19.1',

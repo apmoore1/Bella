@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple
 
+from filelock import FileLock
 import networkx as nx
 from ruamel.yaml import YAML
 from tweebo_parser import API
@@ -13,6 +14,7 @@ from bella.dependency_tokens import DependencyToken
 from bella import stanford_tools
 
 BELLA_CONFIG_FP = Path.home().joinpath('.Bella', 'config.yaml')
+BELLA_CONFIG_LOCK_FP = Path.home().joinpath('.Bella', 'config.yaml.lock')
 
 class TweeboParser(object):
     '''
@@ -28,21 +30,24 @@ class TweeboParser(object):
         yaml = YAML()
         config_data = {}
         BELLA_CONFIG_FP.parent.mkdir(parents=True, exist_ok=True)
-        if BELLA_CONFIG_FP.exists():
-            with BELLA_CONFIG_FP.open('r') as config_file:
-                config_data = yaml.load(config_file)
-                if 'tweebo_parser' in config_data:
-                    tweebo_config = config_data['tweebo_parser']
-                    if 'hostname' in tweebo_config:
-                        hostname = tweebo_config['hostname']
-                    if 'port' in tweebo_config:
-                        port = tweebo_config['port']
 
-        config_data['tweebo_parser'] = {}
-        config_data['tweebo_parser']['hostname'] = hostname
-        config_data['tweebo_parser']['port'] = port
-        with BELLA_CONFIG_FP.open('w') as config_file:
-            yaml.dump(config_data, config_file)
+        lock = FileLock(BELLA_CONFIG_LOCK_FP)
+        with lock.acquire(60):
+            if BELLA_CONFIG_FP.exists():
+                with BELLA_CONFIG_FP.open('r') as config_file:
+                    config_data = yaml.load(config_file)
+                    if 'tweebo_parser' in config_data:
+                        tweebo_config = config_data['tweebo_parser']
+                        if 'hostname' in tweebo_config:
+                            hostname = tweebo_config['hostname']
+                        if 'port' in tweebo_config:
+                            port = tweebo_config['port']
+
+            config_data['tweebo_parser'] = {}
+            config_data['tweebo_parser']['hostname'] = hostname
+            config_data['tweebo_parser']['port'] = port
+            with BELLA_CONFIG_FP.open('w') as config_file:
+                yaml.dump(config_data, config_file)
         return hostname, port
 
     def __new__(cls):
