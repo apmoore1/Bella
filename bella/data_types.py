@@ -629,7 +629,8 @@ class TargetCollection(MutableMapping):
         sentiment_data = self.sentiment_data()
         X_train, X_test, _, _ = train_test_split(target_data, sentiment_data, 
                                                  stratify=sentiment_data, 
-                                                 test_size=split)
+                                                 test_size=split, 
+                                                 **split_kwargs)
         create_json_file(dataset_paths[0], X_train)
         create_json_file(dataset_paths[1], X_test)
         return dataset_paths
