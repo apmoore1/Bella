@@ -601,7 +601,7 @@ class KerasModel(BaseModel):
         :return: self
         '''
 
-        model_fp = load_fp.with_suffix('.h5')
+        model_fp = str(load_fp.with_suffix('.h5').resolve())
         attributes_fp = load_fp.with_suffix('.pkl')
         with attributes_fp.open('rb') as attributes_file:
             attributes = pickle.load(attributes_file)

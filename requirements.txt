@@ -3,7 +3,6 @@ Keras>=2.1.3
 tensorflow>=1.3.0
 scikit-learn==0.19.1
 gensim>=3.0.1
-numpy>=1.13.3, <=1.14.5
 requests>=2.18.4
 tqdm>=4.23.4
 twokenize>=1.0.0
