@@ -552,7 +552,8 @@ class TargetCollection(MutableMapping):
 
     def to_json_file(self, dataset_name: Union[str, List[str]], 
                      split: Union[float, None] = None, cache: bool = True, 
-                     **split_kwargs) -> Union[Path, List[Path]]:
+                     group_by_sentence: bool = False, **split_kwargs
+                     ) -> Union[Path, List[Path]]:
         '''
         Returns a Path to a json file that has stored the data as a sample json 
         encoded per line. If the split argument is set will return two Paths 
@@ -575,6 +576,9 @@ class TargetCollection(MutableMapping):
                       the data to use for the test split.
         :param cache: If the data is already saved use the Cache. Default 
                       is to use the cached data.
+        :param group_by_sentence: Whether the data should be grouped by sentence
+                                  this will then produce json lines that can 
+                                  contain more than one target in a sentence.
         :param split_kwargs: Keywords argument to give to the train_test_split 
                              function that is used for splitting.
         '''
@@ -587,14 +591,33 @@ class TargetCollection(MutableMapping):
             :param fp: File path that will store the json samples one per line
             :param data: List of dictionaries that represent the Target data.
             :return: Nothing that data will be saved to the file.
-            '''
+            '''                
             with fp.open('w+') as json_file:
-                for index, target_data in enumerate(data):
-                    json_encoded_data = json.dumps(target_data)
-                    if index != 0:
-                        json_encoded_data = f'\n{json_encoded_data}'
-                    json_file.write(json_encoded_data)
-        
+                if group_by_sentence:
+                    data = TargetCollection([Target(**d) for d in data])
+                    data = data.group_by_sentence()
+                    for index, target_datas in enumerate(data.values()):
+                        text = target_datas[0]['text']
+                        sentiments = []
+                        targets = []
+                        spans = []
+                        for target_data in target_datas:
+                            sentiments.append(target_data['sentiment'])
+                            spans.append(target_data['spans'])
+                            targets.append(target_data['target'])
+                        sentence_data = {'text': text, 'sentiments': sentiments,
+                                         'targets': targets, 'spans': spans}
+                        json_encoded_data = json.dumps(sentence_data)
+                        if index != 0:
+                            json_encoded_data = f'\n{json_encoded_data}'
+                        json_file.write(json_encoded_data)
+                else:
+                    for index, target_data in enumerate(data):
+                        json_encoded_data = json.dumps(target_data)
+                        if index != 0:
+                            json_encoded_data = f'\n{json_encoded_data}'
+                        json_file.write(json_encoded_data)
+            
         # If splitting the data there has to be two dataset names else one name
         if split is None:
             assert isinstance(dataset_name, str)
