@@ -2,10 +2,13 @@
 Unit test suite for the :py:mod:`bella.data_types` module.
 '''
 import copy
+from pathlib import Path
+import re
 from unittest import TestCase
 
 from bella.data_types import Target
 from bella.data_types import TargetCollection
+from bella.parsers import semeval_14
 
 class TestTarget(TestCase):
     '''
@@ -543,3 +546,45 @@ class TestTarget(TestCase):
                                       target_example_6])
         self.assertEqual(valid_col, test_col, msg='Should only return these {}'\
                          ' but has returned this {}'.format(valid_col, test_col))
+    
+    def test_split_dataset(self):
+        def split_tests(data_: TargetCollection, train_: TargetCollection, 
+                        test_: TargetCollection, test_split: float):
+            data_size = len(data_)
+            train_size = len(train_)
+            test_size = len(test_)
+            assert train_size == (data_size - int(data_size * test_split))
+            assert test_size == int(data_size * test_split)
+            assert data_size == (train_size + test_size)
+
+            train_ids = []
+            test_ids = []
+            for data in train_.data_dict():
+                train_ids.append(re.findall('\d+', data['target_id'])[0])
+            for data in test_.data_dict():
+                test_ids.append(re.findall('\d+', data['target_id'])[0])
+            assert len(train_ids) == len(set(train_ids))
+            assert len(test_ids) == len(set(test_ids))
+            for train_id in train_ids:
+                assert train_id not in test_ids
+            for test_id in test_ids:
+                assert test_id not in train_ids
+            return train_ids, test_ids
+        
+        test_dir = Path(__file__, '..', 'test_data')
+        data_fp = Path(test_dir, 'semeval_test_data.xml')
+        data = semeval_14(data_fp)
+        train, test = data.split_dataset(data, test_split=0.2)
+        _, test_ids_ = split_tests(data, train, test, 0.2)
+        true_test_ids = ['20140', '20141', '20120', '20121', '20110']
+        assert true_test_ids == test_ids_
+
+        # Tests many different random splits
+        for i in range(20):
+            train, test = data.split_dataset(data, test_split=0.2, random=True)
+            split_tests(data, train, test, 0.2)
+        # Tests many different random splits but with a much larger test size
+        for i in range(20):
+            train, test = data.split_dataset(data, test_split=0.8, random=True)
+            split_tests(data, train, test, 0.8)
+        

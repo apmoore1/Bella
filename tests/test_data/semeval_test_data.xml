@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sentences>
+    <sentence id="2014">
+        <text>The phone came with a very good battery life, however the phone was not very good.</text>
+        <aspectTerms>
+            <aspectTerm term="battery life" polarity="positive" from="32" to="44"/>
+            <aspectTerm term="phone" polarity="negative" from="58" to="63"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2013">
+        <text>This is an empty sentence that has no aspect terms.</text>
+    </sentence>
+    <sentence id="2012">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2011">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2010">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2009">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2008">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2007">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2006">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2005">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2004">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2003">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2002">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+    <sentence id="2001">
+        <text>This was an ok camera but the lens could have been better.</text>
+        <aspectTerms>
+            <aspectTerm term="camera" polarity="neutral" from="15" to="21"/>
+            <aspectTerm term="lens" polarity="negative" from="30" to="34"/>
+        </aspectTerms>
+    </sentence>
+</sentences>

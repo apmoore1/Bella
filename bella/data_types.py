@@ -12,6 +12,7 @@ from collections import OrderedDict, defaultdict
 import copy
 import json
 from pathlib import Path
+import random as rand
 from typing import List, Callable, Union, Dict, Tuple, Any, Optional
 
 import numpy as np
@@ -267,6 +268,8 @@ class TargetCollection(MutableMapping):
     
     1. target_targets -- Returns a dictionary of targets as keys and values 
        are a list of realted targets.
+    2. split_dataset -- Returns the given dataset into two, the train and test 
+                        based on the test_split fraction given.
     '''
 
     def __init__(self, list_of_target=None, name: Optional[str]=None):
@@ -550,9 +553,47 @@ class TargetCollection(MutableMapping):
                 all_relevent_targets.append(target)
         return TargetCollection(all_relevent_targets)
 
+    @staticmethod
+    def split_dataset(data: 'TargetCollection', test_split: float, 
+                      random: bool = False
+                      ) -> Tuple['TargetCollection', 'TargetCollection']:
+        '''
+        It will split the data into training and test splits, where the amount of 
+        data in the test is defined by the test_split fraction (amount of training 
+        data will be 1 - test_split).
+
+        :param data: data to split
+        :param test_split: The amount of data to give to the test split.
+        :param random: If the splitting should be random rather than the last 
+                    test split of the data being test and the first 
+                    (1 - test split) being the training data.
+        :returns: The training data and test data as a tuple.
+        '''
+        target_data = data.data_dict()
+        data_size = len(target_data)
+        test_data_size = int(data_size * test_split)
+        test_data = []
+        train_data = []
+        if random:
+            start_index = rand.randint(0, data_size)
+            end_index = start_index + test_data_size
+            if end_index > data_size:
+                index_diff = end_index - data_size
+                start_index -= index_diff
+                end_index = data_size
+            test_data = target_data[start_index: end_index]
+            train_data = target_data[end_index:]
+            train_data.extend(target_data[: start_index])
+        else:
+            test_data = target_data[: test_data_size]
+            train_data = target_data[test_data_size:]
+        train_data = [Target(**t_data) for t_data in train_data]
+        test_data = [Target(**t_data) for t_data in test_data]
+        return (TargetCollection(train_data), TargetCollection(test_data))
+
     def to_json_file(self, dataset_name: Union[str, List[str]], 
-                     split: Union[float, None] = None, cache: bool = True, 
-                     group_by_sentence: bool = False, **split_kwargs
+                     split: Optional[float] = None, cache: bool = True, 
+                     group_by_sentence: bool = False, random: bool = False
                      ) -> Union[Path, List[Path]]:
         '''
         Returns a Path to a json file that has stored the data as a sample json 
@@ -563,8 +604,8 @@ class TargetCollection(MutableMapping):
         `~/.Bella/datasets/.` directory within your user space under the 
         dataset_name.
 
-        If the split argument is used. NOTE that splitting is done in a 
-        stratified fashion
+        To split the bella.data_types.TargetCollection.split_dataset method is 
+        used.
 
         :param dataset_name: Name to associate to the dataset e.g. 
                              `SemEval 2014 rest train`. If split is not None 
@@ -579,8 +620,8 @@ class TargetCollection(MutableMapping):
         :param group_by_sentence: Whether the data should be grouped by sentence
                                   this will then produce json lines that can 
                                   contain more than one target in a sentence.
-        :param split_kwargs: Keywords argument to give to the train_test_split 
-                             function that is used for splitting.
+        :param random: Whether the splitting of the training and test should 
+                       be random or not.
         '''
         def create_json_file(fp: Path, data: List[Dict[str, Any]]) -> None:
             '''
@@ -649,13 +690,10 @@ class TargetCollection(MutableMapping):
             create_json_file(dataset_paths[0], target_data)
             return dataset_paths[0]
         # Splitting
-        sentiment_data = self.sentiment_data()
-        X_train, X_test, _, _ = train_test_split(target_data, sentiment_data, 
-                                                 stratify=sentiment_data, 
-                                                 test_size=split, 
-                                                 **split_kwargs)
-        create_json_file(dataset_paths[0], X_train)
-        create_json_file(dataset_paths[1], X_test)
+        train, test = self.split_dataset(target_data, test_split=split, 
+                                         random=random)
+        create_json_file(dataset_paths[0], train.data_dict())
+        create_json_file(dataset_paths[1], test.data_dict())
         return dataset_paths
 
     def categories_targets(self, filter: int = 2, coarse: bool = False
