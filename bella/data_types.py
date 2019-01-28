@@ -685,12 +685,11 @@ class TargetCollection(MutableMapping):
                 return dataset_paths[0]
             return dataset_paths
 
-        target_data = self.data_dict()
         if split is None:
-            create_json_file(dataset_paths[0], target_data)
+            create_json_file(dataset_paths[0], self.data_dict())
             return dataset_paths[0]
         # Splitting
-        train, test = self.split_dataset(target_data, test_split=split, 
+        train, test = self.split_dataset(self, test_split=split, 
                                          random=random)
         create_json_file(dataset_paths[0], train.data_dict())
         create_json_file(dataset_paths[1], test.data_dict())
