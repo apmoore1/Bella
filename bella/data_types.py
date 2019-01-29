@@ -13,7 +13,7 @@ import copy
 import json
 from pathlib import Path
 import random as rand
-from typing import List, Callable, Union, Dict, Tuple, Any, Optional
+from typing import List, Callable, Union, Dict, Tuple, Any, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -49,21 +49,32 @@ class Target(MutableMapping):
     '''
 
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
-                 sentence_id=None, category=None):
+                 sentence_id=None, category=None, augmented=None, 
+                 transfer_data=None):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
         :param text: The text context that the target and sentiment is within.
-        :param target_id: Unique ID. Has to be Unique within the \
-        TargetCollection if it is put into a TargetCollection.
-        :param spans: List of tuples where each tuple is of length 2 where they \
-        contain the exclusive range of an instance of Target word in the Text \
-        context. The reason it is a list if because the Target word can be \
-        mentioned more than once e.g. `The Iphone was great but the iphone is \
-        small`. The first Int in the tuple has to be less than the second Int.
+        :param target_id: Unique ID. Has to be Unique within the 
+                          TargetCollection if it is put into a TargetCollection.
+        :param spans: List of tuples where each tuple is of length 2 where they 
+                      contain the exclusive range of an instance of Target word 
+                      in the Text context. The reason it is a list if because 
+                      the Target word can be mentioned more than once e.g. 
+                      `The Iphone was great but the iphone is small`. The first 
+                      Int in the tuple has to be less than the second Int.
         :param predicted: If given adds the predicted sentiment value.
-        :param sentence_id: Unique ID of the sentence that the target is \
-        within. More than one target can have the same sentence.
+        :param sentence_id: Unique ID of the sentence that the target is 
+                            within. More than one target can have the same 
+                            sentence.
+        :param category: In some datasets there is category information where 
+                         the target is assigned a category. This comes from 
+                         the SemEval 2015 restaurant dataset.
+        :param augmented: Whether or not the data comes from an augmented 
+                          dataset or has been produced from an augmented 
+                          function.
+        :param transfer_data: Whether or not the data comes from a transfer 
+                              dataset.
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
@@ -71,6 +82,9 @@ class Target(MutableMapping):
         :type spans: list
         :type predicted: Same type as sentiment. Default None (Optional)
         :type sentence_id: String. Default None (Optional)
+        :type category: String. Default None (Optional)
+        :type augmented: bool. Default None (Optional)
+        :type transfer_data: bool. Default None (Optional)
         :returns: Nothing. Constructor.
         :rtype: None
         '''
@@ -119,6 +133,10 @@ class Target(MutableMapping):
 
         if category is not None:
             temp_dict['category'] = category
+        if augmented is not None:
+            temp_dict['augmented'] = augmented
+        if transfer_data is not None:
+            temp_dict['transfer_data'] = transfer_data
 
         self._storage = temp_dict
         if predicted is not None:
@@ -263,6 +281,8 @@ class TargetCollection(MutableMapping):
     12. dataset_metric_scores -- Given a metric like accuracy returns all of 
         the metric scores for the dataset. This assumes that the dataset has 
         the `predicted` sentiment slot assigned.
+    13. subset_by_targets -- Will subset the data so that only data points that 
+        contain the given targets are within the TargetCollection.
 
     Static functions:
     
@@ -535,14 +555,30 @@ class TargetCollection(MutableMapping):
         :rtype: TargetCollection
         '''
 
-
-
         all_relevent_targets = []
         for targets in self.group_by_sentence().values():
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
         return TargetCollection(all_relevent_targets)
+
+    def subset_by_targets(self, target_set: Set[str]):
+        '''
+        Will subset the data so that only data points that contain the given 
+        targets are within the TargetCollection.
+        
+        :param target_set: A list of targets to be used to sub-sample 
+                           the data collection from.
+        :returns: The current target collection with data points that only 
+                  have targets that are from the target set.
+        :rtype: TargetCollection
+        '''
+
+        target_data = []
+        for data in self.data_dict():
+            if data['target'].lower() in target_set:
+                target_data.append(Target(**data))
+        return TargetCollection(target_data)
 
     def subset_by_sentence_length(self, length_condition):
 
