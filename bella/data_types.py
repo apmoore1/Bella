@@ -50,7 +50,7 @@ class Target(MutableMapping):
 
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
                  sentence_id=None, category=None, augmented=None, 
-                 transfer_data=None):
+                 transfer_data=None, original_target_id=None):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -75,6 +75,11 @@ class Target(MutableMapping):
                           function.
         :param transfer_data: Whether or not the data comes from a transfer 
                               dataset.
+        :param original_target_id: If the augmented field is True then the 
+                                   original_target_id has to exist, as this 
+                                   will inform what the original target 
+                                   was used to create this augmented target 
+                                   data. 
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
@@ -85,6 +90,7 @@ class Target(MutableMapping):
         :type category: String. Default None (Optional)
         :type augmented: bool. Default None (Optional)
         :type transfer_data: bool. Default None (Optional)
+        :type original_target_id: String
         :returns: Nothing. Constructor.
         :rtype: None
         '''
@@ -135,6 +141,15 @@ class Target(MutableMapping):
             temp_dict['category'] = category
         if augmented is not None:
             temp_dict['augmented'] = augmented
+            if original_target_id is None:
+                aug_data_error = ('Cannot create a Target that is augmented '
+                                  'without having the original target_id of the'
+                                  ' target data that was augmented to create '
+                                  'this target data')
+                raise ValueError(aug_data_error)
+            
+        if original_target_id is not None:
+            temp_dict['original_target_id'] = original_target_id
         if transfer_data is not None:
             temp_dict['transfer_data'] = transfer_data
 
