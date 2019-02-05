@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 import random as rand
 from typing import List, Callable, Union, Dict, Tuple, Any, Optional, Set
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -323,6 +324,7 @@ class TargetCollection(MutableMapping):
             for target in list_of_target:
                 self.add(target)
         self.name = name if name is not None else 'TargetCollection'
+        self._grouped_sentences = None
 
     def __getitem__(self, key):
         return self._storage[key]
@@ -339,6 +341,9 @@ class TargetCollection(MutableMapping):
         :rtype: None.
         '''
 
+        # Required to make sure the grouped_sentences get recomputed instead 
+        # of cached.
+        self._data_has_changed = True
         if not isinstance(value, Target):
             raise TypeError('All values in this store have to be of type '\
                             'Target not {}'.format(type(value)))
@@ -571,7 +576,7 @@ class TargetCollection(MutableMapping):
         '''
 
         all_relevent_targets = []
-        for targets in self.group_by_sentence().values():
+        for targets in self.grouped_sentences.values():
             target_col = TargetCollection(targets)
             if len(target_col.stored_sentiments()) == num_unique_sentiments:
                 all_relevent_targets.extend(targets)
@@ -687,7 +692,7 @@ class TargetCollection(MutableMapping):
             with fp.open('w+') as json_file:
                 if group_by_sentence:
                     data = TargetCollection([Target(**d) for d in data])
-                    data = data.group_by_sentence()
+                    data = data.grouped_sentences
                     for index, target_datas in enumerate(data.values()):
                         text = target_datas[0]['text']
                         sentiments = []
@@ -902,7 +907,7 @@ class TargetCollection(MutableMapping):
         '''
 
         targets_sentence = {}
-        for targets in self.group_by_sentence().values():
+        for targets in self.grouped_sentences.values():
             num_targets = len(targets)
             targets_sentence[num_targets] = targets_sentence.get(num_targets, 0) + 1
         return targets_sentence
@@ -912,7 +917,7 @@ class TargetCollection(MutableMapping):
         return len(self) / self.number_sentences()
     # Not tested
     def number_sentences(self):
-        return len(self.group_by_sentence())
+        return len(self.grouped_sentences)
     # Not tested
     def number_unique_targets(self):
         target_count = {}
@@ -936,12 +941,47 @@ class TargetCollection(MutableMapping):
             ratio_sentiment_targets[sentiment] = round(no_targets / total_targets, 2)
         return ratio_sentiment_targets
 
+    @property
+    def grouped_sentences(self) -> Dict[str, List['Target']]:
+        '''
+        A dictionary of sentence_id as keys and a list of target instances that 
+        have the same sentence_id as values.
+
+        It stores a cache of this result and the cache will expire once the 
+        data has changed within itself and then this value will have to be 
+        recomputed.
+
+        :returns: A dictionary of sentence_id as keys and a list of target 
+                  instances that have the same sentence_id as values.
+        '''
+
+        # If the data has changed re-compute or if the data has never been 
+        # compute, compute else return the cached results.
+        if self._data_has_changed or self._grouped_sentences is None:
+            self._data_has_changed = False
+            sentence_targets = defaultdict(list)
+            for target in self.data():
+                if 'sentence_id' not in target:
+                    raise ValueError(f'A Target id instance {target} does not '
+                                     'have a sentence_id which is required.')
+                sentence_id = target['sentence_id']
+                sentence_targets[sentence_id].append(target)
+            self._grouped_sentences = sentence_targets
+            
+        return self._grouped_sentences
+
     def group_by_sentence(self):
         '''
+        This is now deprecated, please use grouped_sentences property.
+
         :returns: A dictionary of sentence_id as keys and a list of target \
         instances that have the same sentence_id as values.
         :rtype: defaultdict (default is list)
         '''
+
+        dep_warning = ('This is now deprecated, please use grouped_sentences '
+                       'property.')
+        warnings.warn(dep_warning, DeprecationWarning)
 
         sentence_targets = defaultdict(list)
         for target in self.data():
