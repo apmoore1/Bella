@@ -445,7 +445,7 @@ class TargetCollection(MutableMapping):
             _data.append(data_dict)
         return _data
 
-    def stored_sentiments(self):
+    def stored_sentiments(self) -> Set[Any]:
         '''
         :returns: A set of all unique sentiment values of the target instances \
         in the data store.
@@ -1039,7 +1039,7 @@ class TargetCollection(MutableMapping):
             distinct_sentiment_targets = defaultdict(list)
             for targets in self.grouped_sentences.values():
                 target_col = TargetCollection(targets)
-                num_unique_sentiments = target_col.stored_sentiments()
+                num_unique_sentiments = len(target_col.stored_sentiments())
                 distinct_sentiment_targets[num_unique_sentiments].extend(targets)
             self._grouped_distinct_sentiments = distinct_sentiment_targets
         return self._grouped_distinct_sentiments
