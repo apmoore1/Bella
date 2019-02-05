@@ -306,6 +306,19 @@ class TargetCollection(MutableMapping):
        are a list of realted targets.
     2. split_dataset -- Returns the given dataset into two, the train and test 
                         based on the test_split fraction given.
+
+    Attributes:
+    1. grouped_sentences -- A dictionary of sentence_id as keys and a list of 
+       target instances that have the same sentence_id as values.
+    2. grouped_sentiments -- A dictionary where the keys are all possible 
+       sentiment values, the value is a list of Target(s) that only have that 
+       associated sentiment value.
+    3. grouped_distinct_sentiments -- A dictionary where the keys are the 
+       number of distinct sentiments that the targets have in the associated 
+       value. A target has two distinct sentiments if the associated sentence 
+       has contains targets that take on one of two sentiment where at least 
+       one target has a different sentiment to the rest. The targets in the 
+       values of this dictionary are stored as a list of Target
     '''
 
     def __init__(self, list_of_target=None, name: Optional[str]=None):
@@ -314,7 +327,7 @@ class TargetCollection(MutableMapping):
                                Target instances.
         :type list_of_target: Iterable. Default None (Optional)
         :returns: Nothing. Constructor.
-    :rtyEpe: None
+        :rtype: None
         '''
 
         self._storage = OrderedDict()
@@ -325,6 +338,8 @@ class TargetCollection(MutableMapping):
                 self.add(target)
         self.name = name if name is not None else 'TargetCollection'
         self._grouped_sentences = None
+        self._grouped_sentiments = None
+        self._grouped_distinct_sentiments = None
 
     def __getitem__(self, key):
         return self._storage[key]
@@ -341,9 +356,11 @@ class TargetCollection(MutableMapping):
         :rtype: None.
         '''
 
-        # Required to make sure the grouped_sentences get recomputed instead 
-        # of cached.
+        # Required to make sure the grouped_sentences, grouped_sentiments,
+        # and grouped_distinct_sentiments get recomputed instead of cached.
         self._data_has_changed = True
+        self._data_has_changed_gs = True
+        self._data_has_changed_gds = True
         if not isinstance(value, Target):
             raise TypeError('All values in this store have to be of type '\
                             'Target not {}'.format(type(value)))
@@ -969,6 +986,63 @@ class TargetCollection(MutableMapping):
             self._grouped_sentences = sentence_targets
             
         return self._grouped_sentences
+
+    @property
+    def grouped_sentiments(self) -> Dict[Any, List['Target']]:
+        '''
+        A dictionary where the keys are all possible sentiment values, the 
+        value is a list of Target(s) that only have that associated sentiment 
+        value.
+
+        It stores a cache of this result and the cache will expire once the 
+        data has changed within itself and then this value will have to be 
+        recomputed.
+
+        :returns: A dictionary of sentiment values as keys and a list of target 
+                  instances that have the same sentiment value.
+        '''
+
+        # If the data has changed re-compute or if the data has never been 
+        # compute, compute else return the cached results.
+        if self._data_has_changed_gs or self._grouped_sentiments is None:
+            self._data_has_changed_gs = False
+            sentiment_targets = defaultdict(list)
+            for target in self.data():
+                sentiment_targets[target['sentiment']].append(target)
+            self._grouped_sentiments = sentiment_targets
+            
+        return self._grouped_sentiments  
+
+    @property
+    def grouped_distinct_sentiments(self) -> Dict[Any, List['Target']]:
+        '''
+        A dictionary where the keys are the number of distinct sentiments that 
+        the targets have in the associated value. A target has two distinct 
+        sentiments if the associated sentence has contains targets that take 
+        on one of two sentiment where at least one target has a different 
+        sentiment to the rest. The targets in the values of this dictionary 
+        are stored as a list of Target
+
+        It stores a cache of this result and the cache will expire once the 
+        data has changed within itself and then this value will have to be 
+        recomputed.
+
+        :returns: A dictionary of distinct sentiments per sentence as keys and 
+                  a list of target instances that have the same distinct 
+                  sentiments per sentence
+        '''
+
+        # If the data has changed re-compute or if the data has never been 
+        # compute, compute else return the cached results.
+        if self._data_has_changed_gds or self._grouped_distinct_sentiments is None:
+            self._data_has_changed_gds = False
+            distinct_sentiment_targets = defaultdict(list)
+            for targets in self.grouped_sentences.values():
+                target_col = TargetCollection(targets)
+                num_unique_sentiments = target_col.stored_sentiments()
+                distinct_sentiment_targets[num_unique_sentiments].extend(targets)
+            self._grouped_distinct_sentiments = distinct_sentiment_targets
+        return self._grouped_distinct_sentiments
 
     def group_by_sentence(self):
         '''
