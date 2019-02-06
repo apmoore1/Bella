@@ -51,7 +51,8 @@ class Target(MutableMapping):
 
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
                  sentence_id=None, category=None, augmented=None, 
-                 transfer_data=None, original_target_id=None):
+                 transfer_data=None, original_target_id=None, 
+                 epoch_number = -1):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -81,6 +82,10 @@ class Target(MutableMapping):
                                    will inform what the original target 
                                    was used to create this augmented target 
                                    data. 
+        :param epoch_number: The epoch which this target should be sampled from.
+                             This is only applicable when using this with a 
+                             custom sampler, it allows you to add when you 
+                             may want this target to be sampled.
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
@@ -92,6 +97,7 @@ class Target(MutableMapping):
         :type augmented: bool. Default None (Optional)
         :type transfer_data: bool. Default None (Optional)
         :type original_target_id: String
+        :type epoch_number: int
         :returns: Nothing. Constructor.
         :rtype: None
         '''
@@ -131,7 +137,8 @@ class Target(MutableMapping):
                                          'less than the second integer {}'\
                                          .format(span))
         temp_dict = dict(spans=spans, target_id=target_id, target=target,
-                         text=text, sentiment=sentiment)
+                         text=text, sentiment=sentiment, 
+                         epoch_number=epoch_number)
         if sentence_id is not None:
             if not isinstance(sentence_id, str):
                 raise TypeError('`sentence_id` has to be a String and not {}'\
