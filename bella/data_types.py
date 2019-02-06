@@ -655,6 +655,8 @@ class TargetCollection(MutableMapping):
             for line in json_file:
                 target = json.loads(line)
                 target['spans'] = [tuple(span) for span in target['spans']]
+                if 'epoch_number' in target:
+                    target['epoch_number'] = set(target['epoch_number'])
                 target = Target(**target)
                 target_list.append(target)
         return TargetCollection(target_list)
@@ -760,6 +762,8 @@ class TargetCollection(MutableMapping):
                         json_file.write(json_encoded_data)
                 else:
                     for index, target_data in enumerate(data):
+                        if 'epoch_number' in target_data:
+                            target_data['epoch_number'] = list(target_data['epoch_number'])
                         json_encoded_data = json.dumps(target_data)
                         if index != 0:
                             json_encoded_data = f'\n{json_encoded_data}'
