@@ -314,7 +314,10 @@ class TargetCollection(MutableMapping):
     1. target_targets -- Returns a dictionary of targets as keys and values 
        are a list of realted targets.
     2. split_dataset -- Returns the given dataset into two, the train and test 
-                        based on the test_split fraction given.
+       based on the test_split fraction given.
+    3. load_from_json -- Returns a TargetCollection given that the json file 
+       has a valid Target dictionary on each line of the json file. The 
+       json file can be created from `to_json_file` method.
 
     Attributes:
     1. grouped_sentences -- A dictionary of sentence_id as keys and a list of 
@@ -634,6 +637,27 @@ class TargetCollection(MutableMapping):
             if length_condition(target_text):
                 all_relevent_targets.append(target)
         return TargetCollection(all_relevent_targets)
+
+    @staticmethod
+    def load_from_json(json_path: Path) -> 'TargetCollection':
+        '''
+        Returns a TargetCollection given that the json file has a valid Target 
+        dictionary on each line of the json file. The json file can be created 
+        from `to_json_file` method.
+
+        :param json_path: Path to the json file that has a valid Target that 
+                          can be loaded as a json sequence on each new line.
+        :returns: A TargetCollection of all targets that we stored in the 
+                  json file.
+        '''
+        target_list = []
+        with json_path.open('r') as json_file:
+            for line in json_file:
+                target = json.loads(line)
+                target['spans'] = [tuple(span) for span in target['spans']]
+                target = Target(**target)
+                target_list.append(target)
+        return TargetCollection(target_list)
 
     @staticmethod
     def split_dataset(data: 'TargetCollection', test_split: float, 
