@@ -52,7 +52,7 @@ class Target(MutableMapping):
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
                  sentence_id=None, category=None, augmented=None, 
                  transfer_data=None, original_target_id=None, 
-                 epoch_number = -1):
+                 epoch_number = set([-1])):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -82,10 +82,12 @@ class Target(MutableMapping):
                                    will inform what the original target 
                                    was used to create this augmented target 
                                    data. 
-        :param epoch_number: The epoch which this target should be sampled from.
-                             This is only applicable when using this with a 
-                             custom sampler, it allows you to add when you 
-                             may want this target to be sampled.
+        :param epoch_number: The epochs which this target should be sampled
+                             from. This is only applicable when using this with 
+                             a custom sampler, it allows you to add when you 
+                             may want this target to be sampled. It is a 
+                             Set of integers as it will allow you to sample the 
+                             target more than once.
         :type target: String
         :type sentiment: String or Int (Based on annotation schema)
         :type text: String
@@ -97,7 +99,7 @@ class Target(MutableMapping):
         :type augmented: bool. Default None (Optional)
         :type transfer_data: bool. Default None (Optional)
         :type original_target_id: String
-        :type epoch_number: int
+        :type epoch_number: Set of Integers
         :returns: Nothing. Constructor.
         :rtype: None
         '''
