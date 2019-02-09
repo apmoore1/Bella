@@ -11,10 +11,15 @@ Functions:
    `CoreNLP <https://nlp.stanford.edu/software/tokenizer.html>`_
 4. :py:func:`bella.tokenisers.moses` -- Tokeniser used in the
    `moses toolkit <https://github.com/moses-smt>`_
+5. :py:func:`bella.tokenisers.spacy_tokeniser` -- 
+   `SpaCy tokeniser <https://spacy.io/>`_
 '''
-from typing import List
+from typing import List, Dict
 
 import twokenize
+import spacy
+from spacy.cli.download import download as spacy_download
+from spacy.language import Language as SpacyModelType
 
 from bella import stanford_tools
 from bella.moses_tools import MosesTokenizer
@@ -83,3 +88,48 @@ def moses(text: str, aggressive_dash_splits: bool = False,
                               aggressive_dash_splits=aggressive_dash_splits,
                               escape=escape)
     raise ValueError(f'The paramter must be of type str not {type(text)}')
+
+LOADED_SPACY_MODELS: Dict[str, SpacyModelType] = {}
+
+def _get_spacy_model(language: str) -> SpacyModelType:
+    """
+    To avoid laoding lots of spacy models the model specific to a language 
+    is loaded and saved within a Global dictionary.
+
+    This has been mainly taken from the `AllenNLP package <https://github.
+    com/allenai/allennlp/blob/master/allennlp/common/util.py>`_
+
+    :param language: Language of the SpaCy model to load.
+    :returns: The relevant SpaCy model.
+    """
+    if language not in LOADED_SPACY_MODELS:
+        disable = ['vectors', 'textcat', 'tagger', 'parser', 'ner']
+        try:
+            spacy_model = spacy.load(language, disable=disable)
+        except OSError:
+            print(f"Spacy models '{language}' not found.  Downloading and installing.")
+            spacy_download(language)
+            spacy_model = spacy.load(language, disable=disable)
+        LOADED_SPACY_MODELS[language] = spacy_model
+    return LOADED_SPACY_MODELS[language]
+
+def spacy_tokeniser(text: str) -> List[str]:
+    '''
+    `SpaCy tokeniser <https://spacy.io/>`_
+
+    Assumes the language to be English.
+
+    :param text: A string to be tokenised.
+    :returns: A list of tokens where each token is a String.
+    '''
+    if not isinstance(text, str):
+        raise ValueError('The parameter passed has to be of type' 
+                         f'String not {type(text)}')
+    spacy_model = _get_spacy_model('en')
+
+    spacy_document = spacy_model(text)
+    tokens = []
+    for token in spacy_document:
+        if not token.is_space:
+            tokens.append(token.text)
+    return tokens
