@@ -52,7 +52,7 @@ class Target(MutableMapping):
     def __init__(self, spans, target_id, target, text, sentiment, predicted=None,
                  sentence_id=None, category=None, augmented=None, 
                  transfer_data=None, original_target_id=None, 
-                 epoch_number = set([-1])):
+                 original_sentence_id=None, epoch_number = set([-1])):
         '''
         :param target: Target that the sentiment is about. e.g. Iphone
         :param sentiment: sentiment of the target.
@@ -82,6 +82,10 @@ class Target(MutableMapping):
                                    will inform what the original target 
                                    was used to create this augmented target 
                                    data. 
+        :param original_sentence_id: If the data has been augmented in such 
+                                     a way that the sentence text has been 
+                                     changed then this will store the sentence 
+                                     ID that relates to the original text.
         :param epoch_number: The epochs which this target should be sampled
                              from. This is only applicable when using this with 
                              a custom sampler, it allows you to add when you 
@@ -99,6 +103,7 @@ class Target(MutableMapping):
         :type augmented: bool. Default None (Optional)
         :type transfer_data: bool. Default None (Optional)
         :type original_target_id: String
+        :type original_sentence_id: String
         :type epoch_number: Set of Integers
         :returns: Nothing. Constructor.
         :rtype: None
@@ -160,6 +165,11 @@ class Target(MutableMapping):
             
         if original_target_id is not None:
             temp_dict['original_target_id'] = original_target_id
+        if original_sentence_id is not None:
+            if augmented != True:
+                raise ValueError('Cannot add original sentence id to a Target'
+                                 ' that has not been augmented.')
+            temp_dict['original_sentence_id'] = original_sentence_id
         if transfer_data is not None:
             temp_dict['transfer_data'] = transfer_data
 
