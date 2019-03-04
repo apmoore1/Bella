@@ -1,7 +1,20 @@
 # Bella
 [![Build Status](https://travis-ci.org/apmoore1/Bella.svg?branch=master)](https://travis-ci.org/apmoore1/Bella)
 
-Target Dependent Sentiment Analysis (TDSA) framework.
+Target Dependent Sentiment Analysis (TDSA) framework. The paper associated with this repository is the [following](https://aclanthology.info/papers/C18-1097/c18-1097):
+```
+@InProceedings{C18-1097,
+  author = 	"Moore, Andrew
+		and Rayson, Paul",
+  title = 	"Bringing replication and reproduction together with generalisability in NLP: Three reproduction studies for Target Dependent Sentiment Analysis",
+  booktitle = 	"Proceedings of the 27th International Conference on Computational Linguistics",
+  year = 	"2018",
+  publisher = 	"Association for Computational Linguistics",
+  pages = 	"1132--1144",
+  location = 	"Santa Fe, New Mexico, USA",
+  url = 	"http://aclweb.org/anthology/C18-1097"
+}
+```
 
 
 ## Requirements and Installation
