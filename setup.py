@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 
 setup(name='bella_tdsa',
-      version='0.3.28',
+      version='0.3.29',
       description='Target Dependent Sentiment Analysis (TDSA) framework.',
       long_description=long_description,
       long_description_content_type="text/markdown",
@@ -31,7 +31,7 @@ setup(name='bella_tdsa',
           'networkx>=2.0',
           'tweebo-parser-python-api>=1.0.4',
           'seaborn>=0.8.1',
-          'spacy>=2.0,<2.1',
+          'spacy>=2.0.18,<2.2',
           'graphviz>=0.8.4',
           'pydot>=1.2.4'
       ],

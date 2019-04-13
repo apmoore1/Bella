@@ -19,6 +19,8 @@ from typing import List, Dict
 import twokenize
 import spacy
 from spacy.cli.download import download as spacy_download
+from spacy.cli import link
+from spacy.util import get_package_path
 from spacy.language import Language as SpacyModelType
 
 from bella import stanford_tools
@@ -95,10 +97,8 @@ def _get_spacy_model(language: str) -> SpacyModelType:
     """
     To avoid laoding lots of spacy models the model specific to a language 
     is loaded and saved within a Global dictionary.
-
     This has been mainly taken from the `AllenNLP package <https://github.
     com/allenai/allennlp/blob/master/allennlp/common/util.py>`_
-
     :param language: Language of the SpaCy model to load.
     :returns: The relevant SpaCy model.
     """
@@ -106,10 +106,12 @@ def _get_spacy_model(language: str) -> SpacyModelType:
         disable = ['vectors', 'textcat', 'tagger', 'parser', 'ner']
         try:
             spacy_model = spacy.load(language, disable=disable)
-        except OSError:
+        except:
             print(f"Spacy models '{language}' not found.  Downloading and installing.")
             spacy_download(language)
+            package_path = get_package_path(language)
             spacy_model = spacy.load(language, disable=disable)
+            link(language, language, model_path=package_path)
         LOADED_SPACY_MODELS[language] = spacy_model
     return LOADED_SPACY_MODELS[language]
 
