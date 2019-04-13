@@ -1,10 +1,10 @@
 '''
 Module that contains the various data types:
 
-1. Target -- Mutable data store for a single Target value i.e. one training \
-example.
-2. TargetCollection -- Mutable data store for Target data types.  i.e. A \
-data store that contains multiple Target instances.
+1. Target -- Mutable data store for a single Target value i.e. one training 
+   example.
+2. TargetCollection -- Mutable data store for Target data types.  i.e. A 
+   data store that contains multiple Target instances.
 '''
 
 from collections.abc import MutableMapping

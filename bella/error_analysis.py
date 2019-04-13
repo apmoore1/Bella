@@ -64,8 +64,8 @@ def same_one_sentiment(test_dataset: TargetCollection,
                        lower: bool = True) -> List[str]:
     '''
     Given a test and train dataset will return all of the test dataset sample 
-    ids that contain targets that have only occured once in the train and test 
-    sets with the same sentiment.
+    ids that contain targets that have the same one sentiment label associated 
+    to them in the train and test sets.
 
     :param test_dataset: Test TargetCollection
     :param train_dataset: Train TargetCollection
