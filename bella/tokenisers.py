@@ -18,9 +18,6 @@ from typing import List, Dict
 
 import twokenize
 import spacy
-from spacy.cli.download import download as spacy_download
-from spacy.cli import link
-from spacy.util import get_package_path
 from spacy.language import Language as SpacyModelType
 
 from bella import stanford_tools
@@ -103,16 +100,23 @@ def _get_spacy_model(language: str) -> SpacyModelType:
     :returns: The relevant SpaCy model.
     """
     if language not in LOADED_SPACY_MODELS:
-        disable = ['vectors', 'textcat', 'tagger', 'parser', 'ner']
-        try:
-            spacy_model = spacy.load(language, disable=disable)
-        except:
-            print(f"Spacy models '{language}' not found.  Downloading and installing.")
-            spacy_download(language)
-            package_path = get_package_path(language)
-            spacy_model = spacy.load(language, disable=disable)
-            link(language, language, model_path=package_path)
-        LOADED_SPACY_MODELS[language] = spacy_model
+        LOADED_SPACY_MODELS[language] = spacy.blank(language)
+        # If requiring statsitical models in the future the code below will be 
+        # required but as we are only requring a tokeniser the above will do
+
+        #from spacy.cli.download import download as spacy_download
+        #from spacy.cli import link
+        #from spacy.util import get_package_path
+        #disable = ['vectors', 'textcat', 'tagger', 'parser', 'ner']
+        #try:
+        #    spacy_model = spacy.load(language, disable=disable)
+        #except:
+        #    print(f"Spacy models '{language}' not found.  Downloading and installing.")
+        #    spacy_download(language)
+        #    package_path = get_package_path(language)
+        #    spacy_model = spacy.load(language, disable=disable)
+        #    link(language, language, model_path=package_path)
+        #LOADED_SPACY_MODELS[language] = spacy_model
     return LOADED_SPACY_MODELS[language]
 
 def spacy_tokeniser(text: str) -> List[str]:
