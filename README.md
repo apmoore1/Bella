@@ -1,5 +1,5 @@
 # Bella
-[![Build Status](https://travis-ci.org/apmoore1/Bella.svg?branch=master)](https://travis-ci.org/apmoore1/Bella)
+[![Build Status](https://travis-ci.org/apmoore1/Bella.svg?branch=master)](https://travis-ci.org/apmoore1/Bella) ![PyPI - Downloads](https://img.shields.io/pypi/dm/bella-tdsa.svg)
 
 Target Dependent Sentiment Analysis (TDSA) framework. The paper associated with this repository is the [following](https://aclanthology.info/papers/C18-1097/c18-1097):
 ```
