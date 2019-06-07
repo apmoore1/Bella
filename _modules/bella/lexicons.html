@@ -1,0 +1,534 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.lexicons &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.lexicons</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.lexicons</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">This module contains the Lexicon classes where each class is a sub class of</span>
+<span class="sd">the :py:class:`bella.lexicons.Lexicon` class.</span>
+
+<span class="sd">The following classes are in the module:</span>
+
+<span class="sd">1. Lexicon -- Base class</span>
+<span class="sd">2. HuLiu -- `Hu and Liu &lt;https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf&gt;`_</span>
+<span class="sd">lexicon.</span>
+<span class="sd">3. Mpqa -- `Wilson, Wiebe and Hoffman \</span>
+<span class="sd">&lt;https://aclanthology.coli.uni-saarland.de/papers/H05-1044/h05-1044&gt;`_ lexicon.</span>
+<span class="sd">4. NRC -- `Mohammad and Turney \</span>
+<span class="sd">&lt;http://saifmohammad.com/WebDocs/Mohammad-Turney-NAACL10-EmotionWorkshop.pdf&gt;`_</span>
+<span class="sd">lexicon.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="Lexicon"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Lexicon">[docs]</a><span class="k">class</span> <span class="nc">Lexicon</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Base class for all lexicons.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. self.lexicon -- List of tuples where each tuple contains (word, category) \</span>
+<span class="sd">    e.g. [(&#39;great&#39;, &#39;positive&#39;)]</span>
+<span class="sd">    3. self.words -- Set of Strings which are the words in the self.lexicon list.</span>
+<span class="sd">    2. self.name -- String name of the class.</span>
+
+<span class="sd">    Methods to be overidden:</span>
+
+<span class="sd">    1. self.get_lexicon -- Must return List of tuples where each tuple contains \</span>
+<span class="sd">    (word, category). This is not used to create self.lexicon if the lexicon \</span>
+<span class="sd">    is defined in the constructor.</span>
+
+<span class="sd">    Static Methods:</span>
+
+<span class="sd">    1. combine_lexicons -- Combines two Lexicon classes together and removes \</span>
+<span class="sd">    (word, category) tuples from self.lexicon that have different category values \</span>
+<span class="sd">    for the same word.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="Lexicon.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Lexicon.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subset_cats</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">subset_cats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subset_cats</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;subset_cats parameter has to be of type set &#39;</span>\
+                                <span class="s1">&#39;and not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">subset_cats</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">lower</span> <span class="o">!=</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lower</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;lower parameter has to be of type bool not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lower</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span> <span class="o">=</span> <span class="n">lexicon</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lexicon</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;self.lexicon has to be of type list not </span><span class="si">{}</span><span class="s1"> This could&#39;</span>\
+                            <span class="s1">&#39; be due to the `get_lexicon` method&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;self.lexicon should contain tuples not </span><span class="si">{}</span><span class="s1"> This could&#39;</span>\
+                            <span class="s1">&#39; be due to the `get_lexicon` method&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_lexicon</span><span class="p">(</span><span class="n">subset_cats</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_duplicates</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">word</span> <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span></div>
+
+<div class="viewcode-block" id="Lexicon.remove_duplicates"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Lexicon.remove_duplicates">[docs]</a>    <span class="k">def</span> <span class="nf">remove_duplicates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">duplicate_lexicon</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span><span class="p">:</span>
+            <span class="n">duplicate_lexicon</span><span class="p">[</span><span class="n">word</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cat</span><span class="p">)</span>
+        <span class="n">lexicon</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat_list</span> <span class="ow">in</span> <span class="n">duplicate_lexicon</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cat_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">lexicon</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">cat_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span> <span class="o">=</span> <span class="n">lexicon</span></div>
+
+<div class="viewcode-block" id="Lexicon.get_lexicon"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Lexicon.get_lexicon">[docs]</a>    <span class="k">def</span> <span class="nf">get_lexicon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method to be overidden. It should be the method that all sub classes</span>
+<span class="sd">        use to parse in their lexicon into a list of tuples format where each</span>
+<span class="sd">        tuple contain (word, category).</span>
+
+<span class="sd">        :returns: A list of tuples containing (word, category) e.g. \</span>
+<span class="sd">        (&#39;great&#39;, &#39;positive&#39;)</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)]</span></div>
+
+    <span class="k">def</span> <span class="nf">_process_lexicon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subset_cats</span><span class="p">,</span> <span class="n">lower</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method not to be overidden. It process the lexicon based on the parameters.</span>
+<span class="sd">        Returns a list of tuples where a tuple contains (word, category).</span>
+
+<span class="sd">        :param subset_cats: Categories of words that you want to return e.g. \</span>
+<span class="sd">        `positive` for `positive` words only. If None then no words are subsetted.</span>
+<span class="sd">        :param lower: Whether to lower case the words in the lexicon.</span>
+<span class="sd">        :type subset_values: set</span>
+<span class="sd">        :type lower: bool</span>
+<span class="sd">        :returns: Returns the lexicon as a list of tuples (word, category).</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">temp_lexicon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lexicon</span>
+        <span class="n">lexicon</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="n">temp_lexicon</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">subset_cats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">subset_cats</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+                <span class="n">word</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">lexicon</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">cat</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">lexicon</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Lexicon.combine_lexicons"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Lexicon.combine_lexicons">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">combine_lexicons</span><span class="p">(</span><span class="n">lexicon1</span><span class="p">,</span> <span class="n">lexicon2</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Combines two lexicons and removes words that have different categories</span>
+<span class="sd">        for the words in the lexicons. This can be used to combine sentiment</span>
+<span class="sd">        lexicons and remove words that have opposite sentiments. The self.name</span>
+<span class="sd">        of the Lexicon is the combination the names of lexicon1 and lexicon2.</span>
+
+<span class="sd">        NOTE: Requires that both lexicons have the same categories.</span>
+
+<span class="sd">        :param lexicon1: An instance of :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        :param lexicon2: An instance of :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        :type lexicon1: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        :type lexicon2: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        :returns: Combines the two lexicons and removes words that have opposite \</span>
+<span class="sd">        sentiment and returns it as a :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        :rtype: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">def</span> <span class="nf">compare_lexicons</span><span class="p">(</span><span class="n">lex1</span><span class="p">,</span> <span class="n">lex2</span><span class="p">,</span> <span class="n">lex_name</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Given the two lexicons will combine the lexicons together and remove</span>
+<span class="sd">            words that do not have the same category.</span>
+
+<span class="sd">            :param lex1: An instance of :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            :param lex2: An instance of :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            :param lex_name: The name to give the returned Lexicon</span>
+<span class="sd">            :type lex1: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            :type lex2: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            :type lex_name: String</span>
+<span class="sd">            :returns: Combines the two lexicons and removes words that have opposite \</span>
+<span class="sd">            sentiment and returns it as a :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            :rtype: :py:class:`bella.lexicons.Lexicon`</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+
+            <span class="n">combined_words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">lex1</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">lex2</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="n">combined_lexicons</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">combined_words</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">lex1</span> <span class="ow">and</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">lex2</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">lex1</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lex2</span><span class="p">[</span><span class="n">word</span><span class="p">]:</span>
+                        <span class="k">continue</span>
+                    <span class="n">combined_lexicons</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">lex1</span><span class="p">[</span><span class="n">word</span><span class="p">]))</span>
+                <span class="k">elif</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">lex1</span><span class="p">:</span>
+                    <span class="n">combined_lexicons</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">lex1</span><span class="p">[</span><span class="n">word</span><span class="p">]))</span>
+                <span class="k">elif</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">lex2</span><span class="p">:</span>
+                    <span class="n">combined_lexicons</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">lex2</span><span class="p">[</span><span class="n">word</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;The word </span><span class="si">{}</span><span class="s1"> has to be in one of the lexicons&#39;</span>\
+                                   <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">word</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">Lexicon</span><span class="p">(</span><span class="n">lexicon</span><span class="o">=</span><span class="n">combined_lexicons</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">lex_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lexicon1</span><span class="p">,</span> <span class="n">Lexicon</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lexicon2</span><span class="p">,</span> <span class="n">Lexicon</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Both parameters require to be type Lexicon not </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lexicon1</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">lexicon2</span><span class="p">)))</span>
+        <span class="n">combined_lex_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lexicon1</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">lexicon2</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">lexicon1</span> <span class="o">=</span> <span class="n">lexicon1</span><span class="o">.</span><span class="n">lexicon</span>
+        <span class="n">lexicon2</span> <span class="o">=</span> <span class="n">lexicon2</span><span class="o">.</span><span class="n">lexicon</span>
+
+        <span class="n">word_cat1</span> <span class="o">=</span> <span class="p">{</span><span class="n">word</span> <span class="p">:</span> <span class="n">cat</span> <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="n">lexicon1</span><span class="p">}</span>
+        <span class="n">word_cat2</span> <span class="o">=</span> <span class="p">{</span><span class="n">word</span> <span class="p">:</span> <span class="n">cat</span> <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="n">lexicon2</span><span class="p">}</span>
+
+        <span class="n">cat1</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">word_cat1</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">cat2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">word_cat2</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">cat1</span> <span class="o">!=</span> <span class="n">cat2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;These two lexicons cannot be combined as they have &#39;</span>\
+                             <span class="s1">&#39;different and non-comparable categories: &#39;</span>\
+                             <span class="s1">&#39;categories1: </span><span class="si">{}</span><span class="s1"> categories2: </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cat1</span><span class="p">,</span> <span class="n">cat2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">compare_lexicons</span><span class="p">(</span><span class="n">word_cat1</span><span class="p">,</span> <span class="n">word_cat2</span><span class="p">,</span> <span class="n">combined_lex_name</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="Mpqa"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Mpqa">[docs]</a><span class="k">class</span> <span class="nc">Mpqa</span><span class="p">(</span><span class="n">Lexicon</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    MPQA lexicon `Wilson, Wiebe and Hoffman \</span>
+<span class="sd">    &lt;https://aclanthology.coli.uni-saarland.de/papers/H05-1044/h05-1044&gt;`_.</span>
+<span class="sd">    Sub class of :py:class:`bella.lexicons.Lexicon`</span>
+
+<span class="sd">    Category lables = 1. positive, 2. negative, 3. both, 4. neutral</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="Mpqa.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Mpqa.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mpqa_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">subset_cats</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param mpqa_fp: File path to the mpqa lexicon.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">mpqa_fp</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subset_cats</span><span class="o">=</span><span class="n">subset_cats</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="n">lexicon</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mpqa.get_lexicon"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.Mpqa.get_lexicon">[docs]</a>    <span class="k">def</span> <span class="nf">get_lexicon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">word_cats</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mpqa_file</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">mpqa_file</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">key_values</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                            <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+                            <span class="n">key_values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                    <span class="n">word</span> <span class="o">=</span> <span class="n">key_values</span><span class="p">[</span><span class="s1">&#39;word1&#39;</span><span class="p">]</span>
+                    <span class="n">cat</span> <span class="o">=</span> <span class="n">key_values</span><span class="p">[</span><span class="s1">&#39;priorpolarity&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">cat</span> <span class="o">==</span> <span class="s1">&#39;weakneg&#39;</span><span class="p">:</span>
+                        <span class="n">cat</span> <span class="o">=</span> <span class="n">key_values</span><span class="p">[</span><span class="s1">&#39;polarity&#39;</span><span class="p">]</span>
+                    <span class="n">word_cats</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">cat</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">word_cats</span></div></div>
+
+
+<div class="viewcode-block" id="HuLiu"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.HuLiu">[docs]</a><span class="k">class</span> <span class="nc">HuLiu</span><span class="p">(</span><span class="n">Lexicon</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    `Hu and Liu</span>
+<span class="sd">    &lt;https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf&gt;`_</span>
+<span class="sd">    Lexicon.</span>
+<span class="sd">    Sub class of :py:class:`bella.lexicons.Lexicon`</span>
+
+<span class="sd">    Category lables = 1. positive, 2. negative</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="HuLiu.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.HuLiu.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">huliu_folder_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">subset_cats</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param nrc_fp: File path to the Hu Liu sentiment lexicon folder that \</span>
+<span class="sd">        contains both the positive and negative words txt files.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder_path</span> <span class="o">=</span> <span class="n">huliu_folder_path</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subset_cats</span><span class="o">=</span><span class="n">subset_cats</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="n">lexicon</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HuLiu.get_lexicon"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.HuLiu.get_lexicon">[docs]</a>    <span class="k">def</span> <span class="nf">get_lexicon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Overrides :py:func@`bella.lexicons.Lexicon.get_lexicon`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">cats</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;positive&#39;</span><span class="p">,</span> <span class="s1">&#39;negative&#39;</span><span class="p">]</span>
+        <span class="n">word_cat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">cat</span> <span class="ow">in</span> <span class="n">cats</span><span class="p">:</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-words.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cat</span><span class="p">))</span>
+            <span class="k">with</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;cp1252&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">senti_file</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">senti_file</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;^;&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="ow">or</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^\W+&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="n">word_cat</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">cat</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">word_cat</span></div></div>
+
+
+<div class="viewcode-block" id="NRC"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.NRC">[docs]</a><span class="k">class</span> <span class="nc">NRC</span><span class="p">(</span><span class="n">Lexicon</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    NRC emotion `Mohammad and Turney \</span>
+<span class="sd">    &lt;http://saifmohammad.com/WebDocs/Mohammad-Turney-NAACL10-EmotionWorkshop.pdf&gt;`_\</span>
+<span class="sd">    Lexicon</span>
+<span class="sd">    Sub class of :py:class:`bella.lexicons.Lexicon`</span>
+
+<span class="sd">    Category lables = 1. anger, 2. fear, 3. anticipation, 4. trust, 5. surprise,</span>
+<span class="sd">    6. sadness, 7. joy, 8. disgust, 9. positive, and 10. negative.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="NRC.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.NRC.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nrc_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">subset_cats</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param nrc_fp: File path to the NRC lexicon.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">nrc_fp</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subset_cats</span><span class="o">=</span><span class="n">subset_cats</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">lexicon</span><span class="o">=</span><span class="n">lexicon</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NRC.get_lexicon"><a class="viewcode-back" href="../../source/bella.html#bella.lexicons.NRC.get_lexicon">[docs]</a>    <span class="k">def</span> <span class="nf">get_lexicon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Overrides :py:func:`bella.lexicons.Lexicon.get_lexicon`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">word_cat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">emotion_file</span><span class="p">:</span>
+            <span class="n">tsv_reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">emotion_file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">tsv_reader</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+                    <span class="n">word</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">cat</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">association</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">association</span><span class="p">:</span>
+                        <span class="n">word_cat</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">cat</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">word_cat</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

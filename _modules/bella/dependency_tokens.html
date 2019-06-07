@@ -1,0 +1,482 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.dependency_tokens &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.dependency_tokens</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.dependency_tokens</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Contains the following class:</span>
+
+<span class="sd">1. DependencyToken</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+
+<div class="viewcode-block" id="DependencyToken"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_tokens.DependencyToken">[docs]</a><span class="k">class</span> <span class="nc">DependencyToken</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Objects that contain a token and its dependency relations via it&#39;s attributes.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. self.token -- The token stored e.g. `hello`</span>
+<span class="sd">    2. self.relations -- The dict that contains words associated to the token \</span>
+<span class="sd">    at different dependency relation levels e.g. relation of 1 direct dependency \</span>
+<span class="sd">    of the token, relation 2 dependency relations of the relation 1 words.</span>
+<span class="sd">    3. self.connected_words -- A list of tuples (word, relation) where all words \</span>
+<span class="sd">    are within the same dependency tree and are listed in the order they appear \</span>
+<span class="sd">    in the text that was parsed. relation can take two values `CURRENT` current \</span>
+<span class="sd">    token and `CONNECTED` any other token.</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. get_n_relations -- The lower and upper bound of the range `n` for the \</span>
+<span class="sd">    words retrived at different relation levels associated to the `n` range.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="DependencyToken.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_tokens.DependencyToken.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">relations</span><span class="p">,</span> <span class="n">connected_words</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param token: The string that the dependency relations are associated to.</span>
+<span class="sd">        :param relations: dict of dependency relations</span>
+<span class="sd">        :param connected_words: list of current token and all of its syntactically\</span>
+<span class="sd">         connected words where the list is made up of tuples where the first value \</span>
+<span class="sd">         is the String of the connected word and the second describes its realtion \</span>
+<span class="sd">         either `CONNECTED` for connected words or `CURRENT` stating it is the \</span>
+<span class="sd">         current token. All words are ordered by their occurence in the text. \</span>
+<span class="sd">         The connected words are all words in the same dependecy tree.</span>
+<span class="sd">        :type token: String</span>
+<span class="sd">        :type relations: dict</span>
+<span class="sd">        :type connected_words: list</span>
+<span class="sd">        :returns: Constructor</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;token parameter has to be of type str not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">token</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relations</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;relations parameter has to be of type dict not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">relations</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connected_words</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;connected words parameter has to be of type list not&#39;</span>\
+                            <span class="s1">&#39; </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">connected_words</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">connected_words</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;connected words has to always contain one word which&#39;</span>\
+                             <span class="s1">&#39; is the current word&#39;</span><span class="p">)</span>
+
+        <span class="n">current_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">valid_relations</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;CONNECTED&#39;</span><span class="p">,</span> <span class="s1">&#39;CURRENT&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">connected_word</span> <span class="ow">in</span> <span class="n">connected_words</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connected_word</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;connected_words parameter has to be a list of &#39;</span>\
+                                <span class="s1">&#39;tuples not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">connected_word</span><span class="p">)))</span>
+            <span class="n">word</span><span class="p">,</span> <span class="n">relation</span> <span class="o">=</span> <span class="n">connected_word</span>
+            <span class="k">if</span> <span class="n">relation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_relations</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;connected relations can only be </span><span class="si">{}</span><span class="s1"> and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">valid_relations</span><span class="p">,</span> <span class="n">relation</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The word in the connected_word has to be of &#39;</span>\
+                                <span class="s1">&#39;type String and not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">word</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">relation</span> <span class="o">==</span> <span class="s1">&#39;CURRENT&#39;</span><span class="p">:</span>
+                <span class="n">current_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">word</span> <span class="o">!=</span> <span class="n">token</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The token that is the CURRENT token </span><span class="si">{}</span><span class="s1"> in &#39;</span>\
+                                     <span class="s1">&#39;connected_words should also be equal to &#39;</span>\
+                                     <span class="s1">&#39;the token value </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">token</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">current_count</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;There has to be ONLY one CURRENT relation in &#39;</span>\
+                             <span class="s1">&#39;the connected words </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">connected_words</span><span class="p">))</span>
+
+        <span class="n">all_depths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">depth_index</span><span class="p">,</span> <span class="n">related_list</span> <span class="ow">in</span> <span class="n">relations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">depth_index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The keys in the relations dict have to be of &#39;</span>\
+                                <span class="s1">&#39;type int not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">depth_index</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">related_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The related words in the relations dict have to &#39;</span>\
+                                <span class="s1">&#39;be of type list and not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">related_list</span><span class="p">)))</span>
+            <span class="n">all_depths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">depth_index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">relations</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="n">actual_depth_range</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_depths</span><span class="p">)</span>
+            <span class="n">start_depth</span> <span class="o">=</span> <span class="n">actual_depth_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">start_depth</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The depth of the relations should always start at &#39;</span>\
+                                 <span class="s1">&#39;1 and not less or greater than your start depth </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start_depth</span><span class="p">))</span>
+            <span class="n">max_depth</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">all_depths</span><span class="p">)</span>
+            <span class="n">valid_depth_range</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">valid_depth_range</span> <span class="o">!=</span> <span class="n">actual_depth_range</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The depths (keys) in the relations dict has to be &#39;</span>\
+                                 <span class="s1">&#39;incremental e.g. 1,2,3,4 and not 1,3,4 the depths &#39;</span>\
+                                 <span class="s1">&#39;in your relations </span><span class="si">{}</span><span class="s1"> valid depths </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">actual_depth_range</span><span class="p">,</span> <span class="n">valid_depth_range</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relations</span> <span class="o">=</span> <span class="n">relations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected_words</span> <span class="o">=</span> <span class="n">connected_words</span></div>
+
+<div class="viewcode-block" id="DependencyToken.get_n_relations"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_tokens.DependencyToken.get_n_relations">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_relations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relation_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a tuple to denote the range of the depth of dependency relations to</span>
+<span class="sd">        return. Returns a list of words.</span>
+
+<span class="sd">        If the relation range is greater than the depth range then it will return</span>
+<span class="sd">        all words up to the last depth and ignore the depths that do not exisit.</span>
+
+<span class="sd">        Negative ranges can be used in a similar manner to how list indexs work.</span>
+
+<span class="sd">        :param relation_range: Tuple to denote the range of the depth of \</span>
+<span class="sd">        dependency relations to return.</span>
+<span class="sd">        :type relation_range: tuple</span>
+<span class="sd">        :returns: A list of words that are associated to the token at the depth \</span>
+<span class="sd">        range given.</span>
+<span class="sd">        :rtype: list</span>
+
+<span class="sd">        :Example:</span>
+<span class="sd">        &gt;&gt;&gt; rel_token = DependencyToken(&#39;example&#39;, {1 : [&#39;hello&#39;], 2 : [&#39;anything&#39;],</span>
+<span class="sd">                                        3 : [&#39;lastly&#39;]})</span>
+<span class="sd">        &gt;&gt;&gt; relations = rel_token.get_n_relations((2,3))</span>
+<span class="sd">        &gt;&gt;&gt; relations == [&#39;anything&#39;, &#39;lastly&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; relations = rel_token.get_n_relations((-2,-1))</span>
+<span class="sd">        &gt;&gt;&gt; relations == [&#39;anything&#39;, &#39;lastly&#39;]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">def</span> <span class="nf">negative_range</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="n">range_2</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Given two integers where one or both are negative returns the relations</span>
+<span class="sd">            at those range depths.</span>
+
+<span class="sd">            :param range_1: start of the range</span>
+<span class="sd">            :param range_2: end of the range</span>
+<span class="sd">            :type range_1: int</span>
+<span class="sd">            :type range_2: int</span>
+<span class="sd">            :returns: Given two integers where one or both are negative returns \</span>
+<span class="sd">            the relations at those range depths.</span>
+<span class="sd">            :rtype: list</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+
+            <span class="k">def</span> <span class="nf">flat_list</span><span class="p">(</span><span class="n">word_lists</span><span class="p">):</span>
+                <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                :param word_lists: A list which contains lists of Strings</span>
+<span class="sd">                :type word_lists: list</span>
+<span class="sd">                :returns: Converts a nested list of lists into a flat list.</span>
+<span class="sd">                :rtype: list</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+
+                <span class="k">return</span> <span class="p">[</span><span class="n">word</span> <span class="k">for</span> <span class="n">words</span> <span class="ow">in</span> <span class="n">word_lists</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">words</span><span class="p">]</span>
+
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">all_words</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">related_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="n">related_words</span> <span class="o">==</span> <span class="p">[]:</span>
+                    <span class="k">break</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">all_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">related_words</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">range_2</span> <span class="o">==</span> <span class="n">range_1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">range_2</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">flat_list</span><span class="p">(</span><span class="n">all_words</span><span class="p">[</span><span class="n">range_1</span> <span class="p">:])</span>
+                <span class="k">return</span> <span class="n">flat_list</span><span class="p">(</span><span class="n">all_words</span><span class="p">[</span><span class="n">range_1</span> <span class="p">:</span> <span class="n">range_2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">range_1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">range_1</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">range_2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">range_2</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">range_2</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">flat_list</span><span class="p">(</span><span class="n">all_words</span><span class="p">[</span><span class="n">range_1</span> <span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">range_2</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">flat_list</span><span class="p">(</span><span class="n">all_words</span><span class="p">[</span><span class="n">range_1</span> <span class="p">:</span> <span class="n">range_2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">flat_list</span><span class="p">(</span><span class="n">all_words</span><span class="p">[</span><span class="n">range_1</span> <span class="p">:</span> <span class="n">range_2</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relation_range</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The relation_range parameter has to be of type tuple&#39;</span>\
+                            <span class="s1">&#39; and not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">relation_range</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">relation_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The relation_range tuple has to be of length 2 &#39;</span>\
+                             <span class="s1">&#39;and not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">relation_range</span><span class="p">)))</span>
+        <span class="n">range_1</span> <span class="o">=</span> <span class="n">relation_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">range_2</span> <span class="o">=</span> <span class="n">relation_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">range_2</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The relation_range tuple can only contain value of &#39;</span>\
+                             <span class="s1">&#39;type int values </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">relation_range</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">range_1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">range_2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;relation_range values cannot be zero&#39;</span><span class="p">)</span>
+        <span class="n">all_related_words</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Check if it is negative indexing</span>
+        <span class="k">if</span> <span class="n">range_1</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">range_2</span> <span class="o">&lt;</span> <span class="n">range_1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If the first value in the range is negative it&#39;</span>\
+                                 <span class="s1">&#39; has to be less than the second value in the &#39;</span>\
+                                 <span class="s1">&#39;range 1: </span><span class="si">{}</span><span class="s1"> 2: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="n">range_2</span><span class="p">))</span>
+            <span class="n">all_related_words</span> <span class="o">=</span> <span class="n">negative_range</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="n">range_2</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">range_2</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">all_related_words</span> <span class="o">=</span> <span class="n">negative_range</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="n">range_2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">range_1</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">range_2</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The values in the relation range have to &#39;</span>\
+                                 <span class="s1">&#39;be greater than one&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">range_1</span> <span class="o">&gt;</span> <span class="n">range_2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The second value in relation_range has to &#39;</span>\
+                                 <span class="s1">&#39;be greater than or equall to the first value.&#39;</span>\
+                                 <span class="s1">&#39; Values </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">relation_range</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">range_1</span><span class="p">,</span> <span class="n">range_2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">related_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="n">related_words</span> <span class="o">==</span> <span class="p">[]:</span>
+                    <span class="k">break</span>
+                <span class="n">all_related_words</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">related_words</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">all_related_words</span></div>
+
+<div class="viewcode-block" id="DependencyToken.connected_target_span"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_tokens.DependencyToken.connected_target_span">[docs]</a>    <span class="k">def</span> <span class="nf">connected_target_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalise</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param renormalise: A tuple containing the normalised target and the \</span>
+<span class="sd">        real target word e.g. (Samsung_S5, Samsung S5). If you do not require \</span>
+<span class="sd">        this leave as default parameter None.</span>
+<span class="sd">        :type renormalise: tuple. Default None</span>
+<span class="sd">        :returns: It returns connected words as a String and the span of the current \</span>
+<span class="sd">        token within that String as a tuple of length 2.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">connected_words</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">word_length</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">target_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">word_relation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connected_words</span><span class="p">):</span>
+            <span class="n">word</span><span class="p">,</span> <span class="n">relation</span> <span class="o">=</span> <span class="n">word_relation</span>
+            <span class="k">if</span> <span class="n">renormalise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">normalised_target</span><span class="p">,</span> <span class="n">real_word</span> <span class="o">=</span> <span class="n">renormalise</span>
+                <span class="k">if</span> <span class="n">word</span> <span class="o">==</span> <span class="n">normalised_target</span><span class="p">:</span>
+                    <span class="n">word</span> <span class="o">=</span> <span class="n">real_word</span>
+            <span class="n">connected_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">relation</span> <span class="o">==</span> <span class="s1">&#39;CURRENT&#39;</span><span class="p">:</span>
+                <span class="n">target_index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="n">word_length</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)</span> <span class="o">+</span> <span class="n">word_length</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;target index can never be -1 error in the &#39;</span>\
+                             <span class="s1">&#39;connected_words </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">connected_words</span><span class="p">))</span>
+        <span class="n">connected_text</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">connected_words</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">num_previous_chars</span> <span class="o">=</span> <span class="n">word_length</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">num_previous_chars</span> <span class="o">+=</span> <span class="n">target_index</span>
+        <span class="k">if</span> <span class="n">renormalise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">renormalise</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">target_word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+        <span class="n">target_span</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_previous_chars</span><span class="p">,</span> <span class="n">num_previous_chars</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_word</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">connected_text</span><span class="p">[</span><span class="n">target_span</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">target_span</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">!=</span> <span class="n">target_word</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot get the target word `</span><span class="si">{}</span><span class="s1">` within the connected &#39;</span>\
+                             <span class="s1">&#39;text `</span><span class="si">{}</span><span class="s1">` this could be due to the connected words &#39;</span>\
+                             <span class="s1">&#39;`</span><span class="si">{}</span><span class="s1">` spans: `</span><span class="si">{}</span><span class="s1">`&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_word</span><span class="p">,</span> <span class="n">connected_text</span><span class="p">,</span>
+                                                       <span class="n">connected_words</span><span class="p">,</span> <span class="n">target_span</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">connected_text</span><span class="p">,</span> <span class="n">target_span</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

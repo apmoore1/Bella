@@ -1,0 +1,1325 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.models.target &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.models.target</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.models.target</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module contains all of the classes that represent Machine Learning models</span>
+<span class="sd">that are within `Vo and Zhang 2015 paper \</span>
+<span class="sd">&lt;https://ijcai.org/Proceedings/15/Papers/194.pdf&gt;`_:</span>
+
+<span class="sd">1. :py:class:`bella.models.target.TargetInd` -- Target Indepdent model</span>
+<span class="sd">2. :py:class:`bella.models.target.TargetDepMinus` -- Target Dependent Minus</span>
+<span class="sd">   model</span>
+<span class="sd">3. :py:class:`bella.models.target.TargetDep` -- Target Dependent model</span>
+<span class="sd">4. :py:class:`bella.models.target.TargetDepPlus` -- Target Dependent Plus model</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">sklearn</span>
+<span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="k">import</span> <span class="n">FeatureUnion</span><span class="p">,</span> <span class="n">Pipeline</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="k">import</span> <span class="n">MinMaxScaler</span>
+<span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="k">import</span> <span class="n">LinearSVC</span>
+
+<span class="kn">import</span> <span class="nn">bella</span>
+<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="k">import</span> <span class="n">ark_twokenize</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_max</span><span class="p">,</span> <span class="n">matrix_min</span><span class="p">,</span> <span class="n">matrix_avg</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_median</span><span class="p">,</span> <span class="n">matrix_prod</span><span class="p">,</span> <span class="n">matrix_std</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.context</span> <span class="k">import</span> <span class="n">Context</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.lexicon_filter</span> <span class="k">import</span> <span class="n">LexiconFilter</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.join_context_vectors</span> <span class="k">import</span> <span class="n">JoinContextVectors</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.neural_pooling</span> <span class="k">import</span> <span class="n">NeuralPooling</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.tokeniser</span> <span class="k">import</span> <span class="n">ContextTokeniser</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.word_vector</span> <span class="k">import</span> <span class="n">ContextWordVectors</span>
+<span class="kn">from</span> <span class="nn">bella.models.base</span> <span class="k">import</span> <span class="n">SKLearnModel</span>
+
+
+<div class="viewcode-block" id="TargetInd"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd">[docs]</a><span class="k">class</span> <span class="nc">TargetInd</span><span class="p">(</span><span class="n">SKLearnModel</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. model -- Machine learning model. Expects it to be a</span>
+<span class="sd">       :py:class:`sklearn.pipeline.Pipeline` instance.</span>
+<span class="sd">    2. fitted -- If the machine learning model has been fitted (default False)</span>
+<span class="sd">    3. model_parameters -- The parameters that are set in the machine</span>
+<span class="sd">       learning model. E.g. Parameter could be the tokeniser used.</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit -- Fit the model according to the given training data.</span>
+<span class="sd">    2. predict -- Predict class labels for samples in X.</span>
+<span class="sd">    3. probabilities -- The probability of each class label for all samples</span>
+<span class="sd">       in X.</span>
+<span class="sd">    4. __repr__ -- Name of the machine learning model.</span>
+
+<span class="sd">    Class Methods:</span>
+
+<span class="sd">    1. get_parameters -- Transform the given parameters into a dictonary</span>
+<span class="sd">       that is accepted as model parameters.</span>
+<span class="sd">    2. get_cv_parameters -- Transform the given parameters into a list of</span>
+<span class="sd">       dictonaries that is accepted as `param_grid` parameter in</span>
+<span class="sd">       :py:class:`sklearn.model_selection.GridSearchCV`</span>
+<span class="sd">    3. name -- -- Returns the name of the model.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. save -- Given a instance of this class will save it to a file.</span>
+<span class="sd">    2. load -- Loads an instance of this class from a file.</span>
+<span class="sd">    3. pipeline -- Machine Learning model that is used as the base template</span>
+<span class="sd">       for the model attribute.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="TargetInd.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Target Independent&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TargetInd.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                 <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                 <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Whether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># The parameters here go into the self.get_parameters method</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span>
+                         <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetInd.pipeline"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.pipeline">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">pipeline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;sklearn.pipeline.Pipeline&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine Learning model that is used as the base template for the model</span>
+<span class="sd">        attribute.</span>
+
+<span class="sd">        :returns: The template machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">Pipeline</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;full&#39;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                <span class="p">]))</span>
+            <span class="p">])),</span>
+            <span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">MinMaxScaler</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;svm&#39;</span><span class="p">,</span> <span class="n">LinearSVC</span><span class="p">())</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="TargetInd.normalise_parameter_names"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.normalise_parameter_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">normalise_parameter_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parameter_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+                                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the output of :py:meth:`get_parameters` into a dictionary that </span>
+<span class="sd">        can be used as input into :py:meth:`get_parameters`.</span>
+
+<span class="sd">        :returns: A dictonary that can be used as keyword arguments into the </span>
+<span class="sd">                  :py:meth:`get_parameters` method</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;word_vectors__&#39;</span><span class="p">,</span> <span class="s1">&#39;__tokeniser&#39;</span><span class="p">,</span> <span class="s1">&#39;__lower&#39;</span><span class="p">,</span> <span class="s1">&#39;scale&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;__C&#39;</span><span class="p">,</span> <span class="s1">&#39;__random_state&#39;</span><span class="p">]</span>
+        <span class="n">name_parameter</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">parameter_name</span> <span class="ow">in</span> <span class="n">parameter_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameter_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">parameter_name</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                    <span class="n">real_parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                    <span class="n">name_parameter</span><span class="p">[</span><span class="n">real_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameter</span>
+        <span class="k">return</span> <span class="n">name_parameter</span></div>
+
+<div class="viewcode-block" id="TargetInd.get_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.get_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                       <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                       <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                       <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                       <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a dictonary that is accepted as</span>
+<span class="sd">        model parameters</span>
+
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Whether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        :return: Model parameters</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Add word vectors to Pipeline model</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span>
+                                              <span class="bp">cls</span><span class="o">.</span><span class="n">_get_word_vector_names</span><span class="p">(),</span>
+                                              <span class="n">word_vectors</span><span class="p">)</span>
+        <span class="c1"># Add tokenisers to Pipeline model</span>
+        <span class="n">tokenisers_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param_name</span> <span class="o">+</span> <span class="s1">&#39;__tokeniser&#39;</span>
+                            <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_tokeniser_names</span><span class="p">()]</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span>
+                                              <span class="n">tokenisers_names</span><span class="p">,</span>
+                                              <span class="n">tokeniser</span><span class="p">)</span>
+        <span class="c1"># Add if the words should be lower cased</span>
+        <span class="n">lower_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param_name</span> <span class="o">+</span> <span class="s1">&#39;__lower&#39;</span>
+                       <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_tokeniser_names</span><span class="p">()]</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span> <span class="n">lower_names</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+        <span class="c1"># Add how the data should be scaled before going into the SVM</span>
+        <span class="c1"># If None then it means no scaling happens</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;scale&#39;</span><span class="p">],</span>
+                                              <span class="n">scale</span><span class="p">)</span>
+        <span class="c1"># Add the C value for the SVM</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;svm__C&#39;</span><span class="p">],</span> <span class="n">C</span><span class="p">)</span>
+        <span class="c1"># Add the random state for the SVM</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span>
+                                              <span class="p">[</span><span class="s1">&#39;svm__random_state&#39;</span><span class="p">],</span>
+                                              <span class="n">random_state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params_dict</span></div>
+
+<div class="viewcode-block" id="TargetInd.get_cv_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetInd.get_cv_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_cv_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="p">[</span><span class="n">ark_twokenize</span><span class="p">],</span>
+                          <span class="n">lower</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span> <span class="n">C</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">],</span> <span class="n">random_state</span><span class="o">=</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span>
+                          <span class="n">scale</span><span class="o">=</span><span class="p">[</span><span class="n">MinMaxScaler</span><span class="p">()]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a list of dictonaries that is</span>
+<span class="sd">        accepted as `param_grid` parameter in</span>
+<span class="sd">        :py:class:`sklearn.model_selection.GridSearchCV`</span>
+
+<span class="sd">        :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],</span>
+<span class="sd">                             [SSWE(), GloveCommonCrawl()]].</span>
+<span class="sd">        :param tokenisers: A list of tokeniser to be used e.g.</span>
+<span class="sd">                           :py:meth:`str.split`. Default [ark_twokenize]</span>
+<span class="sd">        :param lowers: A list of bool values which indicate whether to lower</span>
+<span class="sd">                       case the input words. Default [True]</span>
+<span class="sd">        :param C: A list of C values for the :py:class:`sklearn.svm.SVC`</span>
+<span class="sd">                  estimator that is used in the pipeline. Default [0.01]</span>
+<span class="sd">        :param random_state: A list of random_state values for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline. Default [42]</span>
+<span class="sd">        :param scale: List of scale values. The list can include</span>
+<span class="sd">                      :py:class:`sklearn.preprocessing.MinMaxScaler` type of</span>
+<span class="sd">                      clases or None if no scaling is to be used. Default</span>
+<span class="sd">                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]</span>
+<span class="sd">        :return: Parameters to explore through cross validation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Word Vectors</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">,</span>
+                                         <span class="bp">cls</span><span class="o">.</span><span class="n">_get_word_vector_names</span><span class="p">())</span>
+        <span class="c1"># Tokeniser</span>
+        <span class="n">tokenisers_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param_name</span> <span class="o">+</span> <span class="s1">&#39;__tokeniser&#39;</span>
+                            <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_tokeniser_names</span><span class="p">()]</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span>
+                                         <span class="n">tokenisers_names</span><span class="p">)</span>
+        <span class="c1"># Lower</span>
+        <span class="n">lower_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param_name</span> <span class="o">+</span> <span class="s1">&#39;__lower&#39;</span>
+                       <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_tokeniser_names</span><span class="p">()]</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">lower_names</span><span class="p">)</span>
+        <span class="c1"># C</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_all_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="s1">&#39;svm__C&#39;</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+        <span class="c1"># Random State</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_all_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="s1">&#39;svm__random_state&#39;</span><span class="p">,</span>
+                                             <span class="n">random_state</span><span class="p">)</span>
+        <span class="c1"># Scale</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_all_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params_list</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_word_vector_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method to be overidden by subclasses as each pipeline will be different</span>
+<span class="sd">        and will have different parameter names for where the word vectors are</span>
+<span class="sd">        set.</span>
+
+<span class="sd">        :returns: A list of of parameter names where the word vectors are set</span>
+<span class="sd">                  in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;word_vectors__vectors&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_tokeniser_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method to be overidden by subclasses as each pipeline will be different</span>
+<span class="sd">        and will have different parameter names for where tokenisers are</span>
+<span class="sd">        used.</span>
+
+<span class="sd">        :returns: A list of of parameter names where the tokenisers are used</span>
+<span class="sd">                  in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;tokens&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TargetDepMinus"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus">[docs]</a><span class="k">class</span> <span class="nc">TargetDepMinus</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TargetDepMinus.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Target Dependent Minus&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TargetDepMinus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                 <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                 <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Wether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is used</span>
+<span class="sd">                             in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Inherit from SKLearnModel __init__ method</span>
+        <span class="c1"># The parameters here go into the self.get_parameters method</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                        <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetDepMinus.pipeline"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus.pipeline">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">pipeline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;sklearn.pipeline.Pipeline&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine Learning model that is used as the base template for the model</span>
+<span class="sd">        attribute.</span>
+
+<span class="sd">        :returns: The template machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">Pipeline</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;union&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                <span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">]))</span>
+            <span class="p">])),</span>
+            <span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">MinMaxScaler</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;svm&#39;</span><span class="p">,</span> <span class="n">LinearSVC</span><span class="p">())</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="TargetDepMinus.get_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus.get_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                       <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                       <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span>
+                       <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                       <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a dictonary that is accepted as</span>
+<span class="sd">        model parameters</span>
+
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Wether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is used</span>
+<span class="sd">                             in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        :return: Model parameters</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                      <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetDepMinus.get_cv_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepMinus.get_cv_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_cv_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="p">[</span><span class="n">ark_twokenize</span><span class="p">],</span>
+                          <span class="n">lower</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span> <span class="n">C</span><span class="o">=</span><span class="p">[</span><span class="mf">0.025</span><span class="p">],</span> <span class="n">random_state</span><span class="o">=</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span>
+                          <span class="n">scale</span><span class="o">=</span><span class="p">[</span><span class="n">MinMaxScaler</span><span class="p">()]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a list of dictonaries that is</span>
+<span class="sd">        accepted as `param_grid` parameter in</span>
+<span class="sd">        :py:class:`sklearn.model_selection.GridSearchCV`</span>
+
+<span class="sd">        :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],</span>
+<span class="sd">                             [SSWE(), GloveCommonCrawl()]].</span>
+<span class="sd">        :param tokenisers: A list of tokeniser to be used e.g.</span>
+<span class="sd">                           :py:meth:`str.split`. Default [ark_twokenize]</span>
+<span class="sd">        :param lowers: A list of bool values which indicate whether to lower</span>
+<span class="sd">                       case the input words. Default [True]</span>
+<span class="sd">        :param C: A list of C values for the :py:class:`sklearn.svm.SVC`</span>
+<span class="sd">                  estimator that is used in the pipeline. Default [0.025]</span>
+<span class="sd">        :param random_state: A list of random_state values for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline. Default [42]</span>
+<span class="sd">        :param scale: List of scale values. The list can include</span>
+<span class="sd">                      :py:class:`sklearn.preprocessing.MinMaxScaler` type of</span>
+<span class="sd">                      clases or None if no scaling is to be used. Default</span>
+<span class="sd">                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]</span>
+<span class="sd">        :return: Parameters to explore through cross validation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_cv_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                         <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_word_vector_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the word vectors are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__word_vectors__vectors&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_tokeniser_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the tokenisers are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__tokens&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TargetDep"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep">[docs]</a><span class="k">class</span> <span class="nc">TargetDep</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Target-dep model from `Vo and Zhang 2015 paper</span>
+<span class="sd">    &lt;https://ijcai.org/Proceedings/15/Papers/194.pdf&gt;`_.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="TargetDep.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Target Dependent&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TargetDep.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                 <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                 <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Wether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Inherit from SKLearnModel __init__ method</span>
+        <span class="c1"># The parameters here go into the self.get_parameters method</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                        <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetDep.pipeline"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep.pipeline">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">pipeline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;sklearn.pipeline.Pipeline&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine Learning model that is used as the base template for the model</span>
+<span class="sd">        attribute.</span>
+
+<span class="sd">        :returns: The template machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">Pipeline</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;union&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                <span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;full&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">]))</span>
+            <span class="p">])),</span>
+            <span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">MinMaxScaler</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;svm&#39;</span><span class="p">,</span> <span class="n">LinearSVC</span><span class="p">())</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="TargetDep.get_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep.get_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                       <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                       <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                       <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                       <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a dictonary that is accepted as</span>
+<span class="sd">        model parameters</span>
+
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Wether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        :return: Model parameters</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                      <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetDep.get_cv_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDep.get_cv_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_cv_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="p">[</span><span class="n">ark_twokenize</span><span class="p">],</span>
+                          <span class="n">lower</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span> <span class="n">C</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">],</span> <span class="n">random_state</span><span class="o">=</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span>
+                          <span class="n">scale</span><span class="o">=</span><span class="p">[</span><span class="n">MinMaxScaler</span><span class="p">()]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a list of dictonaries that is</span>
+<span class="sd">        accepted as `param_grid` parameter in</span>
+<span class="sd">        :py:class:`sklearn.model_selection.GridSearchCV`</span>
+
+<span class="sd">        :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],</span>
+<span class="sd">                             [SSWE(), GloveCommonCrawl()]].</span>
+<span class="sd">        :param tokenisers: A list of tokeniser to be used e.g.</span>
+<span class="sd">                           :py:meth:`str.split`. Default [ark_twokenize]</span>
+<span class="sd">        :param lowers: A list of bool values which indicate whether to lower</span>
+<span class="sd">                       case the input words. Default [True]</span>
+<span class="sd">        :param C: A list of C values for the :py:class:`sklearn.svm.SVC`</span>
+<span class="sd">                  estimator that is used in the pipeline. Default [0.01]</span>
+<span class="sd">        :param random_state: A list of random_state values for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline. Default [42]</span>
+<span class="sd">        :param scale: List of scale values. The list can include</span>
+<span class="sd">                      :py:class:`sklearn.preprocessing.MinMaxScaler` type of</span>
+<span class="sd">                      clases or None if no scaling is to be used. Default</span>
+<span class="sd">                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]</span>
+<span class="sd">        :return: Parameters to explore through cross validation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_cv_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                         <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_word_vector_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the word vectors are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__full__word_vectors__vectors&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_tokeniser_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the tokenisers are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__full__tokens&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TargetDepPlus"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus">[docs]</a><span class="k">class</span> <span class="nc">TargetDepPlus</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TargetDepPlus.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Target Dependent Plus&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TargetDepPlus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                 <span class="n">senti_lexicon</span><span class="p">:</span> <span class="s1">&#39;bella.lexicons.Lexicon&#39;</span><span class="p">,</span>
+                 <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                 <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param senti_lexicon: Sentiment Lexicon to be used for the Left and</span>
+<span class="sd">                              Right sentiment context (LS and RS).</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Whether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is used</span>
+<span class="sd">                             in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Inherit from SKLearnModel __init__ method</span>
+        <span class="c1"># The parameters here go into the self.get_parameters method</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">senti_lexicon</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span>
+                                        <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetDepPlus.pipeline"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.pipeline">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">pipeline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;sklearn.pipeline.Pipeline&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine Learning model that is used as the base template for the model</span>
+<span class="sd">        attribute.</span>
+
+<span class="sd">        :returns: The template machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">Pipeline</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;union&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                <span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;left_s&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">,</span> <span class="n">LexiconFilter</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;right_s&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">,</span> <span class="n">LexiconFilter</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">])),</span>
+                <span class="p">(</span><span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s1">&#39;contexts&#39;</span><span class="p">,</span> <span class="n">Context</span><span class="p">(</span><span class="s1">&#39;full&#39;</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span> <span class="n">ContextTokeniser</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;word_vectors&#39;</span><span class="p">,</span> <span class="n">ContextWordVectors</span><span class="p">()),</span>
+                    <span class="p">(</span><span class="s1">&#39;pool_funcs&#39;</span><span class="p">,</span> <span class="n">FeatureUnion</span><span class="p">([</span>
+                        <span class="p">(</span><span class="s1">&#39;max_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_max</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;min_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_min</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;avg_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_avg</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;prod_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_prod</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">])),</span>
+                        <span class="p">(</span><span class="s1">&#39;std_pipe&#39;</span><span class="p">,</span> <span class="n">Pipeline</span><span class="p">([</span>
+                            <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">NeuralPooling</span><span class="p">(</span><span class="n">matrix_std</span><span class="p">)),</span>
+                            <span class="p">(</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="n">JoinContextVectors</span><span class="p">(</span><span class="n">matrix_median</span><span class="p">))</span>
+                        <span class="p">]))</span>
+                    <span class="p">]))</span>
+                <span class="p">]))</span>
+            <span class="p">])),</span>
+            <span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">MinMaxScaler</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;svm&#39;</span><span class="p">,</span> <span class="n">LinearSVC</span><span class="p">())</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="TargetDepPlus.normalise_parameter_names"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.normalise_parameter_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">normalise_parameter_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parameter_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+                                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the output of :py:meth:`get_parameters` into a dictionary that </span>
+<span class="sd">        can be used as input into :py:meth:`get_parameters`.</span>
+
+<span class="sd">        :returns: A dictonary that can be used as keyword arguments into the </span>
+<span class="sd">                  :py:meth:`get_parameters` method</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;word_vectors__&#39;</span><span class="p">,</span> <span class="s1">&#39;__tokeniser&#39;</span><span class="p">,</span> <span class="s1">&#39;__lower&#39;</span><span class="p">,</span> <span class="s1">&#39;scale&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;__C&#39;</span><span class="p">,</span> <span class="s1">&#39;__random_state&#39;</span><span class="p">,</span> <span class="s1">&#39;__lexicon&#39;</span><span class="p">]</span>
+        <span class="n">name_parameter</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">parameter_name</span> <span class="ow">in</span> <span class="n">parameter_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameter_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">parameter_name</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                    <span class="n">real_parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">parameter_name</span> <span class="o">==</span> <span class="s1">&#39;__lexicon&#39;</span><span class="p">:</span>
+                        <span class="n">real_parameter_name</span> <span class="o">=</span> <span class="s1">&#39;senti_lexicon&#39;</span>
+                    <span class="n">name_parameter</span><span class="p">[</span><span class="n">real_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameter</span>
+        <span class="k">return</span> <span class="n">name_parameter</span></div>
+
+<div class="viewcode-block" id="TargetDepPlus.get_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.get_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                       <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+                       <span class="n">senti_lexicon</span><span class="p">:</span> <span class="s1">&#39;bella.lexicons.Lexicon&#39;</span><span class="p">,</span>
+                       <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+                       <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+                       <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a dictonary that is accepted as</span>
+<span class="sd">        model parameters</span>
+
+<span class="sd">        :param word_vectors: A list of one or more word vectors to be used as</span>
+<span class="sd">                             feature vector lookups. If more than one is used</span>
+<span class="sd">                             the word vectors are concatenated together to</span>
+<span class="sd">                             create a the feature vector for each word.</span>
+<span class="sd">        :param senti_lexicon: Sentiment Lexicon to be used for the Left and</span>
+<span class="sd">                              Right sentiment context (LS and RS).</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`</span>
+<span class="sd">        :param lower: Whether to lower case the words</span>
+<span class="sd">        :param C: The C value for the :py:class:`sklearn.svm.SVC` estimator</span>
+<span class="sd">                  that is used in the pipeline.</span>
+<span class="sd">        :param random_state: The random_state value for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is used</span>
+<span class="sd">                             in the pipeline.</span>
+<span class="sd">        :param scale: How to scale the data before input into the estimator.</span>
+<span class="sd">                      If no scaling is to be used set this to None.</span>
+<span class="sd">        :return: Model parameters</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+                                             <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="n">params_dict</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">,</span>
+                                              <span class="bp">cls</span><span class="o">.</span><span class="n">_get_word_senti_names</span><span class="p">(),</span>
+                                              <span class="n">senti_lexicon</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params_dict</span></div>
+
+<div class="viewcode-block" id="TargetDepPlus.get_cv_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.target.TargetDepPlus.get_cv_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_cv_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                          <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors</span><span class="se">\</span>
+<span class="s1">                                                        .WordVectors&#39;</span><span class="p">]],</span>
+                          <span class="n">senti_lexicon</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.lexicons.Lexicon&#39;</span><span class="p">],</span>
+                          <span class="n">tokeniser</span><span class="o">=</span><span class="p">[</span><span class="n">ark_twokenize</span><span class="p">],</span>
+                          <span class="n">lower</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span> <span class="n">C</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">],</span> <span class="n">random_state</span><span class="o">=</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span>
+                          <span class="n">scale</span><span class="o">=</span><span class="p">[</span><span class="n">MinMaxScaler</span><span class="p">()]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a list of dictonaries that is</span>
+<span class="sd">        accepted as `param_grid` parameter in</span>
+<span class="sd">        :py:class:`sklearn.model_selection.GridSearchCV`</span>
+
+<span class="sd">        :param word_vectors: A list of a list of word vectors e.g. [[SSWE()],</span>
+<span class="sd">                             [SSWE(), GloveCommonCrawl()]].</span>
+<span class="sd">        :param senti_lexicon: A list of Sentiment Lexicons to be explored for</span>
+<span class="sd">                              the Left and Right sentiment context (LS and RS).</span>
+<span class="sd">                              Default None, use the sentiment lexicons already</span>
+<span class="sd">                              within the model.</span>
+<span class="sd">        :param tokenisers: A list of tokeniser to be used e.g.</span>
+<span class="sd">                           :py:meth:`str.split`. Default [ark_twokenize]</span>
+<span class="sd">        :param lowers: A list of bool values which indicate whether to lower</span>
+<span class="sd">                       case the input words. Default [True]</span>
+<span class="sd">        :param C: A list of C values for the :py:class:`sklearn.svm.SVC`</span>
+<span class="sd">                  estimator that is used in the pipeline. Default [0.01]</span>
+<span class="sd">        :param random_state: A list of random_state values for the</span>
+<span class="sd">                             :py:class:`sklearn.svm.SVC` estimator that is</span>
+<span class="sd">                             used in the pipeline. Default [42]</span>
+<span class="sd">        :param scale: List of scale values. The list can include</span>
+<span class="sd">                      :py:class:`sklearn.preprocessing.MinMaxScaler` type of</span>
+<span class="sd">                      clases or None if no scaling is to be used. Default</span>
+<span class="sd">                      [:py:class:`sklearn.preprocessing.MinMaxScaler`]</span>
+<span class="sd">        :return: Parameters to explore through cross validation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_cv_parameters</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">,</span>
+                                                <span class="n">lower</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_add_to_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="n">senti_lexicon</span><span class="p">,</span>
+                                         <span class="bp">cls</span><span class="o">.</span><span class="n">_get_word_senti_names</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">params_list</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_word_vector_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the word vectors are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__left_s__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right_s__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__word_vectors__vectors&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__full__word_vectors__vectors&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_tokeniser_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the tokenisers are set</span>
+<span class="sd">        in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__left_s__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right_s__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__target__tokens&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__full__tokens&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_word_senti_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A list of of parameter names where the sentiment lexicons</span>
+<span class="sd">        are set in the pipeline.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;union__left_s__filter__lexicon&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;union__right_s__filter__lexicon&#39;</span><span class="p">]</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

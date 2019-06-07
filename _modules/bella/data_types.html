@@ -1,0 +1,1416 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.data_types &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.data_types</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.data_types</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module that contains the various data types:</span>
+
+<span class="sd">1. Target -- Mutable data store for a single Target value i.e. one training </span>
+<span class="sd">   example.</span>
+<span class="sd">2. TargetCollection -- Mutable data store for Target data types.  i.e. A </span>
+<span class="sd">   data store that contains multiple Target instances.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="k">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">rand</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+
+<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="k">import</span> <span class="n">whitespace</span>
+<span class="kn">from</span> <span class="nn">bella.stanford_tools</span> <span class="k">import</span> <span class="n">constituency_parse</span>
+
+<span class="n">BELLA_DATASET_DIR</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;.Bella&#39;</span><span class="p">,</span> <span class="s1">&#39;Datasets&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Target"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.Target">[docs]</a><span class="k">class</span> <span class="nc">Target</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Mutable data store for a single Target value. This should be used as the</span>
+<span class="sd">    value for Target information where it contains all data required to be</span>
+<span class="sd">    classified as Target data for Target based sentiment classification.</span>
+
+<span class="sd">    Overrides collections.abs.MutableMapping abstract class.</span>
+
+<span class="sd">    Reference on how I created the class:</span>
+<span class="sd">    http://www.kr41.net/2016/03-23-dont_inherit_python_builtin_dict_type.html</span>
+<span class="sd">    https://docs.python.org/3/library/collections.abc.html</span>
+
+<span class="sd">    Functions changed compared to normal:</span>
+
+<span class="sd">    1. __delitem__ -- Will only delete the `target_id` key.</span>
+<span class="sd">    2. __eq__ -- Two Targets are the same if they either have the same `id` or \</span>
+<span class="sd">    they have the same values to the minimum keys \</span>
+<span class="sd">    [&#39;spans&#39;, &#39;text&#39;, &#39;target&#39;, &#39;sentiment&#39;]</span>
+<span class="sd">    3. __setitem__ -- Only allows you to add/modify the `predicted` key which \</span>
+<span class="sd">    represents the predicted sentiment for the Target instance.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="Target.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.Target.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spans</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">sentiment</span><span class="p">,</span> <span class="n">predicted</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">sentence_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">augmented</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">transfer_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">original_target_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">original_sentence_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch_number</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param target: Target that the sentiment is about. e.g. Iphone</span>
+<span class="sd">        :param sentiment: sentiment of the target.</span>
+<span class="sd">        :param text: The text context that the target and sentiment is within.</span>
+<span class="sd">        :param target_id: Unique ID. Has to be Unique within the </span>
+<span class="sd">                          TargetCollection if it is put into a TargetCollection.</span>
+<span class="sd">        :param spans: List of tuples where each tuple is of length 2 where they </span>
+<span class="sd">                      contain the exclusive range of an instance of Target word </span>
+<span class="sd">                      in the Text context. The reason it is a list if because </span>
+<span class="sd">                      the Target word can be mentioned more than once e.g. </span>
+<span class="sd">                      `The Iphone was great but the iphone is small`. The first </span>
+<span class="sd">                      Int in the tuple has to be less than the second Int.</span>
+<span class="sd">        :param predicted: If given adds the predicted sentiment value.</span>
+<span class="sd">        :param sentence_id: Unique ID of the sentence that the target is </span>
+<span class="sd">                            within. More than one target can have the same </span>
+<span class="sd">                            sentence.</span>
+<span class="sd">        :param category: In some datasets there is category information where </span>
+<span class="sd">                         the target is assigned a category. This comes from </span>
+<span class="sd">                         the SemEval 2015 restaurant dataset.</span>
+<span class="sd">        :param augmented: Whether or not the data comes from an augmented </span>
+<span class="sd">                          dataset or has been produced from an augmented </span>
+<span class="sd">                          function.</span>
+<span class="sd">        :param transfer_data: Whether or not the data comes from a transfer </span>
+<span class="sd">                              dataset.</span>
+<span class="sd">        :param original_target_id: If the augmented field is True then the </span>
+<span class="sd">                                   original_target_id has to exist, as this </span>
+<span class="sd">                                   will inform what the original target </span>
+<span class="sd">                                   was used to create this augmented target </span>
+<span class="sd">                                   data. </span>
+<span class="sd">        :param original_sentence_id: If the data has been augmented in such </span>
+<span class="sd">                                     a way that the sentence text has been </span>
+<span class="sd">                                     changed then this will store the sentence </span>
+<span class="sd">                                     ID that relates to the original text.</span>
+<span class="sd">        :param epoch_number: The epochs which this target should be sampled</span>
+<span class="sd">                             from. This is only applicable when using this with </span>
+<span class="sd">                             a custom sampler, it allows you to add when you </span>
+<span class="sd">                             may want this target to be sampled. It is a </span>
+<span class="sd">                             Set of integers as it will allow you to sample the </span>
+<span class="sd">                             target more than once.</span>
+<span class="sd">        :type target: String</span>
+<span class="sd">        :type sentiment: String or Int (Based on annotation schema)</span>
+<span class="sd">        :type text: String</span>
+<span class="sd">        :type target_id: String</span>
+<span class="sd">        :type spans: list</span>
+<span class="sd">        :type predicted: Same type as sentiment. Default None (Optional)</span>
+<span class="sd">        :type sentence_id: String. Default None (Optional)</span>
+<span class="sd">        :type category: String. Default None (Optional)</span>
+<span class="sd">        :type augmented: bool. Default None (Optional)</span>
+<span class="sd">        :type transfer_data: bool. Default None (Optional)</span>
+<span class="sd">        :type original_target_id: String</span>
+<span class="sd">        :type original_sentence_id: String</span>
+<span class="sd">        :type epoch_number: Set of Integers</span>
+<span class="sd">        :returns: Nothing. Constructor.</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The target ID has to be of type String and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">target_id</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The target has to be of type String and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">target</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The text has to be of type String and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sentiment</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The sentiment has to be of type String or Int and &#39;</span>\
+                            <span class="s1">&#39;not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">sentiment</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spans</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The spans has to be of type list and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">spans</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spans</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;spans has to contain at least one tuple not &#39;</span>\
+                                <span class="s1">&#39;None&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">span</span> <span class="ow">in</span> <span class="n">spans</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">span</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Spans has to be a list of tuples not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">span</span><span class="p">)))</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">span</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Spans must contain tuples of length&#39;</span>\
+                                         <span class="s1">&#39; 2 not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spans</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">span</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> \
+                       <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">span</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;spans must be made of tuple containing &#39;</span>\
+                                        <span class="s1">&#39;two Integers not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">span</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">span</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">span</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The first integer in a span must be &#39;</span>\
+                                         <span class="s1">&#39;less than the second integer </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">span</span><span class="p">))</span>
+        <span class="n">temp_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">spans</span><span class="o">=</span><span class="n">spans</span><span class="p">,</span> <span class="n">target_id</span><span class="o">=</span><span class="n">target_id</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                         <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">sentiment</span><span class="o">=</span><span class="n">sentiment</span><span class="p">,</span> 
+                         <span class="n">epoch_number</span><span class="o">=</span><span class="n">epoch_number</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sentence_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sentence_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;`sentence_id` has to be a String and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">sentence_id</span><span class="p">)))</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_id</span>
+
+        <span class="k">if</span> <span class="n">category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">category</span>
+        <span class="k">if</span> <span class="n">augmented</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;augmented&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">augmented</span>
+            <span class="k">if</span> <span class="n">original_target_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">aug_data_error</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Cannot create a Target that is augmented &#39;</span>
+                                  <span class="s1">&#39;without having the original target_id of the&#39;</span>
+                                  <span class="s1">&#39; target data that was augmented to create &#39;</span>
+                                  <span class="s1">&#39;this target data&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">aug_data_error</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">original_target_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;original_target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">original_target_id</span>
+        <span class="k">if</span> <span class="n">original_sentence_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">augmented</span> <span class="o">!=</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot add original sentence id to a Target&#39;</span>
+                                 <span class="s1">&#39; that has not been augmented.&#39;</span><span class="p">)</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;original_sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">original_sentence_id</span>
+        <span class="k">if</span> <span class="n">transfer_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">temp_dict</span><span class="p">[</span><span class="s1">&#39;transfer_data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transfer_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span> <span class="o">=</span> <span class="n">temp_dict</span>
+        <span class="k">if</span> <span class="n">predicted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;predicted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        To ensure that the Target class maintains the minimum Keys and Values</span>
+<span class="sd">        to allow an instance to be used in Target based machine learning. The</span>
+<span class="sd">        key and associated values that can be deleted are limited to:</span>
+
+<span class="sd">        1. target_id</span>
+
+<span class="sd">        :param key: The key and associated value to delete from the store.</span>
+<span class="sd">        :returns: Updates the data store by removing key and value.</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">accepted_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;target_id&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">accepted_keys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;The only keys that can be deleted are the &#39;</span>\
+                           <span class="s1">&#39;following: </span><span class="si">{}</span><span class="s1"> the key you wish to delete </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accepted_keys</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param key: key (Only store values for `predicted` key)</span>
+<span class="sd">        :param value: Predicted sentiment value which has to be the same data \</span>
+<span class="sd">        type as the `sentiment` value.</span>
+<span class="sd">        :type key: String (`predicted` is the only key accepted at the moment)</span>
+<span class="sd">        :type value: Int or String.</span>
+<span class="sd">        :returns: Nothing. Adds the predicted sentiment of the Target.</span>
+<span class="sd">        :rtype: None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;predicted&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;The Only key that can be changed is the `predicted`&#39;</span>\
+                           <span class="s1">&#39; key not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="c1">#raise_type = False</span>
+        <span class="c1">#sent_value = self._storage[&#39;sentiment&#39;]</span>
+        <span class="c1">#if isinstance(sent_value, int):</span>
+        <span class="c1">#    if not isinstance(value, (int, np.int32, np.int64)):</span>
+        <span class="c1">#        raise_type = True</span>
+        <span class="c1">#elif not isinstance(value, type(sent_value)):</span>
+        <span class="c1">#    raise_type = True</span>
+
+        <span class="c1">#if raise_type:</span>
+        <span class="c1">#    raise TypeError(&#39;Value to be stored for the `predicted` sentiment &#39;\</span>
+        <span class="c1">#                    &#39;has to be the same data type as the sentiment &#39;\</span>
+        <span class="c1">#                    &#39;value {} and not {}.&#39;\</span>
+        <span class="c1">#                    .format(sent_value, type(value)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: String returned is what user see when the instance is \</span>
+<span class="sd">        printed or printed within a interpreter.</span>
+<span class="sd">        :rtype: String</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;Target(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Two Target instances are equal if they are both Target instances and</span>
+<span class="sd">        one of the following conditions</span>
+
+<span class="sd">        1. They have the same target_id (This is preferred)</span>
+<span class="sd">        2. The minimum keys that all targets have to have \</span>
+<span class="sd">        [&#39;spans&#39;, &#39;text&#39;, &#39;target&#39;, &#39;sentiment&#39;] are all equal.</span>
+
+<span class="sd">        :param other: The target instance that is being compare to the current \</span>
+<span class="sd">        target instance.</span>
+<span class="sd">        :type other: Target</span>
+<span class="sd">        :returns: True if they are equal else False.</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="s1">&#39;target_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">and</span> <span class="s1">&#39;target_id&#39;</span> <span class="ow">in</span> <span class="n">other</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">minimum_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="s1">&#39;sentiment&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">minimum_keys</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="n">other</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">def</span> <span class="nf">__array__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Function for converting it to a numpy array</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TargetCollection"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection">[docs]</a><span class="k">class</span> <span class="nc">TargetCollection</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Mutable data store for Target data types.  i.e. A data store that contains</span>
+<span class="sd">    multiple Target instances. This collection ensures that there are no two</span>
+<span class="sd">    Target instances stored that have the same ID this is because the storage</span>
+<span class="sd">    of the collection is an OrderedDict.</span>
+
+<span class="sd">    Overrides collections.abs.MutableMapping abstract class.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. add -- Given a Target instance with an `id` key adds it to the data </span>
+<span class="sd">       store.</span>
+<span class="sd">    2. data -- Returns all of the Target instances stored as a list of Target </span>
+<span class="sd">       instances.</span>
+<span class="sd">    3. stored_sentiments -- Returns a set of unique sentiments stored.</span>
+<span class="sd">    4. sentiment_data -- Returns the list of all sentiment values stored in </span>
+<span class="sd">       the Target instances stored.</span>
+<span class="sd">    5. add_pred_sentiment -- Adds a list of predicted sentiment values to the </span>
+<span class="sd">       Target instances stored.</span>
+<span class="sd">    6. confusion_matrix -- Returns the confusion matrix between the True and </span>
+<span class="sd">       predicted sentiment values.</span>
+<span class="sd">    7. subset_by_sentiment -- Creates a new TargetCollection based on the </span>
+<span class="sd">       number of unique sentiments in a sentence.</span>
+<span class="sd">    8. to_json_file -- Returns a Path to a json file that has stored the </span>
+<span class="sd">       data as a sample json encoded per line. If the split argument is set </span>
+<span class="sd">       will return two Paths the first being the training file and the second </span>
+<span class="sd">       the test.</span>
+<span class="sd">    9. categories_targets -- Returns two dictionaries. The first is a category</span>
+<span class="sd">       to target list and the second is a target to category list. Their is </span>
+<span class="sd">       the option to have a coarse grained cateogires option.</span>
+<span class="sd">    10. target_set -- Returns a set of all the targets within this dataset.</span>
+<span class="sd">    11. subset_by_ids -- Returns a TargetCollection which is a subset of the </span>
+<span class="sd">        current one. Where the samples included in the subset are those with </span>
+<span class="sd">        a `target_id` that is within the ids List.</span>
+<span class="sd">    12. dataset_metric_scores -- Given a metric like accuracy returns all of </span>
+<span class="sd">        the metric scores for the dataset. This assumes that the dataset has </span>
+<span class="sd">        the `predicted` sentiment slot assigned.</span>
+<span class="sd">    13. subset_by_targets -- Will subset the data so that only data points that </span>
+<span class="sd">        contain the given targets are within the TargetCollection.</span>
+
+<span class="sd">    Static functions:</span>
+<span class="sd">    </span>
+<span class="sd">    1. target_targets -- Returns a dictionary of targets as keys and values </span>
+<span class="sd">       are a list of realted targets.</span>
+<span class="sd">    2. split_dataset -- Returns the given dataset into two, the train and test </span>
+<span class="sd">       based on the test_split fraction given.</span>
+<span class="sd">    3. load_from_json -- Returns a TargetCollection given that the json file </span>
+<span class="sd">       has a valid Target dictionary on each line of the json file. The </span>
+<span class="sd">       json file can be created from `to_json_file` method.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    1. grouped_sentences -- A dictionary of sentence_id as keys and a list of </span>
+<span class="sd">       target instances that have the same sentence_id as values.</span>
+<span class="sd">    2. grouped_sentiments -- A dictionary where the keys are all possible </span>
+<span class="sd">       sentiment values, the value is a list of Target(s) that only have that </span>
+<span class="sd">       associated sentiment value.</span>
+<span class="sd">    3. grouped_distinct_sentiments -- A dictionary where the keys are the </span>
+<span class="sd">       number of distinct sentiments that the targets have in the associated </span>
+<span class="sd">       value. A target has two distinct sentiments if the associated sentence </span>
+<span class="sd">       has contains targets that take on one of two sentiment where at least </span>
+<span class="sd">       one target has a different sentiment to the rest. The targets in the </span>
+<span class="sd">       values of this dictionary are stored as a list of Target</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="TargetCollection.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param list_of_target: An interator of Target instances e.g. a List of </span>
+<span class="sd">                               Target instances.</span>
+<span class="sd">        :type list_of_target: Iterable. Default None (Optional)</span>
+<span class="sd">        :returns: Nothing. Constructor.</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">list_of_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">list_of_target</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The list_of_target argument has to be iterable&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">list_of_target</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;TargetCollection&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentences</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentiments</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_distinct_sentiments</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        If key already exists will raise KeyError.</span>
+
+<span class="sd">        :param key: key that stores the index to the value</span>
+<span class="sd">        :param value: value to store at the keys location</span>
+<span class="sd">        :type key: hashable object</span>
+<span class="sd">        :type value: Target</span>
+<span class="sd">        :returns: Nothing. Adds data to the collection</span>
+<span class="sd">        :rtype: None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Required to make sure the grouped_sentences, grouped_sentiments,</span>
+        <span class="c1"># and grouped_distinct_sentiments get recomputed instead of cached.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gs</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gds</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Target</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;All values in this store have to be of type &#39;</span>\
+                            <span class="s1">&#39;Target not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;This key: `</span><span class="si">{}</span><span class="s1">` already exists with value `</span><span class="si">{}</span><span class="s1">` &#39;</span>\
+                           <span class="s1">&#39;value that for the same key is `</span><span class="si">{}</span><span class="s1">`&#39;</span>\
+                           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span><span class="p">))</span>
+        <span class="n">temp_value</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="c1"># As the id will be saved as the key no longer needed in the target</span>
+        <span class="c1"># instance (value). However if the key does not match the `target_id`</span>
+        <span class="c1"># raise KeyError</span>
+        <span class="k">if</span> <span class="s1">&#39;target_id&#39;</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">key</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;Cannot add this to the data store as the key </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                               <span class="s1">&#39; is not the same as the `target_id` in the Target&#39;</span>\
+                               <span class="s1">&#39; instance value </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">temp_value</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_value</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TargetCollection.add"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Adds the Target instance to the data store without having to extract</span>
+<span class="sd">        out the target_id of the target if using __setitem__</span>
+
+<span class="sd">        :Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; target = Target([(10, 16)], &#39;1&#39;, &#39;Iphone&#39;,</span>
+<span class="sd">                            &#39;text with Iphone&#39;, 0)</span>
+<span class="sd">        &gt;&gt;&gt; target_col = TargetCollection()</span>
+<span class="sd">        # Add method is simpler to use than __setitem__</span>
+<span class="sd">        &gt;&gt;&gt; target_col.add(target)</span>
+<span class="sd">        # Example of the __setitem__ method</span>
+<span class="sd">        &gt;&gt;&gt; target_col[target[&#39;target_id&#39;]] = target</span>
+
+<span class="sd">        :param value: Target instance with a `target_id` key</span>
+<span class="sd">        :type value: Target</span>
+<span class="sd">        :returns: Nothing. Adds the target instance to the data store.</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Target</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;All values in this store have to be of type &#39;</span>\
+                            <span class="s1">&#39;Target not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="s1">&#39;target_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The Target instance given </span><span class="si">{}</span><span class="s1"> does not have a &#39;</span>\
+                             <span class="s1">&#39;target_id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">value</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="TargetCollection.data"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.data">[docs]</a>    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: a list of all the Target instances stored.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_id</span><span class="p">,</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">target_data</span><span class="p">}</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
+            <span class="n">_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">data_dict</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">_data</span></div>
+
+<div class="viewcode-block" id="TargetCollection.data_dict"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.data_dict">[docs]</a>    <span class="k">def</span> <span class="nf">data_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: Same as the data function but returns dicts instead of \</span>
+<span class="sd">        Targets</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_id</span><span class="p">,</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">target_data</span><span class="p">}</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
+            <span class="n">_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_data</span></div>
+
+<div class="viewcode-block" id="TargetCollection.stored_sentiments"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.stored_sentiments">[docs]</a>    <span class="k">def</span> <span class="nf">stored_sentiments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: A set of all unique sentiment values of the target instances \</span>
+<span class="sd">        in the data store.</span>
+<span class="sd">        :rtype: set</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">unique_sentiments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">unique_sentiments</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">unique_sentiments</span></div>
+
+<div class="viewcode-block" id="TargetCollection.sentiment_data"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.sentiment_data">[docs]</a>    <span class="k">def</span> <span class="nf">sentiment_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sentiment_field</span><span class="o">=</span><span class="s1">&#39;sentiment&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param mapper: A dictionary that maps the keys to the values where the \</span>
+<span class="sd">        keys are the current unique sentiment values of the target instances \</span>
+<span class="sd">        stored</span>
+<span class="sd">        :param sentiment_field: Determines if it should return True sentiment \</span>
+<span class="sd">        of the Targets `sentiment` or to return the predicted value `predicted`</span>
+<span class="sd">        :type mapper: dict</span>
+<span class="sd">        :type sentiment_field: String. Default `sentiment` (True values)</span>
+<span class="sd">        :returns: a list of the sentiment value for each Target instance stored.</span>
+<span class="sd">        :rtype: list</span>
+
+<span class="sd">        :Example of using the mapper:</span>
+<span class="sd">        &gt;&gt;&gt; target_col = TargetCollection([Target([(10, 16)], &#39;1&#39;, &#39;Iphone&#39;,</span>
+<span class="sd">                                                  &#39;text with Iphone&#39;, &#39;pos&#39;)])</span>
+<span class="sd">        &gt;&gt;&gt; target_col.add(Target([(10, 15)], &#39;2&#39;, &#39;Pixel&#39;,</span>
+<span class="sd">                                  &#39;text with Pixel&#39;, &#39;neg&#39;))</span>
+<span class="sd">        # Get the unique sentiment values for each target instance</span>
+<span class="sd">        &gt;&gt;&gt; map_keys = target_col.stored_sentiments()</span>
+<span class="sd">        &gt;&gt;&gt; print(map_keys)</span>
+<span class="sd">        &gt;&gt;&gt; [&#39;pos&#39;, &#39;neg&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; mapper = {&#39;pos&#39; : 1, &#39;neg&#39; : -1}</span>
+<span class="sd">        &gt;&gt;&gt; print(target_col.sentiment_data(mapper=mapper))</span>
+<span class="sd">        &gt;&gt;&gt; 1, -1</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">allowed_fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;sentiment&#39;</span><span class="p">,</span> <span class="s1">&#39;predicted&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">sentiment_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_fields</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The `sentiment_field` has to be one of the &#39;</span>\
+                             <span class="s1">&#39;following values </span><span class="si">{}</span><span class="s1"> and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">allowed_fields</span><span class="p">,</span> <span class="n">sentiment_field</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">mapper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mapper</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The mapper has to be of type dict and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">mapper</span><span class="p">)))</span>
+            <span class="n">allowed_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stored_sentiments</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mapper</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">allowed_keys</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The mapper has to contain a mapping for each &#39;</span>\
+                                 <span class="s1">&#39;unique sentiment value </span><span class="si">{}</span><span class="s1"> and not a subset &#39;</span>\
+                                 <span class="s1">&#39;given </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">allowed_keys</span><span class="p">,</span> <span class="n">mapper</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">for</span> <span class="n">map_key</span> <span class="ow">in</span> <span class="n">mapper</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">map_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_keys</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The mappings are not correct. The map &#39;</span>\
+                                     <span class="s1">&#39;key </span><span class="si">{}</span><span class="s1"> does not exist in the unique &#39;</span>\
+                                     <span class="s1">&#39;sentiment values in the store </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_key</span><span class="p">,</span> <span class="n">allowed_keys</span><span class="p">))</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">mapper</span><span class="p">[</span><span class="n">target_data</span><span class="p">[</span><span class="n">sentiment_field</span><span class="p">]]</span>\
+                    <span class="k">for</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">target_data</span><span class="p">[</span><span class="n">sentiment_field</span><span class="p">]</span> <span class="k">for</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="TargetCollection.add_id_pred"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.add_id_pred">[docs]</a>    <span class="k">def</span> <span class="nf">add_id_pred</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_pred</span><span class="p">):</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">targ_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">targ_id</span> <span class="ow">in</span> <span class="n">id_pred</span><span class="p">:</span>
+                <span class="bp">self</span><span class="p">[</span><span class="n">targ_id</span><span class="p">][</span><span class="s1">&#39;predicted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_pred</span><span class="p">[</span><span class="n">targ_id</span><span class="p">]</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;We have only added </span><span class="si">{}</span><span class="s1"> predictions to </span><span class="si">{}</span><span class="s1"> targets&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="TargetCollection.add_pred_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.add_pred_sentiment">[docs]</a>    <span class="k">def</span> <span class="nf">add_pred_sentiment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sent_preds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> 
+                           <span class="n">mapper</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param sent_preds: A list of predicted sentiments for all Target </span>
+<span class="sd">                           instances stored or a numpy array where columns are </span>
+<span class="sd">                           number of different predicted runs and the rows </span>
+<span class="sd">                           represent the associated Target instance.</span>
+<span class="sd">        :param mapper: A dictionary mapping the predicted sentiment to </span>
+<span class="sd">                       alternative values e.g. Integer values to String values.</span>
+<span class="sd">        :type sent_preds: list or numpy array</span>
+<span class="sd">        :type mapper: dict</span>
+<span class="sd">        :returns: Nothing. Adds the predicted sentiments to the Target </span>
+<span class="sd">                   instances stored.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sent_preds</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The length of the predicted sentiments </span><span class="si">{}</span><span class="s1"> is not &#39;</span>\
+                             <span class="s1">&#39;equal to the number Target instances stored </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sent_preds</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">()):</span>
+            <span class="n">predicted_sent</span> <span class="o">=</span> <span class="n">sent_preds</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mapper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">predicted_sent</span> <span class="o">=</span> <span class="n">mapper</span><span class="p">[</span><span class="n">predicted_sent</span><span class="p">]</span>
+            <span class="n">target_id</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">target_id</span><span class="p">][</span><span class="s1">&#39;predicted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted_sent</span></div>
+
+<div class="viewcode-block" id="TargetCollection.confusion_matrix"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.confusion_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">confusion_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param plot: To return a heatmap of the confusion matrix.</span>
+<span class="sd">        :param norm: Normalise the values in the confusion matrix</span>
+<span class="sd">        :type plot: bool. Default False</span>
+<span class="sd">        :type norm: bool. Default False</span>
+<span class="sd">        :returns: A tuple of length two. 1. the confusion matrix \</span>
+<span class="sd">        2. The plot of the confusion matrix if plot is True else \</span>
+<span class="sd">        None.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">sentiment_values</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stored_sentiments</span><span class="p">())</span>
+        <span class="n">true_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">()</span>
+        <span class="n">pred_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">(</span><span class="n">sentiment_field</span><span class="o">=</span><span class="s1">&#39;predicted&#39;</span><span class="p">)</span>
+        <span class="n">conf_matrix</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">true_values</span><span class="p">,</span> <span class="n">pred_values</span><span class="p">,</span>
+                                               <span class="n">labels</span><span class="o">=</span><span class="n">sentiment_values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm</span><span class="p">:</span>
+            <span class="n">conf_matrix</span> <span class="o">=</span> <span class="n">conf_matrix</span> <span class="o">/</span> <span class="n">conf_matrix</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">conf_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">conf_matrix</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">sentiment_values</span><span class="p">,</span>
+                                   <span class="n">index</span><span class="o">=</span><span class="n">sentiment_values</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">norm</span><span class="p">:</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">conf_matrix</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;.2f&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">conf_matrix</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">conf_matrix</span><span class="p">,</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="TargetCollection.subset_by_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.subset_by_sentiment">[docs]</a>    <span class="k">def</span> <span class="nf">subset_by_sentiment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_unique_sentiments</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a subset based on the number of unique sentiment values per</span>
+<span class="sd">        sentence. E.g. if num_unique_sentiments = 2 then it will</span>
+<span class="sd">        return all the Target instances where each target intance has at least</span>
+<span class="sd">        two target instances per sentence and those targets can have only one</span>
+<span class="sd">        of two sentiment values. This can be used to test how well a method</span>
+<span class="sd">        can extract exact sentiment information for the associated target.</span>
+
+<span class="sd">        NOTE: Requires that all Target instances stored contain a sentence_id.</span>
+
+<span class="sd">        :param num_unique_sentiments: Integer specifying the number of unique \</span>
+<span class="sd">        sentiments in the target instances per sentence.</span>
+<span class="sd">        :type num_unique_sentiments: int</span>
+<span class="sd">        :returns: A subset based on the number of unique sentiments per sentence.</span>
+<span class="sd">        :rtype: TargetCollection</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">all_relevent_targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">targets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_sentences</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">target_col</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_col</span><span class="o">.</span><span class="n">stored_sentiments</span><span class="p">())</span> <span class="o">==</span> <span class="n">num_unique_sentiments</span><span class="p">:</span>
+                <span class="n">all_relevent_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">all_relevent_targets</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.subset_by_targets"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.subset_by_targets">[docs]</a>    <span class="k">def</span> <span class="nf">subset_by_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_set</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Will subset the data so that only data points that contain the given </span>
+<span class="sd">        targets are within the TargetCollection.</span>
+<span class="sd">        </span>
+<span class="sd">        :param target_set: A list of targets to be used to sub-sample </span>
+<span class="sd">                           the data collection from.</span>
+<span class="sd">        :returns: The current target collection with data points that only </span>
+<span class="sd">                  have targets that are from the target set.</span>
+<span class="sd">        :rtype: TargetCollection</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">target_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">target_set</span><span class="p">:</span>
+                <span class="n">target_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">target_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.subset_by_sentence_length"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.subset_by_sentence_length">[docs]</a>    <span class="k">def</span> <span class="nf">subset_by_sentence_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length_condition</span><span class="p">):</span>
+
+        <span class="n">all_relevent_targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+            <span class="n">target_text</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">length_condition</span><span class="p">(</span><span class="n">target_text</span><span class="p">):</span>
+                <span class="n">all_relevent_targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">all_relevent_targets</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.load_from_json"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.load_from_json">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">load_from_json</span><span class="p">(</span><span class="n">json_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TargetCollection&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a TargetCollection given that the json file has a valid Target </span>
+<span class="sd">        dictionary on each line of the json file. The json file can be created </span>
+<span class="sd">        from `to_json_file` method.</span>
+
+<span class="sd">        :param json_path: Path to the json file that has a valid Target that </span>
+<span class="sd">                          can be loaded as a json sequence on each new line.</span>
+<span class="sd">        :returns: A TargetCollection of all targets that we stored in the </span>
+<span class="sd">                  json file.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">target_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="n">json_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">json_file</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="n">target</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">span</span><span class="p">)</span> <span class="k">for</span> <span class="n">span</span> <span class="ow">in</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="s1">&#39;epoch_number&#39;</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                    <span class="n">target</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">])</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">target</span><span class="p">)</span>
+                <span class="n">target_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">target_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.split_dataset"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.split_dataset">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">split_dataset</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="s1">&#39;TargetCollection&#39;</span><span class="p">,</span> <span class="n">test_split</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
+                      <span class="n">random</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+                      <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="s1">&#39;TargetCollection&#39;</span><span class="p">,</span> <span class="s1">&#39;TargetCollection&#39;</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        It will split the data into training and test splits, where the amount of </span>
+<span class="sd">        data in the test is defined by the test_split fraction (amount of training </span>
+<span class="sd">        data will be 1 - test_split).</span>
+
+<span class="sd">        :param data: data to split</span>
+<span class="sd">        :param test_split: The amount of data to give to the test split.</span>
+<span class="sd">        :param random: If the splitting should be random rather than the last </span>
+<span class="sd">                    test split of the data being test and the first </span>
+<span class="sd">                    (1 - test split) being the training data.</span>
+<span class="sd">        :returns: The training data and test data as a tuple.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">target_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">data_dict</span><span class="p">()</span>
+        <span class="n">data_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_data</span><span class="p">)</span>
+        <span class="n">test_data_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data_size</span> <span class="o">*</span> <span class="n">test_split</span><span class="p">)</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">random</span><span class="p">:</span>
+            <span class="n">start_index</span> <span class="o">=</span> <span class="n">rand</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data_size</span><span class="p">)</span>
+            <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="n">test_data_size</span>
+            <span class="k">if</span> <span class="n">end_index</span> <span class="o">&gt;</span> <span class="n">data_size</span><span class="p">:</span>
+                <span class="n">index_diff</span> <span class="o">=</span> <span class="n">end_index</span> <span class="o">-</span> <span class="n">data_size</span>
+                <span class="n">start_index</span> <span class="o">-=</span> <span class="n">index_diff</span>
+                <span class="n">end_index</span> <span class="o">=</span> <span class="n">data_size</span>
+            <span class="n">test_data</span> <span class="o">=</span> <span class="n">target_data</span><span class="p">[</span><span class="n">start_index</span><span class="p">:</span> <span class="n">end_index</span><span class="p">]</span>
+            <span class="n">train_data</span> <span class="o">=</span> <span class="n">target_data</span><span class="p">[</span><span class="n">end_index</span><span class="p">:]</span>
+            <span class="n">train_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">target_data</span><span class="p">[:</span> <span class="n">start_index</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">test_data</span> <span class="o">=</span> <span class="n">target_data</span><span class="p">[:</span> <span class="n">test_data_size</span><span class="p">]</span>
+            <span class="n">train_data</span> <span class="o">=</span> <span class="n">target_data</span><span class="p">[</span><span class="n">test_data_size</span><span class="p">:]</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">t_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">t_data</span> <span class="ow">in</span> <span class="n">train_data</span><span class="p">]</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">t_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">t_data</span> <span class="ow">in</span> <span class="n">test_data</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">TargetCollection</span><span class="p">(</span><span class="n">train_data</span><span class="p">),</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">test_data</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TargetCollection.to_json_file"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.to_json_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> 
+                     <span class="n">split</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                     <span class="n">group_by_sentence</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">random</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+                     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a Path to a json file that has stored the data as a sample json </span>
+<span class="sd">        encoded per line. If the split argument is set will return two Paths </span>
+<span class="sd">        the first being the training file and the second the test.</span>
+
+<span class="sd">        The Path does not need to be specified as it saves it to the </span>
+<span class="sd">        `~/.Bella/datasets/.` directory within your user space under the </span>
+<span class="sd">        dataset_name.</span>
+
+<span class="sd">        To split the bella.data_types.TargetCollection.split_dataset method is </span>
+<span class="sd">        used.</span>
+
+<span class="sd">        :param dataset_name: Name to associate to the dataset e.g. </span>
+<span class="sd">                             `SemEval 2014 rest train`. If split is not None </span>
+<span class="sd">                             then use a List of Strings e.g. </span>
+<span class="sd">                             [`SemEval 2014 rest train`, </span>
+<span class="sd">                             `SemEval 2014 rest dev`]</span>
+<span class="sd">        :param split: Whether or not to split the dataset into train, test </span>
+<span class="sd">                      split. If not use None else specify the fraction of </span>
+<span class="sd">                      the data to use for the test split.</span>
+<span class="sd">        :param cache: If the data is already saved use the Cache. Default </span>
+<span class="sd">                      is to use the cached data.</span>
+<span class="sd">        :param group_by_sentence: Whether the data should be grouped by sentence</span>
+<span class="sd">                                  this will then produce json lines that can </span>
+<span class="sd">                                  contain more than one target in a sentence.</span>
+<span class="sd">        :param random: Whether the splitting of the training and test should </span>
+<span class="sd">                       be random or not.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">def</span> <span class="nf">create_json_file</span><span class="p">(</span><span class="n">fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Given the a list of dictionaries that represent the Target data </span>
+<span class="sd">            converts these samples into json encoded samples which are saved on </span>
+<span class="sd">            each line within the file at the given file path(fp)</span>
+
+<span class="sd">            :param fp: File path that will store the json samples one per line</span>
+<span class="sd">            :param data: List of dictionaries that represent the Target data.</span>
+<span class="sd">            :return: Nothing that data will be saved to the file.</span>
+<span class="sd">            &#39;&#39;&#39;</span>                
+            <span class="k">with</span> <span class="n">fp</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">group_by_sentence</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">([</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">])</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">grouped_sentences</span>
+                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target_datas</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="n">target_datas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+                        <span class="n">sentiments</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">spans</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="n">target_datas</span><span class="p">:</span>
+                            <span class="n">sentiments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">])</span>
+                            <span class="n">spans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">])</span>
+                            <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span>
+                        <span class="n">sentence_data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span> <span class="s1">&#39;sentiments&#39;</span><span class="p">:</span> <span class="n">sentiments</span><span class="p">,</span>
+                                         <span class="s1">&#39;targets&#39;</span><span class="p">:</span> <span class="n">targets</span><span class="p">,</span> <span class="s1">&#39;spans&#39;</span><span class="p">:</span> <span class="n">spans</span><span class="p">}</span>
+                        <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">sentence_data</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{json_encoded_data}</span><span class="s1">&#39;</span>
+                        <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_encoded_data</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="s1">&#39;epoch_number&#39;</span> <span class="ow">in</span> <span class="n">target_data</span><span class="p">:</span>
+                            <span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">])</span>
+                        <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">target_data</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{json_encoded_data}</span><span class="s1">&#39;</span>
+                        <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_encoded_data</span><span class="p">)</span>
+            
+        <span class="c1"># If splitting the data there has to be two dataset names else one name</span>
+        <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        
+        <span class="n">BELLA_DATASET_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">dataset_names</span> <span class="o">=</span> <span class="n">dataset_name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">dataset_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span>
+        <span class="n">all_paths_exist</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dataset_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dataset_names</span><span class="p">:</span>
+            <span class="n">dataset_path</span> <span class="o">=</span> <span class="n">BELLA_DATASET_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dataset_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">all_paths_exist</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">dataset_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
+        <span class="c1"># Caching</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">and</span> <span class="n">all_paths_exist</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Using cache for the follwoing datasets: </span><span class="si">{dataset_names}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">dataset_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">dataset_paths</span>
+
+        <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">create_json_file</span><span class="p">(</span><span class="n">dataset_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">dataset_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Splitting</span>
+        <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span> 
+                                         <span class="n">random</span><span class="o">=</span><span class="n">random</span><span class="p">)</span>
+        <span class="n">create_json_file</span><span class="p">(</span><span class="n">dataset_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">train</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+        <span class="n">create_json_file</span><span class="p">(</span><span class="n">dataset_paths</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">test</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">dataset_paths</span></div>
+
+<div class="viewcode-block" id="TargetCollection.categories_targets"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.categories_targets">[docs]</a>    <span class="k">def</span> <span class="nf">categories_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">coarse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+                           <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> 
+                                      <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns two dictionaries. The first is a category to target list and </span>
+<span class="sd">        the second is a target to category list. Their is the option to have a </span>
+<span class="sd">        coarse grained cateogires option.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="s1">&#39;category&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The current TargetCollection must contain &#39;</span>
+                             <span class="s1">&#39;targets that have a category key&#39;</span><span class="p">)</span>
+
+        <span class="n">temp_category_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+            <span class="n">category</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">coarse</span><span class="p">:</span>
+                <span class="n">category</span> <span class="o">=</span> <span class="n">category</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+            <span class="n">temp_category_targets</span><span class="p">[</span><span class="n">category</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        
+        <span class="n">category_targets</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">target_categories</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">categories_filtered</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">temp_category_targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">filter</span><span class="p">:</span>
+                <span class="n">categories_filtered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">category_targets</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+                <span class="n">target_categories</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+        <span class="c1"># Which categories are filtered</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Filtered {len(categories_filtered)} categories which are:&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories_filtered</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">category_targets</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">target_categories</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.target_targets"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.target_targets">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">target_targets</span><span class="p">(</span><span class="n">target_set</span><span class="p">:</span> <span class="nb">set</span><span class="p">,</span> 
+                       <span class="n">category_targets</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+                       <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a dictionary of targets as keys and values are a list of </span>
+<span class="sd">        realted targets.</span>
+
+<span class="sd">        The related targets have all come from category_targets dictionary. </span>
+<span class="sd">        Where a target is related if it is in the same category. If it is in </span>
+<span class="sd">        multiple categories then all targets from each of those categories </span>
+<span class="sd">        are related.</span>
+
+<span class="sd">        :param target_set: A list of targets that are candiate keys in the </span>
+<span class="sd">                           returned dictionary.</span>
+<span class="sd">        :param category_targets: A dictionary of latent categories as keys </span>
+<span class="sd">                                 and related targets as values.</span>
+<span class="sd">        :returns: Dictionary of targets and their related targets as values </span>
+<span class="sd">                  where the related targets have come from the category_targets</span>
+<span class="sd">                  dictionary.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">target_rel_targets</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">target_set</span><span class="p">:</span>
+            <span class="n">rel_targets</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">cat_targets</span> <span class="ow">in</span> <span class="n">category_targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">cat_targets</span> <span class="ow">or</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">cat_targets</span><span class="p">:</span>
+                    <span class="n">rel_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cat_targets</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lower_cat_targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">cat_target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> 
+                                         <span class="k">for</span> <span class="n">cat_target</span> <span class="ow">in</span> <span class="n">cat_targets</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lower_cat_targets</span><span class="p">:</span>
+                        <span class="n">rel_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cat_targets</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rel_targets</span><span class="p">:</span>
+                <span class="n">rel_targets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">rel_targets</span><span class="p">))</span>
+
+                <span class="n">to_remove</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">rel_target</span> <span class="ow">in</span> <span class="n">rel_targets</span><span class="p">:</span>
+                    <span class="n">temp_rel_target</span> <span class="o">=</span> <span class="n">rel_target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">temp_rel_target</span><span class="p">:</span>
+                        <span class="n">to_remove</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rel_target</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">target_to_remove</span> <span class="ow">in</span> <span class="n">to_remove</span><span class="p">:</span>
+                    <span class="n">rel_targets</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">target_to_remove</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">to_remove</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The target that maps to the list of &#39;</span>
+                                     <span class="s1">&#39;related target should be in the related &#39;</span>
+                                     <span class="s1">&#39;targets before being filtered out&#39;</span><span class="p">)</span>
+                <span class="n">target_rel_targets</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="n">rel_targets</span>
+        <span class="k">return</span> <span class="n">target_rel_targets</span></div>
+
+<div class="viewcode-block" id="TargetCollection.target_set"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.target_set">[docs]</a>    <span class="k">def</span> <span class="nf">target_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a set of all the targets within this dataset.</span>
+
+<span class="sd">        :param lower: Whether to return the targets lower cased.</span>
+<span class="sd">        :returns: A set of all the targets within this dataset.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">targets</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">targets</span></div>
+
+<div class="viewcode-block" id="TargetCollection.subset_by_ids"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.subset_by_ids">[docs]</a>    <span class="k">def</span> <span class="nf">subset_by_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;TargetCollection&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a TargetCollection which is a subset of the current one. </span>
+<span class="sd">        Where the samples included in the subset are those with a `target_id`</span>
+<span class="sd">        that is within the ids List.</span>
+
+<span class="sd">        :param ids: A list of `target_id`s that are to be included in the </span>
+<span class="sd">                    subset</span>
+<span class="sd">        :returns: A subset of the current TargetCollection where the subset </span>
+<span class="sd">                  only includes samples that have a `target_id` in the ids </span>
+<span class="sd">                  given.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">subset_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">data_id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
+            <span class="n">rel_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">data_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="n">rel_data</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_id</span>
+            <span class="n">subset_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">rel_data</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">subset_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.dataset_metric_scores"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.dataset_metric_scores">[docs]</a>    <span class="k">def</span> <span class="nf">dataset_metric_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                              <span class="n">metric</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> 
+                                               <span class="nb">float</span><span class="p">],</span> 
+                              <span class="o">**</span><span class="n">metric_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a metric like accuracy returns all of the metric scores for the </span>
+<span class="sd">        dataset. This assumes that the dataset has the `predicted` sentiment </span>
+<span class="sd">        slot assigned.</span>
+
+<span class="sd">        :param metric: Metric function e.g. f1_score</span>
+<span class="sd">        :param metric_kwargs: Keyword arguments to provide to the metric </span>
+<span class="sd">                              function e.g. `average` = `macro`</span>
+<span class="sd">        :returns: An array of metric results. One for each column in the </span>
+<span class="sd">                  predicted sentiment array.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">true_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">()</span>
+        <span class="n">pred_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">(</span><span class="n">sentiment_field</span><span class="o">=</span><span class="s1">&#39;predicted&#39;</span><span class="p">)</span>
+        <span class="n">score_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pred_matrix</span><span class="p">,</span> 
+                                           <span class="n">true_labels</span><span class="p">,</span> <span class="o">**</span><span class="n">metric_kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">score_vector</span></div>
+
+
+    <span class="c1"># Not tested</span>
+<div class="viewcode-block" id="TargetCollection.targets_per_sentence"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.targets_per_sentence">[docs]</a>    <span class="k">def</span> <span class="nf">targets_per_sentence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: Dictionary of number of targets as keys and values the number \</span>
+<span class="sd">        of sentences that have that many targets per sentence.</span>
+<span class="sd">        :rtype: dict</span>
+
+<span class="sd">        :Example:</span>
+<span class="sd">        If we have 5 sentences that contain 1 target each and 4 sentences that</span>
+<span class="sd">        contain 3 targets each then it will return a dict like:</span>
+<span class="sd">        {1 : 5, 3 : 4}</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">targets_sentence</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">targets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_sentences</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">num_targets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="n">targets_sentence</span><span class="p">[</span><span class="n">num_targets</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets_sentence</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">num_targets</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">targets_sentence</span></div>
+
+    <span class="c1"># Not tested</span>
+<div class="viewcode-block" id="TargetCollection.avg_targets_per_sentence"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.avg_targets_per_sentence">[docs]</a>    <span class="k">def</span> <span class="nf">avg_targets_per_sentence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_sentences</span><span class="p">()</span></div>
+    <span class="c1"># Not tested</span>
+<div class="viewcode-block" id="TargetCollection.number_sentences"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.number_sentences">[docs]</a>    <span class="k">def</span> <span class="nf">number_sentences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grouped_sentences</span><span class="p">)</span></div>
+    <span class="c1"># Not tested</span>
+<div class="viewcode-block" id="TargetCollection.number_unique_targets"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.number_unique_targets">[docs]</a>    <span class="k">def</span> <span class="nf">number_unique_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">target_count</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">target_instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target_instance</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+            <span class="n">target_count</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_count</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_count</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.no_targets_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.no_targets_sentiment">[docs]</a>    <span class="k">def</span> <span class="nf">no_targets_sentiment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sentiment_targets</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">sentiment</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span>
+            <span class="n">sentiment_targets</span><span class="p">[</span><span class="n">sentiment</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment_targets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sentiment</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">sentiment_targets</span></div>
+
+<div class="viewcode-block" id="TargetCollection.ratio_targets_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.ratio_targets_sentiment">[docs]</a>    <span class="k">def</span> <span class="nf">ratio_targets_sentiment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">no_sentiment_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_targets_sentiment</span><span class="p">()</span>
+        <span class="n">total_targets</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">no_sentiment_target</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">ratio_sentiment_targets</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">sentiment</span><span class="p">,</span> <span class="n">no_targets</span> <span class="ow">in</span> <span class="n">no_sentiment_target</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">ratio_sentiment_targets</span><span class="p">[</span><span class="n">sentiment</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">no_targets</span> <span class="o">/</span> <span class="n">total_targets</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ratio_sentiment_targets</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grouped_sentences</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;Target&#39;</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        A dictionary of sentence_id as keys and a list of target instances that </span>
+<span class="sd">        have the same sentence_id as values.</span>
+
+<span class="sd">        It stores a cache of this result and the cache will expire once the </span>
+<span class="sd">        data has changed within itself and then this value will have to be </span>
+<span class="sd">        recomputed.</span>
+
+<span class="sd">        :returns: A dictionary of sentence_id as keys and a list of target </span>
+<span class="sd">                  instances that have the same sentence_id as values.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># If the data has changed re-compute or if the data has never been </span>
+        <span class="c1"># compute, compute else return the cached results.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentences</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">sentence_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+                <span class="k">if</span> <span class="s1">&#39;sentence_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;A Target id instance </span><span class="si">{target}</span><span class="s1"> does not &#39;</span>
+                                     <span class="s1">&#39;have a sentence_id which is required.&#39;</span><span class="p">)</span>
+                <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span>
+                <span class="n">sentence_targets</span><span class="p">[</span><span class="n">sentence_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentences</span> <span class="o">=</span> <span class="n">sentence_targets</span>
+            
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentences</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grouped_sentiments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;Target&#39;</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        A dictionary where the keys are all possible sentiment values, the </span>
+<span class="sd">        value is a list of Target(s) that only have that associated sentiment </span>
+<span class="sd">        value.</span>
+
+<span class="sd">        It stores a cache of this result and the cache will expire once the </span>
+<span class="sd">        data has changed within itself and then this value will have to be </span>
+<span class="sd">        recomputed.</span>
+
+<span class="sd">        :returns: A dictionary of sentiment values as keys and a list of target </span>
+<span class="sd">                  instances that have the same sentiment value.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># If the data has changed re-compute or if the data has never been </span>
+        <span class="c1"># compute, compute else return the cached results.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentiments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gs</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">sentiment_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+                <span class="n">sentiment_targets</span><span class="p">[</span><span class="n">target</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentiments</span> <span class="o">=</span> <span class="n">sentiment_targets</span>
+            
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentiments</span>  
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grouped_distinct_sentiments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;Target&#39;</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        A dictionary where the keys are the number of distinct sentiments that </span>
+<span class="sd">        the targets have in the associated value. A target has two distinct </span>
+<span class="sd">        sentiments if the associated sentence has contains targets that take </span>
+<span class="sd">        on one of two sentiment where at least one target has a different </span>
+<span class="sd">        sentiment to the rest. The targets in the values of this dictionary </span>
+<span class="sd">        are stored as a list of Target</span>
+
+<span class="sd">        It stores a cache of this result and the cache will expire once the </span>
+<span class="sd">        data has changed within itself and then this value will have to be </span>
+<span class="sd">        recomputed.</span>
+
+<span class="sd">        :returns: A dictionary of distinct sentiments per sentence as keys and </span>
+<span class="sd">                  a list of target instances that have the same distinct </span>
+<span class="sd">                  sentiments per sentence</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># If the data has changed re-compute or if the data has never been </span>
+        <span class="c1"># compute, compute else return the cached results.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gds</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_distinct_sentiments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_has_changed_gds</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">distinct_sentiment_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">targets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_sentences</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">target_col</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+                <span class="n">num_unique_sentiments</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_col</span><span class="o">.</span><span class="n">stored_sentiments</span><span class="p">())</span>
+                <span class="n">distinct_sentiment_targets</span><span class="p">[</span><span class="n">num_unique_sentiments</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_distinct_sentiments</span> <span class="o">=</span> <span class="n">distinct_sentiment_targets</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_distinct_sentiments</span>
+
+<div class="viewcode-block" id="TargetCollection.group_by_sentence"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.group_by_sentence">[docs]</a>    <span class="k">def</span> <span class="nf">group_by_sentence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is now deprecated, please use grouped_sentences property.</span>
+
+<span class="sd">        :returns: A dictionary of sentence_id as keys and a list of target \</span>
+<span class="sd">        instances that have the same sentence_id as values.</span>
+<span class="sd">        :rtype: defaultdict (default is list)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">dep_warning</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;This is now deprecated, please use grouped_sentences &#39;</span>
+                       <span class="s1">&#39;property.&#39;</span><span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">dep_warning</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+
+        <span class="n">sentence_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;sentence_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A Target id instance </span><span class="si">{}</span><span class="s1"> does not have &#39;</span>\
+                                 <span class="s1">&#39;a sentence_id which is required.&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
+            <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span>
+            <span class="n">sentence_targets</span><span class="p">[</span><span class="n">sentence_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sentence_targets</span></div>
+
+<div class="viewcode-block" id="TargetCollection.avg_constituency_depth"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.avg_constituency_depth">[docs]</a>    <span class="k">def</span> <span class="nf">avg_constituency_depth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">avg_depths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">sentence_trees</span> <span class="o">=</span> <span class="n">constituency_parse</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">])</span>
+            <span class="n">tree_depths</span> <span class="o">=</span> <span class="p">[</span><span class="n">tree</span><span class="o">.</span><span class="n">height</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">tree</span> <span class="ow">in</span> <span class="n">sentence_trees</span><span class="p">]</span>
+            <span class="n">avg_depth</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">tree_depths</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">sentence_trees</span><span class="p">)</span>
+            <span class="n">avg_depths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avg_depth</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">avg_depths</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">avg_depths</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.avg_sentence_length_per_target"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.avg_sentence_length_per_target">[docs]</a>    <span class="k">def</span> <span class="nf">avg_sentence_length_per_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="n">whitespace</span><span class="p">):</span>
+        <span class="n">all_sentence_lengths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">all_sentence_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokeniser</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">])))</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">all_sentence_lengths</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_sentence_lengths</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TargetCollection.word_list"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.word_list">[docs]</a>    <span class="k">def</span> <span class="nf">word_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+                  <span class="n">min_df</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param tokeniser: Tokeniser function to tokenise the text </span>
+<span class="sd">                          of each target/sample</span>
+<span class="sd">        :param min_df: Optional. The minimum percentage of documents a </span>
+<span class="sd">                       token must occur in.</span>
+<span class="sd">        :param lower: Optional. Whether to lower the text. </span>
+<span class="sd">        :return: A word list of all tokens that occur in this data collection </span>
+<span class="sd">                 given min_df.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">token_df</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">num_df</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">num_df</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokeniser</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+                    <span class="n">token</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">token_df</span><span class="p">[</span><span class="n">token</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">min_df_value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">num_df</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_df</span><span class="p">)</span>
+        <span class="n">word_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">token_df</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                     <span class="k">if</span> <span class="n">df</span> <span class="o">&gt;</span> <span class="n">min_df_value</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">word_list</span></div>
+
+<div class="viewcode-block" id="TargetCollection.combine_collections"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.combine_collections">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">combine_collections</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">all_targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">collections</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="n">all_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">data</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">all_targets</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: String returned is what user see when the instance is \</span>
+<span class="sd">        printed or printed within a interpreter.</span>
+<span class="sd">        :rtype: String</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">target_strings</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">self_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">self_len</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">target_strings</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> ... &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="n">self_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">target_strings</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+                <span class="n">target_strings</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">, &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target_strings</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">target_strings</span> <span class="o">=</span> <span class="n">target_strings</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;TargetCollection(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_strings</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+bella\.models package
+=====================
+
+Submodules
+----------
+
+bella\.models\.base module
+--------------------------
+
+.. automodule:: bella.models.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.models\.target module
+----------------------------
+
+.. automodule:: bella.models.target
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.models\.tdlstm module
+----------------------------
+
+.. automodule:: bella.models.tdlstm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.models\.tdparse module
+-----------------------------
+
+.. automodule:: bella.models.tdparse
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: bella.models
+    :members:
+    :undoc-members:
+    :show-inheritance:

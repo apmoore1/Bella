@@ -1,0 +1,150 @@
+bella package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+
+    bella.models
+    bella.scikit_features
+
+Submodules
+----------
+
+bella\.contexts module
+----------------------
+
+.. automodule:: bella.contexts
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.data\_types module
+-------------------------
+
+.. automodule:: bella.data_types
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.dependency\_parsers module
+---------------------------------
+
+.. automodule:: bella.dependency_parsers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.dependency\_tokens module
+--------------------------------
+
+.. automodule:: bella.dependency_tokens
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.error\_analysis module
+-----------------------------
+
+.. automodule:: bella.error_analysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.evaluation module
+------------------------
+
+.. automodule:: bella.evaluation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.helper module
+--------------------
+
+.. automodule:: bella.helper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.lexicons module
+----------------------
+
+.. automodule:: bella.lexicons
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.moses\_tools module
+--------------------------
+
+.. automodule:: bella.moses_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.neural\_pooling module
+-----------------------------
+
+.. automodule:: bella.neural_pooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.parsers module
+---------------------
+
+.. automodule:: bella.parsers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.stanford\_tools module
+-----------------------------
+
+.. automodule:: bella.stanford_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.syntactic\_contexts module
+---------------------------------
+
+.. automodule:: bella.syntactic_contexts
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.tokenisers module
+------------------------
+
+.. automodule:: bella.tokenisers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.word\_vectors module
+---------------------------
+
+.. automodule:: bella.word_vectors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.write\_data module
+-------------------------
+
+.. automodule:: bella.write_data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: bella
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,456 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.dependency_parsers &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.dependency_parsers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.dependency_parsers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Contains functions that perform depdency parsing.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">filelock</span> <span class="k">import</span> <span class="n">FileLock</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">from</span> <span class="nn">ruamel.yaml</span> <span class="k">import</span> <span class="n">YAML</span>
+<span class="kn">from</span> <span class="nn">tweebo_parser</span> <span class="k">import</span> <span class="n">API</span>
+
+<span class="kn">from</span> <span class="nn">bella.dependency_tokens</span> <span class="k">import</span> <span class="n">DependencyToken</span>
+<span class="kn">from</span> <span class="nn">bella</span> <span class="k">import</span> <span class="n">stanford_tools</span>
+
+<span class="n">BELLA_CONFIG_FP</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;.Bella&#39;</span><span class="p">,</span> <span class="s1">&#39;config.yaml&#39;</span><span class="p">)</span>
+<span class="n">BELLA_CONFIG_LOCK_FP</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;.Bella&#39;</span><span class="p">,</span> <span class="s1">&#39;config.yaml.lock&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TweeboParser"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_parsers.TweeboParser">[docs]</a><span class="k">class</span> <span class="nc">TweeboParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Singleton Class instance</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">instance</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TweeboParser.get_config"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_parsers.TweeboParser.get_config">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="s1">&#39;0.0.0.0&#39;</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="mi">8000</span>
+        <span class="n">yaml</span> <span class="o">=</span> <span class="n">YAML</span><span class="p">()</span>
+        <span class="n">config_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">BELLA_CONFIG_FP</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">lock</span> <span class="o">=</span> <span class="n">FileLock</span><span class="p">(</span><span class="n">BELLA_CONFIG_LOCK_FP</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">BELLA_CONFIG_FP</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">with</span> <span class="n">BELLA_CONFIG_FP</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">config_file</span><span class="p">:</span>
+                    <span class="n">config_data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;tweebo_parser&#39;</span> <span class="ow">in</span> <span class="n">config_data</span><span class="p">:</span>
+                        <span class="n">tweebo_config</span> <span class="o">=</span> <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;tweebo_parser&#39;</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="s1">&#39;hostname&#39;</span> <span class="ow">in</span> <span class="n">tweebo_config</span><span class="p">:</span>
+                            <span class="n">hostname</span> <span class="o">=</span> <span class="n">tweebo_config</span><span class="p">[</span><span class="s1">&#39;hostname&#39;</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="s1">&#39;port&#39;</span> <span class="ow">in</span> <span class="n">tweebo_config</span><span class="p">:</span>
+                            <span class="n">port</span> <span class="o">=</span> <span class="n">tweebo_config</span><span class="p">[</span><span class="s1">&#39;port&#39;</span><span class="p">]</span>
+
+            <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;tweebo_parser&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;tweebo_parser&#39;</span><span class="p">][</span><span class="s1">&#39;hostname&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hostname</span>
+            <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;tweebo_parser&#39;</span><span class="p">][</span><span class="s1">&#39;port&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">port</span>
+            <span class="k">with</span> <span class="n">BELLA_CONFIG_FP</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">config_file</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config_data</span><span class="p">,</span> <span class="n">config_file</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hostname</span><span class="p">,</span> <span class="n">port</span></div>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">TweeboParser</span><span class="o">.</span><span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hostname</span><span class="p">,</span> <span class="n">port</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+            <span class="n">TweeboParser</span><span class="o">.</span><span class="n">instance</span> <span class="o">=</span> <span class="n">API</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="n">hostname</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> 
+                                        <span class="n">log_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TweeboParser</span><span class="o">.</span><span class="n">instance</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_to_dependencies_tokens</span><span class="p">(</span><span class="n">token_dep_sentence</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>
+                            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DependencyToken</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    NOTE:</span>
+<span class="sd">    The DependencyToken allows easy access to all the dependency links for that</span>
+<span class="sd">    token.</span>
+
+<span class="sd">    :param token_dep_sentence: list of tuples that contain (token, linked \</span>
+<span class="sd">    index token)</span>
+<span class="sd">    :type token_dep_sentence: list</span>
+<span class="sd">    :returns: A list of DependencyToken instances one for each tuple/token.</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">dep_search</span><span class="p">(</span><span class="n">dep_index</span><span class="p">,</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">dep_info</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is a tail recusive function that returns a dictionary denoting</span>
+<span class="sd">        which index in the sentence relates to the other tokens in the sentence</span>
+<span class="sd">        and at what dependency depth.</span>
+
+<span class="sd">        :param dep_index: The index of the token whos dependecies are being \</span>
+<span class="sd">        collected</span>
+<span class="sd">        :param sentence: List of tuples which contain (token, index of \</span>
+<span class="sd">        head word)</span>
+<span class="sd">        :param dep_info: default dict whose keys are indexs from the sentence \</span>
+<span class="sd">        and value is a default dict whose keys are dependency depths and \</span>
+<span class="sd">        value is the sentence index related to that dependency depth.</span>
+<span class="sd">        :type dep_index: int</span>
+<span class="sd">        :type sentence: list</span>
+<span class="sd">        :type dep_info: defaultdict</span>
+<span class="sd">        :returns: Default dictionary whose keys are sentence indexs, values \</span>
+<span class="sd">        are default dictionaries whose keys are dependency depths and value \</span>
+<span class="sd">        is the associated sentence index to that depth.</span>
+<span class="sd">        :rtype: defaultdict</span>
+
+<span class="sd">        :Example:</span>
+<span class="sd">        &gt;&gt;&gt; sentence = [(&#39;To&#39;, -1), (&#39;appear&#39;, 0), (&#39;(&#39;, -2),</span>
+<span class="sd">                        (&#39;EMNLP&#39;, 1), (&#39;2014&#39;, 3)]</span>
+<span class="sd">        &gt;&gt;&gt; dep_info = defaultdict(lambda: dict())</span>
+<span class="sd">        &gt;&gt;&gt; print(dep_search(4, sentence, dep_info))</span>
+<span class="sd">        &gt;&gt;&gt; {0 : {1 : 1, 2 : 3, 3 : 4},</span>
+<span class="sd">             1 : {1 : 3, 2 : 3},</span>
+<span class="sd">             3 : {1 : 4},</span>
+<span class="sd">             4 : {}}</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">head_index</span> <span class="o">=</span> <span class="n">sentence</span><span class="p">[</span><span class="n">dep_index</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">head_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">head_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dep_info</span>
+        <span class="n">prev_dep_info</span> <span class="o">=</span> <span class="n">dep_info</span><span class="p">[</span><span class="n">dep_index</span><span class="p">]</span>
+        <span class="n">head_deps</span> <span class="o">=</span> <span class="p">{</span><span class="n">dep_level</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span> <span class="n">deps</span>
+                     <span class="k">for</span> <span class="n">dep_level</span><span class="p">,</span> <span class="n">deps</span> <span class="ow">in</span> <span class="n">prev_dep_info</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">head_deps</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dep_index</span>
+        <span class="n">dep_info</span><span class="p">[</span><span class="n">head_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">head_deps</span>
+        <span class="k">return</span> <span class="n">dep_search</span><span class="p">(</span><span class="n">head_index</span><span class="p">,</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">dep_info</span><span class="p">)</span>
+
+    <span class="n">dep_results</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">token_dep_sentence</span><span class="p">):</span>
+        <span class="n">dep_result</span> <span class="o">=</span> <span class="n">dep_search</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">token_dep_sentence</span><span class="p">,</span>
+                                <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">dict</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">token_index</span><span class="p">,</span> <span class="n">dependencies</span> <span class="ow">in</span> <span class="n">dep_result</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">dep_level</span><span class="p">,</span> <span class="n">dependent</span> <span class="ow">in</span> <span class="n">dependencies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">dep_results</span><span class="p">[</span><span class="n">token_index</span><span class="p">][</span><span class="n">dep_level</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dependent</span><span class="p">)</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">token_related_index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">token_dep_sentence</span><span class="p">):</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">token</span><span class="p">,</span> <span class="n">related_index</span> <span class="o">=</span> <span class="n">token_related_index</span>
+        <span class="n">related_index</span> <span class="o">=</span> <span class="n">related_index</span>
+        <span class="k">if</span> <span class="n">related_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">}:</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">related_index</span><span class="p">)</span>
+
+    <span class="c1"># Convert each of the tokens in the sentence into a dependent token</span>
+    <span class="c1"># using the results from searching through the dependencies</span>
+    <span class="n">dep_tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">token_index</span><span class="p">,</span> <span class="n">token_dep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">token_dep_sentence</span><span class="p">):</span>
+        <span class="n">token</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">token_dep</span>
+        <span class="n">depth_related</span> <span class="o">=</span> <span class="n">dep_results</span><span class="p">[</span><span class="n">token_index</span><span class="p">]</span>
+        <span class="n">token_relations</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="n">connected_indexs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">node_relations</span> <span class="ow">in</span> <span class="n">nx</span><span class="o">.</span><span class="n">bfs_successors</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">token_index</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">node_relation</span> <span class="ow">in</span> <span class="n">node_relations</span><span class="p">:</span>
+                <span class="n">connected_indexs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node_relation</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">token_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">connected_indexs</span><span class="p">:</span>
+            <span class="n">connected_indexs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">token_index</span><span class="p">)</span>
+        <span class="n">connected_indexs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">connected_indexs</span><span class="p">))</span>
+        <span class="n">connected_words</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">connected_index</span> <span class="ow">in</span> <span class="n">connected_indexs</span><span class="p">:</span>
+            <span class="n">connected_word</span> <span class="o">=</span> <span class="n">token_dep_sentence</span><span class="p">[</span><span class="n">connected_index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">connected_index</span> <span class="o">==</span> <span class="n">token_index</span><span class="p">:</span>
+                <span class="n">connected_words</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">connected_word</span><span class="p">,</span> <span class="s1">&#39;CURRENT&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">connected_words</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">connected_word</span><span class="p">,</span> <span class="s1">&#39;CONNECTED&#39;</span><span class="p">))</span>
+        <span class="c1"># Get the tokens relations</span>
+        <span class="k">for</span> <span class="n">depth</span><span class="p">,</span> <span class="n">related_tokens_index</span> <span class="ow">in</span> <span class="n">depth_related</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">related_token_index</span> <span class="ow">in</span> <span class="n">related_tokens_index</span><span class="p">:</span>
+                <span class="n">related_token</span> <span class="o">=</span> <span class="n">token_dep_sentence</span><span class="p">[</span><span class="n">related_token_index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">token_relations</span><span class="p">[</span><span class="n">depth</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">related_token</span><span class="p">)</span>
+        <span class="n">dep_tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DependencyToken</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">token_relations</span><span class="p">,</span>
+                                          <span class="n">connected_words</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dep_tokens</span>
+
+
+<div class="viewcode-block" id="tweebo"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_parsers.tweebo">[docs]</a><span class="k">def</span> <span class="nf">tweebo</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DependencyToken</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a list of Strings will tokenise, pos tag and then dependecy parse</span>
+<span class="sd">    the text using `Tweebo &lt;https://github.com/ikekonglp/TweeboParser&gt;`_</span>
+<span class="sd">    a Tweet specific parser.</span>
+
+<span class="sd">    The Tweebo parser cannot handle no strings therefore a special empty string</span>
+<span class="sd">    symbol is required.</span>
+
+<span class="sd">    If one of the texts is an empty String then an empty list will be returned</span>
+<span class="sd">    for that index of the returned list.</span>
+
+<span class="sd">    :param texts: The texts that are to be parsed</span>
+<span class="sd">    :type text: list</span>
+<span class="sd">    :returns: A list of of a list of DependencyToken instances. A list per \</span>
+<span class="sd">    text in the texts argument.</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">tweebo_api</span> <span class="o">=</span> <span class="n">TweeboParser</span><span class="p">()</span>
+    <span class="n">texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+    <span class="n">processed_texts</span> <span class="o">=</span> <span class="n">tweebo_api</span><span class="o">.</span><span class="n">parse_conll</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+
+    <span class="n">dep_texts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">processed_text</span> <span class="ow">in</span> <span class="n">processed_texts</span><span class="p">:</span>
+        <span class="n">token_dep_indexs</span> <span class="o">=</span> <span class="n">_convert_conll</span><span class="p">(</span><span class="n">processed_text</span><span class="p">)</span>
+        <span class="n">dep_texts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_to_dependencies_tokens</span><span class="p">(</span><span class="n">token_dep_indexs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dep_texts</span></div>
+
+
+<span class="k">def</span> <span class="nf">_convert_conll</span><span class="p">(</span><span class="n">conll_data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+    <span class="n">token_dep_indexs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">conll_data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">column_data</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">word</span> <span class="o">=</span> <span class="n">column_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="c1"># All the word indexs start at 1 not 0.</span>
+        <span class="c1"># Need to take into account the previous sentence words</span>
+        <span class="n">dep_token_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">column_data</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">token_dep_indexs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">dep_token_index</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">token_dep_indexs</span>
+
+
+<div class="viewcode-block" id="stanford"><a class="viewcode-back" href="../../source/bella.html#bella.dependency_parsers.stanford">[docs]</a><span class="k">def</span> <span class="nf">stanford</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DependencyToken</span><span class="p">]:</span>
+
+    <span class="n">dep_texts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">:</span>
+        <span class="n">dep_dicts</span><span class="p">,</span> <span class="n">tokens_dicts</span> <span class="o">=</span> <span class="n">stanford_tools</span><span class="o">.</span><span class="n">dependency_parse</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">token_dep_indexs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">prev_sent_length</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tokens_dicts</span><span class="p">):</span>
+            <span class="n">tokens_dict</span> <span class="o">=</span> <span class="n">tokens_dicts</span><span class="p">[</span><span class="n">sentence</span><span class="p">]</span>
+            <span class="n">dep_dict</span> <span class="o">=</span> <span class="n">dep_dicts</span><span class="p">[</span><span class="n">sentence</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens_dict</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">word</span> <span class="o">=</span> <span class="n">tokens_dict</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;word&#39;</span><span class="p">]</span>
+                <span class="c1"># All the word indexs start at 1 not 0.</span>
+                <span class="c1"># Need to take into account the previous sentence words</span>
+                <span class="n">dep_word_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">dep_dict</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">prev_sent_length</span>
+                <span class="c1"># If True then it is the root word</span>
+                <span class="k">if</span> <span class="n">dep_word_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">prev_sent_length</span><span class="p">:</span>
+                    <span class="n">dep_word_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">token_dep_indexs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">word</span><span class="p">,</span> <span class="n">dep_word_index</span><span class="p">))</span>
+            <span class="n">prev_sent_length</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens_dict</span><span class="p">)</span>
+        <span class="n">dep_texts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_to_dependencies_tokens</span><span class="p">(</span><span class="n">token_dep_indexs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dep_texts</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

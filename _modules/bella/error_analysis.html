@@ -1,0 +1,450 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.error_analysis &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.error_analysis</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.error_analysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Functions that given a TargetCollection and any number of kwargs will </span>
+<span class="sd">return a list of `target_id`s from the given TargetCollection.</span>
+
+<span class="sd">These functions are used to subset TargetCollection so that we can get </span>
+<span class="sd">subset metrics e.g. Accuracy score for samples within the TargetCollection </span>
+<span class="sd">that have only one sentiment within the sentence that sample came from</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">Target</span>
+
+<div class="viewcode-block" id="targets_to_samples"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.targets_to_samples">[docs]</a><span class="k">def</span> <span class="nf">targets_to_samples</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Target</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a dataset and a set of target words, it will return a subset of the </span>
+<span class="sd">    dataset where all samples in the subset have target words that are in the </span>
+<span class="sd">    targets set.</span>
+
+<span class="sd">    :param dataset: TargetCollection containing samples</span>
+<span class="sd">    :param targets: A set of target words used to subset the dataset</span>
+<span class="sd">    :param lower: Whether to lower case the target words. If this is True </span>
+<span class="sd">                  it is up to you to ensure all the words in the `targets` set </span>
+<span class="sd">                  have been lower cased.</span>
+<span class="sd">    :returns: A subset of the dataset where all targets in the subset are </span>
+<span class="sd">              within the `targets` set.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+            <span class="n">samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">samples</span></div>
+
+<div class="viewcode-block" id="target_sentiments"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.target_sentiments">[docs]</a><span class="k">def</span> <span class="nf">target_sentiments</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> 
+                      <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a dataset will return a dictionary of targets and the sentiment </span>
+<span class="sd">    that has been associated to those targets.</span>
+
+<span class="sd">    E.g. within the dataset that `target` `camera` may have only been seen </span>
+<span class="sd">    with a positive and a negative label but not neutral therefore in the </span>
+<span class="sd">    returned dictionary it would be {`camera`: [`positive`, `negative`]}</span>
+
+<span class="sd">    :param dataset: TargetCollection containing samples</span>
+<span class="sd">    :param lower: Whether to lower case the target words.</span>
+<span class="sd">    :returns: A dictionary where the keys are target words and the values </span>
+<span class="sd">              are the sentiment values that have been associated to those </span>
+<span class="sd">              targets.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">targets_sentiments</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">targets_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">targets_sentiments</span></div>
+
+<div class="viewcode-block" id="same_one_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.same_one_sentiment">[docs]</a><span class="k">def</span> <span class="nf">same_one_sentiment</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> 
+                       <span class="n">train_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> 
+                       <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a test and train dataset will return all of the test dataset sample </span>
+<span class="sd">    ids that contain targets that have the same one sentiment label associated </span>
+<span class="sd">    to them in the train and test sets.</span>
+
+<span class="sd">    :param test_dataset: Test TargetCollection</span>
+<span class="sd">    :param train_dataset: Train TargetCollection</span>
+<span class="sd">    :param lower: Whether to lower case the target words</span>
+<span class="sd">    :returns: A list of sample ids from the test dataset.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">train_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">test_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+
+    <span class="n">same_one_sentiments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">test_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">target</span> <span class="ow">in</span> <span class="n">train_target_sentiments</span> <span class="ow">and</span> 
+            <span class="n">target</span> <span class="ow">in</span> <span class="n">test_target_sentiments</span><span class="p">):</span>
+            <span class="n">train_sentiments</span> <span class="o">=</span> <span class="n">train_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="n">test_sentiments</span> <span class="o">=</span> <span class="n">test_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_sentiments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> 
+                <span class="nb">len</span><span class="p">(</span><span class="n">test_sentiments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">train_sentiments</span> <span class="o">==</span> <span class="n">test_sentiments</span><span class="p">:</span>
+                    <span class="n">same_one_sentiments</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="n">same_one_samples</span> <span class="o">=</span> <span class="n">targets_to_samples</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">same_one_sentiments</span><span class="p">,</span> 
+                                          <span class="n">lower</span><span class="p">)</span>
+    <span class="n">same_one_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">same_one_samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">same_one_ids</span></div>
+
+<div class="viewcode-block" id="same_multi_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.same_multi_sentiment">[docs]</a><span class="k">def</span> <span class="nf">same_multi_sentiment</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                         <span class="n">train_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                         <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a test and train dataset will return all of the test dataset sample </span>
+<span class="sd">    ids that contain targets that have occured more than once in the train and </span>
+<span class="sd">    test sets with the same sentiment labels.</span>
+
+<span class="sd">    :param test_dataset: Test TargetCollection</span>
+<span class="sd">    :param train_dataset: Train TargetCollection</span>
+<span class="sd">    :param lower: Whether to lower case the target words</span>
+<span class="sd">    :returns: A list of sample ids from the test dataset.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">train_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">test_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+
+    <span class="n">same_multi_sentiments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">test_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">target</span> <span class="ow">in</span> <span class="n">train_target_sentiments</span> <span class="ow">and</span> 
+            <span class="n">target</span> <span class="ow">in</span> <span class="n">test_target_sentiments</span><span class="p">):</span>
+            <span class="n">train_sentiments</span> <span class="o">=</span> <span class="n">train_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="n">test_sentiments</span> <span class="o">=</span> <span class="n">test_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_sentiments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> 
+                <span class="nb">len</span><span class="p">(</span><span class="n">test_sentiments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">train_sentiments</span> <span class="o">==</span> <span class="n">test_sentiments</span><span class="p">:</span>
+                    <span class="n">same_multi_sentiments</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">same_multi_samples</span> <span class="o">=</span> <span class="n">targets_to_samples</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">same_multi_sentiments</span><span class="p">,</span> 
+                                            <span class="n">lower</span><span class="p">)</span>
+    <span class="n">same_multi_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">same_multi_samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">same_multi_ids</span></div>
+
+<div class="viewcode-block" id="similar_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.similar_sentiment">[docs]</a><span class="k">def</span> <span class="nf">similar_sentiment</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                      <span class="n">train_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                      <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a test and train dataset will return all of the test dataset sample </span>
+<span class="sd">    ids that contain targets that have occured more than once in the train or </span>
+<span class="sd">    test sets with at least some overlap between the test sentiment and train </span>
+<span class="sd">    but not identical. E.g. the target `camera` could occur with `positive` and</span>
+<span class="sd">    `negative` sentiment in the test set and only `negative` in the train set.</span>
+
+<span class="sd">    :param test_dataset: Test TargetCollection</span>
+<span class="sd">    :param train_dataset: Train TargetCollection</span>
+<span class="sd">    :param lower: Whether to lower case the target words</span>
+<span class="sd">    :returns: A list of sample ids from the test dataset.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">train_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">test_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+
+    <span class="n">similar_sentiments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">test_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">target</span> <span class="ow">in</span> <span class="n">train_target_sentiments</span> <span class="ow">and</span> 
+            <span class="n">target</span> <span class="ow">in</span> <span class="n">test_target_sentiments</span><span class="p">):</span>
+            <span class="n">train_sentiments</span> <span class="o">=</span> <span class="n">train_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="n">test_sentiments</span> <span class="o">=</span> <span class="n">test_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_sentiments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> 
+                <span class="nb">len</span><span class="p">(</span><span class="n">test_sentiments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">train_sentiments</span> <span class="o">==</span> <span class="n">test_sentiments</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">test_sentiments</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">train_sentiments</span><span class="p">):</span>
+                    <span class="n">similar_sentiments</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">similar_samples</span> <span class="o">=</span> <span class="n">targets_to_samples</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">similar_sentiments</span><span class="p">,</span> 
+                                         <span class="n">lower</span><span class="p">)</span>
+    <span class="n">similar_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">similar_samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">similar_ids</span></div>
+
+<div class="viewcode-block" id="different_sentiment"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.different_sentiment">[docs]</a><span class="k">def</span> <span class="nf">different_sentiment</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                        <span class="n">train_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> 
+                        <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a test and train dataset will return all of the test dataset sample </span>
+<span class="sd">    ids that contain targets that have different sentiment labels with no </span>
+<span class="sd">    overlap in the test compared to the train set.</span>
+
+<span class="sd">    :param test_dataset: Test TargetCollection</span>
+<span class="sd">    :param train_dataset: Train TargetCollection</span>
+<span class="sd">    :param lower: Whether to lower case the target words</span>
+<span class="sd">    :returns: A list of sample ids from the test dataset.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">train_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">test_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+
+    <span class="n">different_sentiments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">test_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">target</span> <span class="ow">in</span> <span class="n">train_target_sentiments</span> <span class="ow">and</span> 
+            <span class="n">target</span> <span class="ow">in</span> <span class="n">test_target_sentiments</span><span class="p">):</span>
+            <span class="n">train_sentiments</span> <span class="o">=</span> <span class="n">train_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="n">test_sentiments</span> <span class="o">=</span> <span class="n">test_target_sentiments</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">test_sentiments</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">train_sentiments</span><span class="p">):</span>
+                <span class="n">different_sentiments</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">different_samples</span> <span class="o">=</span> <span class="n">targets_to_samples</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">different_sentiments</span><span class="p">,</span> 
+                                           <span class="n">lower</span><span class="p">)</span>
+    <span class="n">different_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">different_samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">different_ids</span></div>
+
+<div class="viewcode-block" id="unknown_targets"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.unknown_targets">[docs]</a><span class="k">def</span> <span class="nf">unknown_targets</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span>
+                    <span class="n">train_dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> 
+                    <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a test and train dataset will return all of the test dataset sample </span>
+<span class="sd">    ids that contain targets that did not exist in the training data.</span>
+
+<span class="sd">    :param test_dataset: Test TargetCollection</span>
+<span class="sd">    :param train_dataset: Train TargetCollection</span>
+<span class="sd">    :param lower: Whether to lower case the target words</span>
+<span class="sd">    :returns: A list of sample ids from the test dataset.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">train_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">test_target_sentiments</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+
+    <span class="n">unknowns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">test_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">target</span> <span class="ow">in</span> <span class="n">train_target_sentiments</span> <span class="ow">and</span> 
+            <span class="n">target</span> <span class="ow">in</span> <span class="n">test_target_sentiments</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unknowns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="n">unknown_samples</span> <span class="o">=</span> <span class="n">targets_to_samples</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">unknowns</span><span class="p">,</span> <span class="n">lower</span><span class="p">)</span>
+    <span class="n">unknown_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">unknown_samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">unknown_ids</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

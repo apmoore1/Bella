@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.neural_pooling &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.neural_pooling</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.neural_pooling</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Contains the following neural pooling functions:</span>
+
+<span class="sd">1. min</span>
+<span class="sd">2. max</span>
+<span class="sd">3. avg</span>
+
+<span class="sd">Which are from</span>
+<span class="sd">`Tang et al &lt;https://aclanthology.coli.uni-saarland.de/papers/P14-1146/p14-1146&gt;`_.</span>
+
+<span class="sd">and the following pooling functions:</span>
+
+<span class="sd">4. prod</span>
+<span class="sd">5. std</span>
+
+<span class="sd">Which are from</span>
+<span class="sd">`Vo and Zhang &lt;https://www.ijcai.org/Proceedings/15/Papers/194.pdf&gt;`_.</span>
+
+<span class="sd">and finally the following pooling function:</span>
+
+<span class="sd">6. median</span>
+
+<span class="sd">From `Bo Wang et al.</span>
+<span class="sd">&lt;https://aclanthology.coli.uni-saarland.de/papers/E17-1046/e17-1046&gt;`_</span>
+
+<span class="sd">All the functions are applied over the columns and not the rows e.g. matrix</span>
+<span class="sd">of (m, n) size and apply mean it will return a vector of (1, n). Therefore by</span>
+<span class="sd">default all of the vectors returned are row vectors but if transpose is True</span>
+<span class="sd">then column vectors are returned.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">wraps</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="inf_nan_check"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.inf_nan_check">[docs]</a><span class="k">def</span> <span class="nf">inf_nan_check</span><span class="p">(</span><span class="n">neural_func</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Contains decorator function that converts any inf or NAN value to a real</span>
+<span class="sd">    number to avoid any potential problems with inf and NAN&#39;s latter on in the</span>
+<span class="sd">    processing chain.</span>
+
+<span class="sd">    Inf conversion - Converts it to the max (min) value of the numpy array/matrix</span>
+<span class="sd">    dtype based on it being positive (negative) value.</span>
+
+<span class="sd">    NAN conversion - based on the following</span>
+<span class="sd">    `post &lt;https://stackoverflow.com/questions/25506281/what-are-all-the-possib\</span>
+<span class="sd">    le-calculations-that-could-cause-a-nan-in-python&gt;`_ about how NAN&#39;s occur.</span>
+<span class="sd">    It converts NAN&#39;s to zeros as the majority of the operation should equal</span>
+<span class="sd">    zero or are close to zero. This is a rough approximation but it should not</span>
+<span class="sd">    affect that many numbers.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">neural_func</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">func_wrapper</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param matrix: Numpy array/matrix that could contain NAN or inf values.</span>
+<span class="sd">        :param transpose: If to convert the column vector into row vector</span>
+<span class="sd">        :type matrix: np.ndarray</span>
+<span class="sd">        :type transpose: bool</span>
+<span class="sd">        :returns: The numpy array/matrix with NAN and inf values converted to \</span>
+<span class="sd">        real values.</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">neural_func</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Only accept floating value word embeddings not &#39;</span>\
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+        <span class="c1"># Convert all NAN values to zero</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">matrix</span><span class="p">)):</span>
+            <span class="n">matrix</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">matrix</span><span class="p">))]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Find any value that is greater than half the min and max values and</span>
+        <span class="c1"># convert them to half the min or max value respectively. This is</span>
+        <span class="c1"># done to ensure that range can be done without overflow exception</span>
+        <span class="n">dtype_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="n">dtype_info</span><span class="o">.</span><span class="n">min</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">dtype_info</span><span class="o">.</span><span class="n">max</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">matrix</span> <span class="o">&lt;</span> <span class="n">min_value</span><span class="p">])</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">matrix</span> <span class="o">&gt;</span> <span class="n">max_value</span><span class="p">]):</span>
+            <span class="n">matrix</span><span class="p">[</span><span class="n">matrix</span> <span class="o">&lt;</span> <span class="n">min_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_value</span>
+            <span class="n">matrix</span><span class="p">[</span><span class="n">matrix</span> <span class="o">&gt;</span> <span class="n">max_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_value</span>
+
+        <span class="k">return</span> <span class="n">matrix</span>
+
+    <span class="k">return</span> <span class="n">func_wrapper</span></div>
+
+<div class="viewcode-block" id="matrix_checking"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_checking">[docs]</a><span class="k">def</span> <span class="nf">matrix_checking</span><span class="p">(</span><span class="n">neural_func</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Contains decorator function to check argument compbatbility and the</span>
+<span class="sd">    decorated functions return. The functions decorated are the neural functions</span>
+<span class="sd">    which are:</span>
+
+<span class="sd">    1. :py:func:`bella.neural_pooling.matrix_min`</span>
+<span class="sd">    2. :py:func:`bella.neural_pooling.matrix_max`</span>
+<span class="sd">    3. :py:func:`bella.neural_pooling.matrix_avg`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">neural_func</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">func_wrapper</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Checks the matrix is of the correct type and that the return matrix</span>
+<span class="sd">        is of the correct size after the neural_func function has been applied to</span>
+<span class="sd">        the matrix.</span>
+
+<span class="sd">        inf values are converted to max (min) value defined by the dtype if</span>
+<span class="sd">        the value is positive (negative).</span>
+
+<span class="sd">        Applies transpose to convert row vectors into column vectors if</span>
+<span class="sd">        transpose == False</span>
+
+<span class="sd">        :param matrix: matrix or vector</span>
+<span class="sd">        :param transpose: If to convert the column vector into row vector</span>
+<span class="sd">        :type matrix: np.ndarray</span>
+<span class="sd">        :type transpose: bool</span>
+<span class="sd">        :returns: The output of the neural_func function.</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Pre check</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The matrix has to be of type numpy.ndarray and not &#39;</span>\
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">matrix</span><span class="p">)))</span>
+        <span class="c1"># Applying the relevant neural pooling function</span>
+        <span class="n">reduced_matrix</span> <span class="o">=</span> <span class="n">neural_func</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+        <span class="c1"># Post check</span>
+        <span class="n">rm_cols</span> <span class="o">=</span> <span class="n">reduced_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">rm_dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reduced_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rm_dim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The returned matrix should be a vector and have &#39;</span>\
+                             <span class="s1">&#39;a dimension of 1 it is: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rm_dim</span><span class="p">))</span>
+        <span class="n">m_columns</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">rm_cols</span> <span class="o">!=</span> <span class="n">m_columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The number of columns has changed during the pooling&#39;</span>\
+                             <span class="s1">&#39;func from </span><span class="si">{}</span><span class="s1"> to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m_columns</span><span class="p">,</span> <span class="n">rm_cols</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">transpose</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reduced_matrix</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rm_cols</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reduced_matrix</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rm_cols</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">func_wrapper</span></div>
+
+<div class="viewcode-block" id="matrix_min"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_min">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_min</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The minimum column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_max"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_max">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_max</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The maximum column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_avg"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_avg">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_avg</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The mean column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_median"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_median">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_median</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The median column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_std"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_std">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_std</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The standard deviation of the column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_prod"><a class="viewcode-back" href="../../source/bella.html#bella.neural_pooling.matrix_prod">[docs]</a><span class="nd">@inf_nan_check</span>
+<span class="nd">@matrix_checking</span>
+<span class="k">def</span> <span class="nf">matrix_prod</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param matrix: matrix or vector</span>
+<span class="sd">    :param kwargs: Can keywords that are accepted by `matrix_checking` function</span>
+<span class="sd">    :type matrix: np.ndarray</span>
+<span class="sd">    :type kwargs: dict</span>
+<span class="sd">    :returns: The product of the column values in the matrix.</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

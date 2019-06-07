@@ -1,0 +1,605 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.syntactic_contexts &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.syntactic_contexts</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.syntactic_contexts</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">A set of functions which either produce contexts and related targets based on</span>
+<span class="sd">syntactic parsing. Or functions that create</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">Target</span>
+<span class="kn">from</span> <span class="nn">bella.dependency_parsers</span> <span class="k">import</span> <span class="n">stanford</span>
+
+
+<div class="viewcode-block" id="normalise_target"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.normalise_target">[docs]</a><span class="k">def</span> <span class="nf">normalise_target</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">sorted_target_spans</span><span class="p">,</span> <span class="n">renormalise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">add_target_to_text</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="n">target_added_text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">sorted_target_spans</span><span class="p">:</span>
+            <span class="n">start_text</span> <span class="o">=</span> <span class="n">target_added_text</span><span class="p">[:</span> <span class="n">start</span><span class="p">]</span>
+            <span class="n">end_text</span> <span class="o">=</span> <span class="n">target_added_text</span><span class="p">[</span><span class="n">end</span> <span class="p">:]</span>
+            <span class="n">start_text</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="n">target_added_text</span> <span class="o">=</span> <span class="n">start_text</span> <span class="o">+</span> <span class="n">end_text</span>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_added_text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">replace_target_in_text</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">new_target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">new_target</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">check_target_unique</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">):</span>
+        <span class="n">escaped_target</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">num_target_occurences</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">escaped_target</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">num_target_occurences</span> <span class="o">!=</span> <span class="n">num_target_spans</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">norm_target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">norm_text</span> <span class="o">=</span> <span class="n">text</span>
+    <span class="n">num_target_spans</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sorted_target_spans</span><span class="p">)</span>
+
+    <span class="n">split_target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">num_spaces_in_target</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_target</span><span class="p">)</span>
+    <span class="c1"># Converts words such LG Flat Screen into LG_FlatScreen This is done as the</span>
+    <span class="c1"># parser won&#39;t keep a word as a word if it is LG_Flat_Screen</span>
+    <span class="k">if</span> <span class="n">renormalise</span><span class="p">:</span>
+        <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_target</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;#&#39;</span> <span class="ow">or</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;@&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;#</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;@&#39;</span> <span class="ow">in</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;@</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">parser</span> <span class="o">==</span> <span class="n">stanford</span><span class="p">:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm_target</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;#&#39;</span><span class="p">:</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">num_spaces_in_target</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">first_word</span> <span class="o">=</span> <span class="n">split_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">joined_rest_words</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_target</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">first_word</span><span class="p">,</span> <span class="n">joined_rest_words</span><span class="p">])</span>
+    <span class="c1"># Keeps the word as a whole word.</span>
+    <span class="k">elif</span> <span class="n">num_spaces_in_target</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">temp_split_target</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">word_index</span><span class="p">,</span> <span class="n">split_word</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">split_target</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">word_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">split_word</span> <span class="o">=</span> <span class="n">split_word</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">temp_split_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_word</span><span class="p">)</span>
+        <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_split_target</span><span class="p">)</span>
+    <span class="c1"># Gets rid of anything this is not a word @ or #</span>
+    <span class="n">norm_target</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[^\w@#]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">norm_target</span><span class="p">)</span>
+
+    <span class="c1"># Put the normalised targets into the text</span>
+    <span class="n">norm_text</span> <span class="o">=</span> <span class="n">add_target_to_text</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+
+    <span class="c1">#if parser == stanford:</span>
+    <span class="c1">#  norm_target = norm_target.replace(&#39;@&#39;, &#39;&#39;)</span>
+
+    <span class="c1"># Checks a word that is the normalised target word exists in the text and</span>
+    <span class="c1"># if so changes it to a word that is not by putting dollar signs around it.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_target_unique</span><span class="p">(</span><span class="n">norm_target</span><span class="p">,</span> <span class="n">norm_text</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parser</span> <span class="o">==</span> <span class="n">stanford</span><span class="p">:</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;@&#39;</span> <span class="ow">in</span> <span class="n">norm_target</span><span class="p">:</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">renormalise</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_target</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;#&#39;</span><span class="p">:</span>
+                    <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;$</span><span class="si">{}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;$</span><span class="si">{}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+
+
+        <span class="n">norm_text</span> <span class="o">=</span> <span class="n">add_target_to_text</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">check_target_unique</span><span class="p">(</span><span class="n">norm_target</span><span class="p">,</span> <span class="n">norm_text</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">parser</span> <span class="o">==</span> <span class="n">stanford</span><span class="p">:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+                <span class="n">norm_text</span> <span class="o">=</span> <span class="n">add_target_to_text</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">check_target_unique</span><span class="p">(</span><span class="n">norm_target</span><span class="p">,</span>
+                                       <span class="n">norm_text</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">norm_target</span>
+            <span class="k">elif</span> <span class="s1">&#39;$&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">norm_target</span><span class="p">:</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="s1">&#39;$</span><span class="si">{}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+                <span class="n">norm_text</span> <span class="o">=</span> <span class="n">add_target_to_text</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">check_target_unique</span><span class="p">(</span><span class="n">norm_target</span><span class="p">,</span>
+                                       <span class="n">norm_text</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">norm_target</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Normalised word </span><span class="si">{}</span><span class="s1"> occurs in the text more times &#39;</span>\
+                            <span class="s1">&#39;than it spans </span><span class="si">{}</span><span class="s1">. Text </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm_target</span><span class="p">,</span> <span class="n">num_target_spans</span><span class="p">,</span> <span class="n">norm_text</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">parser</span> <span class="o">==</span> <span class="n">stanford</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;@&#39;</span> <span class="ow">in</span> <span class="n">norm_target</span><span class="p">:</span>
+            <span class="n">norm_target</span>
+
+    <span class="k">return</span> <span class="n">norm_target</span></div>
+
+<div class="viewcode-block" id="target_normalisation"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.target_normalisation">[docs]</a><span class="k">def</span> <span class="nf">target_normalisation</span><span class="p">(</span><span class="n">target_dict</span><span class="p">,</span> <span class="n">renormalise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a target instance it normalises the target by removing whitespaces</span>
+<span class="sd">    between target words and inserting `_`. Then inserting the normalised word</span>
+<span class="sd">    into where the target spans appear and adding whitespace around the target</span>
+<span class="sd">    word incase other words are joined on. Returns the text with the inserted</span>
+<span class="sd">    normalised words and the normalised target word.</span>
+
+<span class="sd">    :param target_dict: target instance.</span>
+<span class="sd">    :type target_dict: Target</span>
+<span class="sd">    :returns: Tuple of two Strings containing. Text with normalised targets and \</span>
+<span class="sd">    the normalised target</span>
+<span class="sd">    :rtype: tuple</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">sorted_spans</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">target_dict</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">span</span><span class="p">:</span> <span class="n">span</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                          <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">org_text</span> <span class="o">=</span> <span class="n">target_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">target_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+
+
+    <span class="n">target</span> <span class="o">=</span> <span class="n">normalise_target</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">org_text</span><span class="p">,</span> <span class="n">sorted_spans</span><span class="p">,</span> <span class="n">renormalise</span><span class="p">,</span>
+                              <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">start_index</span><span class="p">,</span> <span class="n">end_index</span> <span class="ow">in</span> <span class="n">sorted_spans</span><span class="p">:</span>
+        <span class="n">start_text</span> <span class="o">=</span> <span class="n">org_text</span><span class="p">[:</span> <span class="n">start_index</span><span class="p">]</span>
+        <span class="n">end_text</span> <span class="o">=</span> <span class="n">org_text</span><span class="p">[</span><span class="n">end_index</span> <span class="p">:]</span>
+        <span class="n">start_text</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">org_text</span> <span class="o">=</span> <span class="n">start_text</span> <span class="o">+</span> <span class="n">end_text</span>
+    <span class="n">org_text</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">org_text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">org_text</span><span class="p">,</span> <span class="n">target</span></div>
+
+<div class="viewcode-block" id="normalise_context"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.normalise_context">[docs]</a><span class="k">def</span> <span class="nf">normalise_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">renormalise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a list of target dicts and if the text should be lower cased returns</span>
+<span class="sd">    all of the text and targets within those target dicts as lists where the</span>
+<span class="sd">    text and targets have been normalised to ensure the targets within the</span>
+<span class="sd">    text can be identified.</span>
+
+<span class="sd">    :param target_dicts: list of dicts</span>
+<span class="sd">    :param lower: state if the text within the dicts should be lower cased</span>
+<span class="sd">    :type target_dicts: list</span>
+<span class="sd">    :type lower: bool</span>
+<span class="sd">    :returns: A tuple of length two which contain a list of normalised texts and \</span>
+<span class="sd">    targets.</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Normalise the target and text</span>
+    <span class="n">all_text</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_norm_targets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">target_dict</span> <span class="ow">in</span> <span class="n">target_dicts</span><span class="p">:</span>
+        <span class="n">norm_text</span><span class="p">,</span> <span class="n">norm_target</span> <span class="o">=</span> <span class="n">target_normalisation</span><span class="p">(</span><span class="n">target_dict</span><span class="p">,</span> <span class="n">renormalise</span><span class="p">,</span>
+                                                      <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+            <span class="n">norm_text</span> <span class="o">=</span> <span class="n">norm_text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">all_text</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_text</span><span class="p">)</span>
+        <span class="n">all_norm_targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_target</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">all_text</span><span class="p">,</span> <span class="n">all_norm_targets</span></div>
+
+<div class="viewcode-block" id="dependency_relation_context"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.dependency_relation_context">[docs]</a><span class="k">def</span> <span class="nf">dependency_relation_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">n_relations</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a list of target dicts where each target dict has a sentence that</span>
+<span class="sd">    contains one or more of the same target. Returns a list of a list of Strings</span>
+<span class="sd">    where each String is associated to a target within the target sentence.</span>
+<span class="sd">    The String is a concatenation of n_relations depth of dependency relations</span>
+<span class="sd">    where each relation is a child of the target. e.g. n_relations = (1, 1)</span>
+<span class="sd">    will return a String of the concatenation of the children of the target</span>
+<span class="sd">    within the dependency tree. n_relations = (1, 2) will return the children</span>
+<span class="sd">    of the target and the children of the children.</span>
+
+<span class="sd">    :param target_dicts: list of dictionaries where each dictionary is associated \</span>
+<span class="sd">    to a target sentence.</span>
+<span class="sd">    :param parser: function that performs dependency parsing</span>
+<span class="sd">    :param lower: Whether to lower case the text</span>
+<span class="sd">    :param n_relations: The depth of the dependency relation text from the target \</span>
+<span class="sd">    to return. Represented as a tuple of two ints the first defining the \</span>
+<span class="sd">    starting depth the second end depth e.g. (1, 2) will return depths one and \</span>
+<span class="sd">    two of dependency tree.</span>
+<span class="sd">    :type target_dicts: list</span>
+<span class="sd">    :type parser: String</span>
+<span class="sd">    :type lower: bool. Default False.</span>
+<span class="sd">    :type n_relations: tuple. Default (1, 1).</span>
+<span class="sd">    :returns: A list of a list of Strings where each String represents a specific \</span>
+<span class="sd">    target word within a target sentence dependency related text at n_relations \</span>
+<span class="sd">    depth.</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Normalise the target and text</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">target_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">target_dict</span> <span class="ow">in</span> <span class="n">target_dicts</span><span class="p">]</span>
+    <span class="n">norm_texts</span><span class="p">,</span> <span class="n">norm_targets</span> <span class="o">=</span> <span class="n">normalise_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span>
+                                                 <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+    <span class="c1"># Get contexts</span>
+    <span class="n">all_dependency_tokens</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">norm_texts</span><span class="p">)</span>
+    <span class="n">all_contexts</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">dependency_tokens</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_dependency_tokens</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attempts</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="n">contexts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_targets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="c1"># This only happens if the first normalization does not work</span>
+            <span class="k">if</span> <span class="n">attempts</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">text</span><span class="p">,</span> <span class="n">norm_target</span> <span class="o">=</span> <span class="n">normalise_context</span><span class="p">([</span><span class="n">target_dicts</span><span class="p">[</span><span class="n">index</span><span class="p">]],</span>
+                                                      <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">,</span>
+                                                      <span class="n">renormalise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">dependency_tokens</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">text</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">dependency_token</span> <span class="ow">in</span> <span class="n">dependency_tokens</span><span class="p">:</span>
+                <span class="n">current_token</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+                    <span class="n">current_token</span> <span class="o">=</span> <span class="n">current_token</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">dependency_token</span><span class="o">.</span><span class="n">token</span> <span class="o">==</span> <span class="n">norm_target</span><span class="p">:</span>
+                    <span class="n">all_related_words</span> <span class="o">=</span> <span class="n">dependency_token</span><span class="o">.</span><span class="n">get_n_relations</span><span class="p">(</span><span class="n">n_relations</span><span class="p">)</span>
+                    <span class="n">related_text</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">all_related_words</span><span class="p">)</span>
+                    <span class="n">related_text</span> <span class="o">=</span> <span class="n">related_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">current_token</span><span class="p">,</span> <span class="n">norm_target</span><span class="p">)</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">related_text</span><span class="p">)</span>
+
+            <span class="n">rel_target</span> <span class="o">=</span> <span class="n">target_dicts</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">valid_num_targets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rel_target</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">valid_num_targets</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">contexts</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">attempts</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The number of identified targets `</span><span class="si">{}</span><span class="s1">` not equal &#39;</span>\
+                                 <span class="s1">&#39;to the number of targets in the data `</span><span class="si">{}</span><span class="s1">`&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">contexts</span><span class="p">,</span> <span class="n">rel_target</span><span class="p">))</span>
+            <span class="c1"># Ensure the returned data type is consistent</span>
+            <span class="k">if</span> <span class="n">contexts</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This should not happen as each data type should &#39;</span>\
+                                 <span class="s1">&#39;have a target </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rel_target</span><span class="p">))</span>
+            <span class="n">all_contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contexts</span><span class="p">)</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">all_contexts</span></div>
+
+<div class="viewcode-block" id="dependency_context"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.dependency_context">[docs]</a><span class="k">def</span> <span class="nf">dependency_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a list of target dicts it will normalise the target word to ensure</span>
+<span class="sd">    that it is seperated and if it is a multi word target join the target words</span>
+<span class="sd">    together to ensure when it is processed by the dependency parser it is treated</span>
+<span class="sd">    as a singular word.</span>
+
+<span class="sd">    Given a list of target sentences returns a list of contexts where each contexts</span>
+<span class="sd">    is associated to a target sentence and each contexts contains a target context</span>
+<span class="sd">    for each target word in the target sentence. A target context is a dict which</span>
+<span class="sd">    contains `text` and `span` keys where the values correspond to all the</span>
+<span class="sd">    dependency related words as a String and the span are the indexs to the target</span>
+<span class="sd">    word within the text.</span>
+
+<span class="sd">    :param target_dicts: list of dictionaries where each dictionary is associated \</span>
+<span class="sd">    to a target sentence.</span>
+<span class="sd">    :param parser: function that performs dependency parsing</span>
+<span class="sd">    :param lower: Whether to lower case the texts before processing them with the \</span>
+<span class="sd">    parser.</span>
+<span class="sd">    :type target_dicts: list</span>
+<span class="sd">    :type parser: function</span>
+<span class="sd">    :type lower: bool Default False</span>
+<span class="sd">    :returns: A list of a list of dicts where each list is contains many contexts.</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Normalise the target and text</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">target_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">target_dict</span> <span class="ow">in</span> <span class="n">target_dicts</span><span class="p">]</span>
+    <span class="n">norm_texts</span><span class="p">,</span> <span class="n">norm_targets</span> <span class="o">=</span> <span class="n">normalise_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span>
+                                                 <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+    <span class="c1"># Get contexts</span>
+    <span class="n">all_dependency_tokens</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">norm_texts</span><span class="p">)</span>
+    <span class="n">all_contexts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">dependency_tokens</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_dependency_tokens</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attempts</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="n">contexts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_targets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="c1"># This only happens if the first normalization does not work</span>
+            <span class="k">if</span> <span class="n">attempts</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">text</span><span class="p">,</span> <span class="n">norm_target</span> <span class="o">=</span> <span class="n">normalise_context</span><span class="p">([</span><span class="n">target_dicts</span><span class="p">[</span><span class="n">index</span><span class="p">]],</span>
+                                                      <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">,</span>
+                                                      <span class="n">renormalise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">norm_target</span> <span class="o">=</span> <span class="n">norm_target</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">dependency_tokens</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">text</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">dependency_token</span> <span class="ow">in</span> <span class="n">dependency_tokens</span><span class="p">:</span>
+                <span class="n">current_target</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+                    <span class="n">current_target</span> <span class="o">=</span> <span class="n">current_target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">dependency_token</span><span class="o">.</span><span class="n">token</span> <span class="o">==</span> <span class="n">norm_target</span><span class="p">:</span>
+                    <span class="n">norm_org</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_target</span><span class="p">,</span> <span class="n">current_target</span><span class="p">)</span>
+                    <span class="n">text_span</span> <span class="o">=</span> <span class="n">dependency_token</span>\
+                                <span class="o">.</span><span class="n">connected_target_span</span><span class="p">(</span><span class="n">renormalise</span><span class="o">=</span><span class="n">norm_org</span><span class="p">)</span>
+                    <span class="n">connected_text</span><span class="p">,</span> <span class="n">target_span</span> <span class="o">=</span> <span class="n">text_span</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;text&#39;</span> <span class="p">:</span> <span class="n">connected_text</span><span class="p">,</span>
+                                     <span class="s1">&#39;span&#39;</span> <span class="p">:</span> <span class="n">target_span</span><span class="p">})</span>
+            <span class="n">rel_target</span> <span class="o">=</span> <span class="n">target_dicts</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">valid_num_targets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rel_target</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">valid_num_targets</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">contexts</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">attempts</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The number of identified targets `</span><span class="si">{}</span><span class="s1">` not equal &#39;</span>\
+                                 <span class="s1">&#39;to the number of targets in the data `</span><span class="si">{}</span><span class="s1">`&#39;</span>\
+                                 <span class="s1">&#39; norm target </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">contexts</span><span class="p">,</span> <span class="n">rel_target</span><span class="p">,</span> <span class="n">norm_target</span><span class="p">))</span>
+            <span class="c1"># Ensure the returned data type is consistent</span>
+            <span class="k">if</span> <span class="n">contexts</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This should not happen as each data type should &#39;</span>\
+                                 <span class="s1">&#39;have a target </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rel_target</span><span class="p">))</span>
+            <span class="n">all_contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contexts</span><span class="p">)</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">all_contexts</span></div>
+
+<div class="viewcode-block" id="context"><a class="viewcode-back" href="../../source/bella.html#bella.syntactic_contexts.context">[docs]</a><span class="k">def</span> <span class="nf">context</span><span class="p">(</span><span class="n">all_context_dicts</span><span class="p">,</span> <span class="n">specific_context</span><span class="p">,</span> <span class="n">inc_target</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Returns a list of a list of Strings based on the location of the target word</span>
+<span class="sd">    in the text within the target dict (NOTE the target word can occur more than</span>
+<span class="sd">    once hence why a list is returned as the context is returned for each</span>
+<span class="sd">    occurence). Context can be one of the following:</span>
+
+<span class="sd">    1. left - left of the target occurence.</span>
+<span class="sd">    2. right - right of the target occurence.</span>
+<span class="sd">    3. target - target word/words of each target occurence.</span>
+<span class="sd">    4. full - whole text repeated for each occurence.</span>
+
+<span class="sd">    If the target only occur once in the text then for that text occurence the</span>
+<span class="sd">    length of the list will be one.</span>
+
+<span class="sd">    :param all_context_dicts: A list of dicts where each dict contains text and \</span>
+<span class="sd">    span keys.</span>
+<span class="sd">    :param specific_context: String specifying the context e.g. left.</span>
+<span class="sd">    :param inc_target: Whether to include the target word in the context text. \</span>
+<span class="sd">    (Only applies for left and right context.)</span>
+<span class="sd">    :type all_context_dicts: list</span>
+<span class="sd">    :type specific_context: String</span>
+<span class="sd">    :type inc_target: Boolean Default False</span>
+<span class="sd">    :returns: A list of of a list of context strings</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">acceptable_contexts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">specific_context</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">acceptable_contexts</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;context parameter can only be one of the following </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                         <span class="s1">&#39; not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">acceptable_contexts</span><span class="p">,</span> <span class="n">context</span><span class="p">))</span>
+    <span class="n">all_contexts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">context_dicts</span> <span class="ow">in</span> <span class="n">all_context_dicts</span><span class="p">:</span>
+        <span class="n">contexts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">context_dict</span> <span class="ow">in</span> <span class="n">context_dicts</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">context_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+            <span class="n">target_span</span> <span class="o">=</span> <span class="n">context_dict</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span>
+            <span class="n">start_char</span> <span class="o">=</span> <span class="n">target_span</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">end_char</span> <span class="o">=</span> <span class="n">target_span</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">specific_context</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inc_target</span><span class="p">:</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[:</span><span class="n">end_char</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[:</span><span class="n">start_char</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">specific_context</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inc_target</span><span class="p">:</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">start_char</span><span class="p">:])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">end_char</span><span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">specific_context</span> <span class="o">==</span> <span class="s1">&#39;target&#39;</span><span class="p">:</span>
+                <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">start_char</span><span class="p">:</span><span class="n">end_char</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">specific_context</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+                <span class="n">contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;context parameter should only be `right` or &#39;</span>\
+                                 <span class="s1">&#39;`left` not </span><span class="si">{}</span><span class="s1"> there must be a logic error&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">specific_context</span><span class="p">))</span>
+        <span class="n">all_contexts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contexts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">all_contexts</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

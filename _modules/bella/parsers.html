@@ -1,0 +1,876 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.parsers &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.parsers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.parsers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Functions that parse the annotated data that is being used in this project. The</span>
+<span class="sd">annotated dataset are the following:</span>
+
+<span class="sd">1. `Li Dong &lt;http://goo.gl/5Enpu7&gt;`_ which links to :py:func:`bella.parsers.dong`</span>
+<span class="sd">2. Semeval parser</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">ftfy</span>
+
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">Target</span><span class="p">,</span> <span class="n">TargetCollection</span>
+
+<div class="viewcode-block" id="dong"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.dong">[docs]</a><span class="k">def</span> <span class="nf">dong</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given file path to the</span>
+<span class="sd">    `Li Dong &lt;https://github.com/bluemonk482/tdparse/tree/master/data/lidong&gt;`_</span>
+<span class="sd">    sentiment data it will parse the data and return it as a list of dictionaries.</span>
+
+<span class="sd">    :param file_path: File Path to the annotated data</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="s1">&#39;This file does not exist </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+    <span class="n">file_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+    <span class="n">sentiment_range</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">sentiment_data</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dong_file</span><span class="p">:</span>
+        <span class="n">sent_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dong_file</span><span class="p">):</span>
+            <span class="n">divisible</span> <span class="o">=</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">divisible</span> <span class="o">%</span> <span class="mi">3</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">line</span>
+            <span class="k">elif</span> <span class="n">divisible</span> <span class="o">%</span> <span class="mi">3</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">line</span>
+            <span class="k">elif</span> <span class="n">divisible</span> <span class="o">%</span> <span class="mi">3</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sentiment</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sentiment</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sentiment_range</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The sentiment has to be one of the &#39;</span>\
+                                     <span class="s1">&#39;following values </span><span class="si">{}</span><span class="s1"> not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sentiment_range</span><span class="p">,</span> <span class="n">sentiment</span><span class="p">))</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">offsets</span> <span class="o">=</span> <span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">span</span><span class="p">()</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">joined_target</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+                    <span class="n">offsets</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">match</span><span class="o">.</span><span class="n">span</span><span class="p">()</span>
+                                    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">joined_target</span><span class="p">,</span> <span class="n">text</span><span class="p">)])</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">offsets</span>
+                <span class="n">sent_id</span> <span class="o">=</span> <span class="n">file_name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sentiment_data</span><span class="p">))</span>
+                <span class="c1"># Sentence ID is the same as the target as there is only one</span>
+                <span class="c1"># target per sentence</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sent_id</span>
+                <span class="n">sent_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sent_id</span>
+                <span class="n">sent_target</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">sent_dict</span><span class="p">)</span>
+                <span class="n">sentiment_data</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sent_target</span><span class="p">)</span>
+                <span class="n">sent_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Problem&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sentiment_data</span></div>
+
+
+
+
+<span class="k">def</span> <span class="nf">_semeval_extract_data</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">conflict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">sentence_ids_skip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param sentences: A `sentences` named element</span>
+<span class="sd">    :param file_name: Name of the file being parsed</span>
+<span class="sd">    :param conflict: Determine if to keep the target data that has a conflict \</span>
+<span class="sd">    sentiment label.</span>
+<span class="sd">    :param sentence_ids_skip: IDs of sentences that should be skipped</span>
+<span class="sd">    :type sentences: xml.etree.ElementTree.Element</span>
+<span class="sd">    :type file_name: String</span>
+<span class="sd">    :type conflict: bool. Defailt False</span>
+<span class="sd">    :type sentence_ids_skip: list. Default None</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    :rtype: TargetCollection</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Converts the sentiment tags from Strings to ints</span>
+    <span class="n">sentiment_mapper</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;conflict&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;negative&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="s1">&#39;neutral&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">extract_aspect_terms</span><span class="p">(</span><span class="n">aspect_terms</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> 
+                             <span class="n">raise_error_no_category</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param aspect_terms: An aspectTerms element within the xml tree</span>
+<span class="sd">        :param sentence_id: Id of the sentence that the aspects came from.</span>
+<span class="sd">        :type aspect_terms: xml.etree.ElementTree.Element</span>
+<span class="sd">        :type sentence_id: String</span>
+<span class="sd">        :returns: A list of dictioanries containg id, span, sentiment and \</span>
+<span class="sd">        target</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">aspect_terms_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">aspect_term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">aspect_terms</span><span class="p">):</span>
+            <span class="n">aspect_term</span> <span class="o">=</span> <span class="n">aspect_term</span><span class="o">.</span><span class="n">attrib</span>
+            <span class="n">aspect_term_data</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">sentiment</span> <span class="o">=</span> <span class="n">sentiment_mapper</span><span class="p">[</span><span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;polarity&#39;</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="n">sentiment</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">conflict</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">aspect_id</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sentence_id</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aspect_id</span>
+            <span class="k">if</span> <span class="s1">&#39;term&#39;</span> <span class="ow">in</span> <span class="n">aspect_term</span><span class="p">:</span>
+                <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;term&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;target&#39;</span> <span class="ow">in</span> <span class="n">aspect_term</span><span class="p">:</span>
+                <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;There is no `target` attribute in the opinions &#39;</span>\
+                               <span class="s1">&#39;element </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aspect_term</span><span class="p">))</span>
+            <span class="c1"># Extract the category if it exists</span>
+            <span class="k">if</span> <span class="s1">&#39;category&#39;</span> <span class="ow">in</span> <span class="n">aspect_term</span><span class="p">:</span>
+                <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">raise_error_no_category</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;These is no `category` attribute in the &#39;</span>
+                               <span class="n">f</span><span class="s1">&#39;opinions element </span><span class="si">{aspect_term}</span><span class="s1">&#39;</span><span class="p">)</span> 
+            <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment</span>
+            <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">]),</span>
+                                          <span class="nb">int</span><span class="p">(</span><span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;to&#39;</span><span class="p">]))]</span>
+            <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_id</span>
+            <span class="c1"># If the target is NULL then there is no target</span>
+            <span class="k">if</span> <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">aspect_terms_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aspect_term_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">aspect_terms_data</span>
+
+    <span class="k">def</span> <span class="nf">add_text</span><span class="p">(</span><span class="n">aspect_data</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param aspect_data: A list of dicts containing `span`, `target` and \</span>
+<span class="sd">        `sentiment` keys.</span>
+<span class="sd">        :param text: The text of the sentence that is associated to all of the \</span>
+<span class="sd">        aspects in the aspect_data list</span>
+<span class="sd">        :type aspect_data: list</span>
+<span class="sd">        :type text: String</span>
+<span class="sd">        :returns: The list of dicts in the aspect_data parameter but with a \</span>
+<span class="sd">        `text` key with the value that the text parameter contains</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">aspect_data</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="k">return</span> <span class="n">aspect_data</span>
+
+    <span class="n">all_aspect_term_data</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="n">sentences</span><span class="p">:</span>
+        <span class="n">aspect_term_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">text_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">file_name</span> <span class="o">+</span> <span class="n">sentence</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="c1"># Allow the parser to skip certain sentences</span>
+        <span class="k">if</span> <span class="n">sentence_ids_skip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sentence</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sentence_ids_skip</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sentence</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;sentence&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">sentence</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span>
+                <span class="n">text_index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;aspectTerms&#39;</span> <span class="ow">or</span> <span class="n">data</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;Opinions&#39;</span><span class="p">:</span>
+                <span class="n">aspect_term_data</span> <span class="o">=</span> <span class="n">extract_aspect_terms</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">aspect_term_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">text_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A semeval sentence should always have text &#39;</span>\
+                             <span class="s1">&#39;semeval file </span><span class="si">{}</span><span class="s1"> sentence id </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sentence</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]))</span>
+        <span class="n">sentence_text</span> <span class="o">=</span> <span class="n">sentence</span><span class="p">[</span><span class="n">text_index</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+        <span class="n">aspect_term_data</span> <span class="o">=</span> <span class="n">add_text</span><span class="p">(</span><span class="n">aspect_term_data</span><span class="p">,</span> <span class="n">sentence_text</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">aspect</span> <span class="ow">in</span> <span class="n">aspect_term_data</span><span class="p">:</span>
+            <span class="n">sent_target</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">aspect</span><span class="p">)</span>
+            <span class="n">all_aspect_term_data</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sent_target</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">all_aspect_term_data</span>
+
+
+<div class="viewcode-block" id="semeval_15_16"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.semeval_15_16">[docs]</a><span class="k">def</span> <span class="nf">semeval_15_16</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">sep_16_from_15</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                  <span class="n">sep_15_from_14</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                  <span class="n">raise_error_no_category</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                  <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parser for the SemEval 2015 and 2016 datasets.</span>
+
+<span class="sd">    :param file_path: File path to the semeval 2015/16 data</span>
+<span class="sd">    :param sep_16_from_15: Ensure that the test sets of semeval 2016 is complete </span>
+<span class="sd">                           seperate from the semeval test set of 2015</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">file_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">reviews</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+    <span class="n">all_aspect_term_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">ids_to_skip</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">sep_16_from_15</span><span class="p">:</span>
+        <span class="n">ids_to_skip</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;en_SnoozeanAMEatery_480032670:4&quot;</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">sep_15_from_14</span><span class="p">:</span>
+        <span class="n">ids_to_skip</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1253117:2&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;397331:1&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">reviews</span><span class="o">.</span><span class="n">tag</span> <span class="o">!=</span> <span class="s1">&#39;Reviews&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The root of all semeval 15/16 xml files should &#39;</span>
+                         <span class="n">f</span><span class="s1">&#39;be reviews and not </span><span class="si">{reviews.tag}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">review</span> <span class="ow">in</span> <span class="n">reviews</span><span class="p">:</span>
+        <span class="n">review_id</span> <span class="o">=</span> <span class="n">review</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;rid&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sentences</span> <span class="ow">in</span> <span class="n">review</span><span class="p">:</span>
+            <span class="n">review_targets</span> <span class="o">=</span> <span class="n">_semeval_extract_data</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span>
+                                                   <span class="n">sentence_ids_skip</span><span class="o">=</span><span class="n">ids_to_skip</span><span class="p">)</span>
+            <span class="n">all_aspect_term_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">review_targets</span><span class="o">.</span><span class="n">data</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">all_aspect_term_data</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="semeval_14"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.semeval_14">[docs]</a><span class="k">def</span> <span class="nf">semeval_14</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">conflict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+               <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parser for the SemEval 2014 datasets.</span>
+
+<span class="sd">    :param file_path: File path to the semeval 2014 data</span>
+<span class="sd">    :param conflict: determine if to include the conflict sentiment value</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">file_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">sentences</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">sentences</span><span class="o">.</span><span class="n">tag</span> <span class="o">!=</span> <span class="s1">&#39;sentences&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The root of all semeval xml files should &#39;</span>\
+                         <span class="s1">&#39;be sentences and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sentences</span><span class="o">.</span><span class="n">tag</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">_semeval_extract_data</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">conflict</span><span class="o">=</span><span class="n">conflict</span><span class="p">,</span>
+                                 <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="election"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.election">[docs]</a><span class="k">def</span> <span class="nf">election</span><span class="p">(</span><span class="n">folder_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">include_dnr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+             <span class="n">include_additional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">TargetCollection</span><span class="p">,</span> <span class="n">TargetCollection</span><span class="p">]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Data can be downloaded from</span>
+<span class="sd">    `FigShare &lt;https://figshare.com/articles/EACL_2017_-_Multi-target_\</span>
+<span class="sd">    UK_election_Twitter_sentiment_corpus/4479563/1&gt;`_</span>
+
+<span class="sd">    :param folder_path: Path to the folder containing the data after it has</span>
+<span class="sd">                        been unziped and all folders within it have been </span>
+<span class="sd">                        unziped.</span>
+<span class="sd">    :param include_dnr: determine if to include the `doesnotapply` label</span>
+<span class="sd">    :param include_additional: NOTE: This does not work at the moment. </span>
+<span class="sd">                               Determine if to parse the additional data.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">sentiment_mapper</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;negative&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;neutral&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="n">folder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">folder_path</span><span class="p">)</span>
+    <span class="n">folder_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">folder_path</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_file_data</span><span class="p">(</span><span class="n">folder_dir</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param folder_dir: File path to a folder containing JSON data files \</span>
+<span class="sd">        where the file names is the datas ID</span>
+<span class="sd">        :type folder_dir: String</span>
+<span class="sd">        :returns: A dictionary of IDs as keys and JSON data as values</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">folder_dir</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+            <span class="n">tweet_id</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.json&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;5&#39;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file_data</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">tweet_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">parse_tweet</span><span class="p">(</span><span class="n">tweet_data</span><span class="p">,</span> <span class="n">anno_data</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">get_offsets</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+            <span class="n">offset_shifts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">from_offset</span> <span class="o">=</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">offset_shift</span> <span class="ow">in</span> <span class="n">offset_shifts</span><span class="p">:</span>
+                <span class="n">from_offset_shift</span> <span class="o">=</span> <span class="n">from_offset</span> <span class="o">+</span> <span class="n">offset_shift</span>
+                <span class="n">to_offset</span> <span class="o">=</span> <span class="n">from_offset_shift</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+                <span class="n">offsets</span> <span class="o">=</span> <span class="p">[(</span><span class="n">from_offset_shift</span><span class="p">,</span> <span class="n">to_offset</span><span class="p">)]</span>
+                <span class="n">offset_text</span> <span class="o">=</span> <span class="n">tweet_text</span><span class="p">[</span><span class="n">from_offset_shift</span> <span class="p">:</span> <span class="n">to_offset</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">offset_text</span> <span class="o">==</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="k">return</span> <span class="n">offsets</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Offset </span><span class="si">{}</span><span class="s1"> does not match target text </span><span class="si">{}</span><span class="s1">. Full &#39;</span>\
+                             <span class="s1">&#39;text </span><span class="si">{}</span><span class="se">\n</span><span class="s1">id </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">from_offset</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">fuzzy_target_match</span><span class="p">(</span><span class="n">tweet_text</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+            <span class="n">low_target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">target_searches</span> <span class="o">=</span> <span class="p">[</span><span class="n">low_target</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;[^\w]&#39;</span> <span class="o">+</span> <span class="n">low_target</span><span class="p">,</span>
+                               <span class="sa">r</span><span class="s1">&#39;[^\w]&#39;</span> <span class="o">+</span> <span class="n">low_target</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;[^\w]&#39;</span><span class="p">,</span>
+                               <span class="n">low_target</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;[^\w]&#39;</span><span class="p">,</span>
+                               <span class="n">low_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                               <span class="n">low_target</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">target_search</span> <span class="ow">in</span> <span class="n">target_searches</span><span class="p">:</span>
+                <span class="n">target_matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">target_search</span><span class="p">,</span>
+                                                  <span class="n">tweet_text</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">target_matches</span>
+            <span class="k">if</span> <span class="n">tweet_id</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;81211671026352128&#39;</span><span class="p">,</span> <span class="s1">&#39;78689580104290305&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;81209490499960832&#39;</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">tweet_id</span> <span class="o">==</span> <span class="s1">&#39;75270720671973376&#39;</span> <span class="ow">and</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;kippers&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">tweet_id</span> <span class="o">==</span> <span class="s1">&#39;65855178264686592&#39;</span> <span class="ow">and</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;tax&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">tweet_data</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">anno_data</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot find the exact additional &#39;</span>\
+                             <span class="s1">&#39;entity </span><span class="si">{}</span><span class="s1"> within the tweet </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">))</span>
+
+
+
+        <span class="n">target_instances</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tweet_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tweet_id</span><span class="p">)</span>
+        <span class="n">tweet_text</span> <span class="o">=</span> <span class="n">tweet_data</span><span class="p">[</span><span class="s1">&#39;content&#39;</span><span class="p">]</span>
+        <span class="n">target_ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Parse all of the entities that have been detected automatically</span>
+        <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">tweet_data</span><span class="p">[</span><span class="s1">&#39;entities&#39;</span><span class="p">]:</span>
+            <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;entity&#39;</span><span class="p">]</span>
+            <span class="n">target_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_offsets</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;entity&#39;</span><span class="p">]</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">folder_name</span> <span class="o">+</span> <span class="n">tweet_id</span> <span class="o">+</span> <span class="s1">&#39;#&#39;</span> <span class="o">+</span> <span class="n">entity_id</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">folder_name</span> <span class="o">+</span> <span class="n">tweet_id</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">anno_data</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">][</span><span class="n">entity_id</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;doesnotapply&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">include_dnr</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Convert from Strings to Integer</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment_mapper</span><span class="p">[</span><span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]]</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tweet_text</span>
+            <span class="n">target_instances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">data_dict</span><span class="p">))</span>
+        <span class="c1"># Parse all of the entities that have been selected by the user</span>
+        <span class="k">if</span> <span class="n">include_additional</span><span class="p">:</span>
+            <span class="n">additional_data</span> <span class="o">=</span> <span class="n">anno_data</span><span class="p">[</span><span class="s1">&#39;additional_items&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">additional_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">sentiment</span> <span class="ow">in</span> <span class="n">additional_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">target_matches</span> <span class="o">=</span> <span class="n">fuzzy_target_match</span><span class="p">(</span><span class="n">tweet_text</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">target_matches</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="n">target_id</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">target_ids</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="n">target_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">target_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">span</span><span class="p">()]</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tweet_text</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tweet_id</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tweet_id</span> <span class="o">+</span> <span class="s1">&#39;#&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
+                    <span class="n">target_instances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">data_dict</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">target_instances</span>
+
+    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">id_file</span><span class="p">,</span> <span class="n">tweets_data</span><span class="p">,</span> <span class="n">annos_data</span><span class="p">):</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">id_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">id_data</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">tweet_id</span> <span class="ow">in</span> <span class="n">id_data</span><span class="p">:</span>
+                <span class="n">tweet_id</span> <span class="o">=</span> <span class="n">tweet_id</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">tweet_data</span> <span class="o">=</span> <span class="n">tweets_data</span><span class="p">[</span><span class="n">tweet_id</span><span class="p">]</span>
+                <span class="n">anno_data</span> <span class="o">=</span> <span class="n">annos_data</span><span class="p">[</span><span class="n">tweet_id</span><span class="p">]</span>
+                <span class="n">targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">parse_tweet</span><span class="p">(</span><span class="n">tweet_data</span><span class="p">,</span> <span class="n">anno_data</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+
+    <span class="n">tweets_data</span> <span class="o">=</span> <span class="n">get_file_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="s1">&#39;tweets&#39;</span><span class="p">))</span>
+    <span class="n">annotations_data</span> <span class="o">=</span> <span class="n">get_file_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="s1">&#39;annotations&#39;</span><span class="p">))</span>
+
+    <span class="n">train_ids_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="s1">&#39;train_id.txt&#39;</span><span class="p">)</span>
+    <span class="n">train_data</span> <span class="o">=</span> <span class="n">get_data</span><span class="p">(</span><span class="n">train_ids_file</span><span class="p">,</span> <span class="n">tweets_data</span><span class="p">,</span> <span class="n">annotations_data</span><span class="p">)</span>
+    <span class="n">test_ids_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="s1">&#39;test_id.txt&#39;</span><span class="p">)</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">get_data</span><span class="p">(</span><span class="n">test_ids_file</span><span class="p">,</span> <span class="n">tweets_data</span><span class="p">,</span> <span class="n">annotations_data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span></div>
+
+<div class="viewcode-block" id="election_train"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.election_train">[docs]</a><span class="k">def</span> <span class="nf">election_train</span><span class="p">(</span><span class="n">folder_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">include_dnr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                   <span class="n">include_additional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span>
+                   <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Data can be downloaded from</span>
+<span class="sd">    `FigShare &lt;https://figshare.com/articles/EACL_2017_-_Multi-target_\</span>
+<span class="sd">    UK_election_Twitter_sentiment_corpus/4479563/1&gt;`_. This function parses </span>
+<span class="sd">    and returns only the training data.</span>
+
+<span class="sd">    :param folder_path: Path to the folder containing the data after it has</span>
+<span class="sd">                        been unziped and all folders within it have been </span>
+<span class="sd">                        unziped.</span>
+<span class="sd">    :param include_dnr: determine if to include the `doesnotapply` label</span>
+<span class="sd">    :param include_additional: NOTE: This does not work at the moment. </span>
+<span class="sd">                               Determine if to parse the additional data.</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">train_data</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">election</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="n">include_dnr</span><span class="o">=</span><span class="n">include_dnr</span><span class="p">,</span> 
+                             <span class="n">include_additional</span><span class="o">=</span><span class="n">include_additional</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">train_data</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="election_test"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.election_test">[docs]</a><span class="k">def</span> <span class="nf">election_test</span><span class="p">(</span><span class="n">folder_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">include_dnr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                   <span class="n">include_additional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span>
+                   <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Data can be downloaded from</span>
+<span class="sd">    `FigShare &lt;https://figshare.com/articles/EACL_2017_-_Multi-target_\</span>
+<span class="sd">    UK_election_Twitter_sentiment_corpus/4479563/1&gt;`_. This function parses </span>
+<span class="sd">    and returns only the test data.</span>
+
+<span class="sd">    :param folder_path: Path to the folder containing the data after it has</span>
+<span class="sd">                        been unziped and all folders within it have been </span>
+<span class="sd">                        unziped.</span>
+<span class="sd">    :param include_dnr: determine if to include the `doesnotapply` label</span>
+<span class="sd">    :param include_additional: NOTE: This does not work at the moment. </span>
+<span class="sd">                               Determine if to parse the additional data.</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">test_data</span> <span class="o">=</span> <span class="n">election</span><span class="p">(</span><span class="n">folder_path</span><span class="p">,</span> <span class="n">include_dnr</span><span class="o">=</span><span class="n">include_dnr</span><span class="p">,</span> 
+                            <span class="n">include_additional</span><span class="o">=</span><span class="n">include_additional</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">test_data</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="hu_liu"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.hu_liu">[docs]</a><span class="k">def</span> <span class="nf">hu_liu</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parser for the datasets from the following two papers (DOES NOT WORK):</span>
+
+<span class="sd">    1. `A Holistic Lexicon-Based Approach to Opinion Mining \</span>
+<span class="sd">    &lt;https://www.cs.uic.edu/~liub/FBS/opinion-mining-final-WSDM.pdf&gt;`_</span>
+<span class="sd">    2. `Mining and Summarizing Customer Reviews \</span>
+<span class="sd">    &lt;https://www.cs.uic.edu/~liub/publications/kdd04-revSummary.pdf&gt;`_</span>
+
+<span class="sd">    Currently this does not work. This is due to the dataset not containing</span>
+<span class="sd">    enough data to determine where the targets are in the text.</span>
+
+<span class="sd">    :param file_path: The path to a file containing annotations in the format \</span>
+<span class="sd">    of hu and liu sentiment datasets.</span>
+<span class="sd">    :type file_path: String</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    :rtype: TargetCollection</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">sentiment_data</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;cp1252&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">annotations</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">sentence_index</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">annotations</span><span class="p">):</span>
+            <span class="c1"># If it does not contain ## then not a sentence</span>
+            <span class="k">if</span> <span class="s1">&#39;##&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">annotation</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">targets_text</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;##&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets_text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets_text</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The annotation </span><span class="si">{}</span><span class="s1"> when split on `##` should &#39;</span>\
+                                 <span class="s1">&#39;contain at least the sentence text and at&#39;</span>\
+                                 <span class="s1">&#39; most the text and the targets and not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">targets_text</span><span class="p">))</span>
+            <span class="c1"># If it just contains the sentence text then go to next</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets_text</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">targets_text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">targets</span><span class="p">,</span> <span class="n">text</span> <span class="o">=</span> <span class="n">targets_text</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">file_name</span> <span class="o">+</span> <span class="s1">&#39;#</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sentence_index</span><span class="p">)</span>
+
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">sentiment_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\[[+-]\d\]$&#39;</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+                <span class="n">is_implicit</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\[[up]\]&#39;</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">is_implicit</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Target </span><span class="si">{}</span><span class="s1"> is implicit </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">sentiment_match</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Target </span><span class="si">{}</span><span class="s1"> does not have a corresponding&#39;</span>\
+                                     <span class="s1">&#39; sentiment value. annotation </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">annotation</span><span class="p">))</span>
+                <span class="n">target_text</span> <span class="o">=</span> <span class="n">target</span><span class="p">[:</span><span class="n">sentiment_match</span><span class="o">.</span><span class="n">start</span><span class="p">()]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">sentiment_text</span> <span class="o">=</span> <span class="n">sentiment_match</span><span class="o">.</span><span class="n">group</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;[]&#39;</span><span class="p">)</span>
+                <span class="n">sentiment_value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sentiment_text</span><span class="p">)</span>
+
+                <span class="n">target_matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">target_text</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_matches</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The Target </span><span class="si">{}</span><span class="s1"> can only occur once in the &#39;</span>\
+                          <span class="s1">&#39;text </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_text</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+                    <span class="k">continue</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The Target </span><span class="si">{}</span><span class="s1"> can only occur once in the &#39;</span>\
+                                     <span class="s1">&#39;text </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_text</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+                <span class="n">target_span</span> <span class="o">=</span> <span class="n">target_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">span</span><span class="p">()</span>
+                <span class="n">target_id</span> <span class="o">=</span> <span class="n">sentence_id</span> <span class="o">+</span> <span class="s1">&#39;#</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_index</span><span class="p">)</span>
+
+                <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">target_span</span><span class="p">]</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_text</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment_value</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_id</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_id</span>
+                <span class="n">sentiment_data</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">data_dict</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">sentiment_data</span></div>
+
+
+<div class="viewcode-block" id="mitchel"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.mitchel">[docs]</a><span class="k">def</span> <span class="nf">mitchel</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parser for the dataset introduced by `Mitchel et al. \</span>
+<span class="sd">    &lt;https://www.aclweb.org/anthology/D13-1171&gt;`_. The dataset can be downloaded</span>
+<span class="sd">    from `&lt;here http://www.m-mitchell.com/code/MitchellEtAl-13-OpenSentiment.tgz&gt;`_</span>
+<span class="sd">    the dataset can be found within the tarball under /en/10-fold and then</span>
+<span class="sd">    choose one of the folds e.g. train_1 and test_1 to get the full dataset.</span>
+
+<span class="sd">    :param file_path: path to either the train or test data.</span>
+<span class="sd">    :param target_collection_kwargs: Keywords to parse to the TargetCollection </span>
+<span class="sd">                                     constructor that is returned.</span>
+<span class="sd">    :returns: A TargetCollection containing Target instances.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">extract_targets</span><span class="p">(</span><span class="n">current_target</span><span class="p">,</span> <span class="n">end_span</span><span class="p">,</span> <span class="n">start_span</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
+                        <span class="n">target_spans</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">,</span> <span class="n">sentiment_data</span><span class="p">,</span>
+                        <span class="n">tweet_id</span><span class="p">,</span> <span class="n">target_sentiments</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">current_target</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="n">target_word</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_target</span><span class="p">)</span>
+            <span class="n">end_span</span> <span class="o">=</span> <span class="n">start_span</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+            <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+            <span class="n">target_spans</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span><span class="p">))</span>
+            <span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">current_target</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">target_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">tweet_text</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tweet_text</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
+            <span class="n">target_id</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">#</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tweet_id</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">target_sentiment</span> <span class="o">=</span> <span class="n">target_sentiments</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">target_span</span> <span class="o">=</span> <span class="n">target_spans</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">tweet_text</span><span class="p">[</span><span class="n">target_span</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">target_span</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">!=</span> <span class="n">target</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;The target span </span><span class="si">{}</span><span class="s1"> does not match the &#39;</span>\
+                                <span class="s1">&#39;target word </span><span class="si">{}</span><span class="s1"> in </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_span</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">))</span>
+            <span class="n">target_data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;spans&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="n">target_span</span><span class="p">],</span> <span class="s1">&#39;target_id&#39;</span> <span class="p">:</span> <span class="n">target_id</span><span class="p">,</span>
+                           <span class="s1">&#39;target&#39;</span> <span class="p">:</span> <span class="n">target</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span> <span class="p">:</span> <span class="n">tweet_text</span><span class="p">,</span>
+                           <span class="s1">&#39;sentiment&#39;</span> <span class="p">:</span> <span class="n">target_sentiment</span><span class="p">,</span>
+                           <span class="s1">&#39;sentence_id&#39;</span> <span class="p">:</span> <span class="n">tweet_id</span><span class="p">}</span>
+            <span class="n">target_data</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">target_data</span><span class="p">)</span>
+            <span class="n">sentiment_data</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target_data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sentiment_data</span>
+
+    <span class="n">sentiment_mapper</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;negative&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;neutral&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="n">sentiment_data</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">tweet_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">tweet_text</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_target</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">target_sentiments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">target_spans</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">start_span</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">end_span</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">target_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">tweet_id_line</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;## Tweet (\d+)&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tweet_id_line</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">tweet_text</span> <span class="o">!=</span> <span class="p">[]:</span>
+                    <span class="n">sentiment_data</span> <span class="o">=</span> <span class="n">extract_targets</span><span class="p">(</span><span class="n">current_target</span><span class="p">,</span> <span class="n">end_span</span><span class="p">,</span>
+                                                     <span class="n">start_span</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
+                                                     <span class="n">target_spans</span><span class="p">,</span>
+                                                     <span class="n">target_index</span><span class="p">,</span> <span class="n">tweet_text</span><span class="p">,</span>
+                                                     <span class="n">sentiment_data</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">,</span>
+                                                     <span class="n">target_sentiments</span><span class="p">)</span>
+                    <span class="n">tweet_text</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">current_target</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">target_sentiments</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">target_spans</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">target_index</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">start_span</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">end_span</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">target_index</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tweet_id</span> <span class="o">=</span> <span class="n">tweet_id_line</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">line_data</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NUMBER&#39;</span><span class="p">:</span>
+                        <span class="n">line_data</span> <span class="o">=</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Cannot parse line </span><span class="si">{}</span><span class="s1"> in Tweet ID </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Cannot parse line </span><span class="si">{}</span><span class="s1"> in Tweet ID </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">))</span>
+            <span class="n">word</span><span class="p">,</span> <span class="n">ner_data</span><span class="p">,</span> <span class="n">sentiment</span> <span class="o">=</span> <span class="n">line_data</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Why is the word got a space in it: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">word</span><span class="p">))</span>
+            <span class="n">word</span> <span class="o">=</span> <span class="n">ftfy</span><span class="o">.</span><span class="n">fix_encoding</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="n">tweet_text</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+
+            <span class="c1"># Contains sentiment</span>
+            <span class="k">if</span> <span class="n">sentiment</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_target</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ner_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span>
+                        <span class="n">target_word</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_target</span><span class="p">)</span>
+                        <span class="n">end_span</span> <span class="o">=</span> <span class="n">start_span</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+                        <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+                        <span class="n">target_spans</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span><span class="p">))</span>
+                        <span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+                        <span class="n">current_target</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">target_index</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Contains the following target </span><span class="si">{}</span><span class="s1"> id </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">current_target</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">))</span>
+                <span class="n">current_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+                <span class="n">sentiment</span> <span class="o">=</span> <span class="n">sentiment_mapper</span><span class="p">[</span><span class="n">sentiment</span><span class="p">]</span>
+                <span class="n">target_sentiments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sentiment</span><span class="p">)</span>
+                <span class="n">start_span</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tweet_text</span><span class="p">))</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_target</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ner_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+                    <span class="n">current_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">target_word</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_target</span><span class="p">)</span>
+                    <span class="n">end_span</span> <span class="o">=</span> <span class="n">start_span</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+                    <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+                    <span class="n">target_spans</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span><span class="p">))</span>
+                    <span class="n">start_span</span><span class="p">,</span> <span class="n">end_span</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="n">current_target</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">target_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">sentiment_data</span> <span class="o">=</span> <span class="n">extract_targets</span><span class="p">(</span><span class="n">current_target</span><span class="p">,</span> <span class="n">end_span</span><span class="p">,</span> <span class="n">start_span</span><span class="p">,</span>
+                                         <span class="n">targets</span><span class="p">,</span> <span class="n">target_spans</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span>
+                                         <span class="n">tweet_text</span><span class="p">,</span> <span class="n">sentiment_data</span><span class="p">,</span> <span class="n">tweet_id</span><span class="p">,</span>
+                                         <span class="n">target_sentiments</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sentiment_data</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

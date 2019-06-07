@@ -1,0 +1,1626 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.models.base &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.models.base</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.models.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module contains all of the main base classes for the machine learning models</span>
+<span class="sd">these are grouped into 3 categories; 1. Mixin, 2. Abstract, and 3. Concrete.</span>
+
+
+<span class="sd">Mixin classes - This is a function based class that contains functions that</span>
+<span class="sd">do not rely on the type of model and are useful for all:</span>
+
+<span class="sd">1. :py:class:`bella.models.base.ModelMixin`</span>
+
+<span class="sd">Abstract classes - This is used to enforce all the functions that all</span>
+<span class="sd">the machine learning models must have. This is also the class that inherits</span>
+<span class="sd">the Mixin class:</span>
+
+<span class="sd">1. :py:class:`bella.models.base.BaseModel`</span>
+
+<span class="sd">Concrete classes - These are more concete classes that still contain some</span>
+<span class="sd">abstract methods. However they are the classes to inherit from to create a</span>
+<span class="sd">machine learning model base on a certain framework e.g. SKlearn or Keras:</span>
+
+<span class="sd">1. :py:class:`bella.models.base.SKLearnModel`</span>
+<span class="sd">2. :py:class:`bella.models.base.KerasModel`</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">rn</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="k">import</span> <span class="n">Pool</span>
+
+<span class="kn">import</span> <span class="nn">keras</span>
+<span class="kn">from</span> <span class="nn">keras.callbacks</span> <span class="k">import</span> <span class="n">EarlyStopping</span><span class="p">,</span> <span class="n">ModelCheckpoint</span>
+<span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">preprocessing</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">sklearn</span>
+<span class="kn">from</span> <span class="nn">sklearn.externals</span> <span class="k">import</span> <span class="n">joblib</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">StratifiedShuffleSplit</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">GridSearchCV</span><span class="p">,</span> <span class="n">StratifiedKFold</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">import</span> <span class="nn">bella</span>
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">Target</span>
+
+
+<div class="viewcode-block" id="ModelMixin"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.ModelMixin">[docs]</a><span class="k">class</span> <span class="nc">ModelMixin</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Mixin class for all of the machine learning models. Contain functions</span>
+<span class="sd">    only so they are as generic as possible.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. train_val_split -- Splits the training dataset into a train and</span>
+<span class="sd">       validation set in a stratified split.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_convert_to_targets</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+                            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.data_types.Target&#39;</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts a list of dictionaries into a list of</span>
+<span class="sd">        :py:class:`bella.data_types.Target`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">all_targets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">all_targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Target</span><span class="p">(</span><span class="o">**</span><span class="n">target</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">all_targets</span>
+
+<div class="viewcode-block" id="ModelMixin.train_val_split"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.ModelMixin.train_val_split">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">train_val_split</span><span class="p">(</span><span class="n">train</span><span class="p">:</span> <span class="s1">&#39;TargetCollection&#39;</span><span class="p">,</span>
+                        <span class="n">split_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">42</span>
+                        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                                   <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Splits the training dataset into a train and validation set in a</span>
+<span class="sd">        stratified split.</span>
+
+<span class="sd">        :param train: The training dataset that needs to be split into</span>
+<span class="sd">        :param split_size: Fraction of the dataset to assign to the</span>
+<span class="sd">                           validation set.</span>
+<span class="sd">        :param seed: Seed value to give to the stratified splitter. If</span>
+<span class="sd">                     None then it uses the radnom state of numpy.</span>
+<span class="sd">        :return: Two tuples of length two where each tuple is the train</span>
+<span class="sd">                 and validation splits respectively, and each tuple contains</span>
+<span class="sd">                 the data (X) and class labels (y) respectively. Returns</span>
+<span class="sd">                 ((X_train, y_train), (X_val, y_val))</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">splitter</span> <span class="o">=</span> <span class="n">StratifiedShuffleSplit</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="n">split_size</span><span class="p">,</span>
+                                          <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+        <span class="n">sentiment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">train_indexs</span><span class="p">,</span> <span class="n">test_indexs</span> <span class="ow">in</span> <span class="n">splitter</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sentiment</span><span class="p">):</span>
+            <span class="n">train_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">train_indexs</span><span class="p">]</span>
+            <span class="n">test_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">test_indexs</span><span class="p">]</span>
+
+        <span class="n">train</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">ModelMixin</span><span class="o">.</span><span class="n">_convert_to_targets</span><span class="p">(</span><span class="n">train_data</span><span class="p">))</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">ModelMixin</span><span class="o">.</span><span class="n">_convert_to_targets</span><span class="p">(</span><span class="n">test_data</span><span class="p">))</span>
+
+        <span class="n">X_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+        <span class="n">y_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">())</span>
+        <span class="n">X_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">data_dict</span><span class="p">())</span>
+        <span class="n">y_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">sentiment_data</span><span class="p">())</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">),</span> <span class="p">(</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BaseModel"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel">[docs]</a><span class="k">class</span> <span class="nc">BaseModel</span><span class="p">(</span><span class="n">ModelMixin</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Abstract class for all of the machine learning models.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. model -- Machine learning model that is associated to this instance.</span>
+<span class="sd">    2. fitted -- If the machine learning model has been fitted (default False)</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit -- Fit the model according to the given training data.</span>
+<span class="sd">    2. predict -- Predict class labels for samples in X.</span>
+<span class="sd">    3. probabilities -- The probability of each class label for all samples</span>
+<span class="sd">       in X.</span>
+<span class="sd">    4. __repr__ -- Name of the machine learning model.</span>
+
+<span class="sd">    Class Methods:</span>
+
+<span class="sd">    1. name -- -- Returns the name of the model.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. save -- Saves the given machine learning model instance to a file.</span>
+<span class="sd">    2. load -- Loads the entire machine learning model from a file.</span>
+<span class="sd">    3. evaluate_parameter -- fit and predict given training, validation and</span>
+<span class="sd">       test data the given model when the given parameter is changed on the</span>
+<span class="sd">       model.</span>
+<span class="sd">    4. evaluate_parameters -- same as evaluate_parameter however it</span>
+<span class="sd">       evaluates over many parameter values for the same parameter.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="BaseModel.fit"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.fit">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Fit the model according to the given training data.</span>
+
+<span class="sd">        :param X: Training samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :param y: Training targets, shape = [n_samples]</span>
+<span class="sd">        :return: The `model` attribute will now be trained.</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.predict"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.predict">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Predict class labels for samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :return: Predicted class label per sample, shape = [n_samples]</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.probabilities"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.probabilities">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The probability of each class label for all samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]]</span>
+<span class="sd">        :return: Probability of each class label for all samples, shape = \</span>
+<span class="sd">        [n_samples, n_classes]</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+
+<span class="sd">        :return: Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="BaseModel.save"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.save">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;BaseModel&#39;</span><span class="p">,</span> <span class="n">save_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Saves the entire machine learning model to a file.</span>
+
+<span class="sd">        :param model: The machine learning model instance to be saved.</span>
+<span class="sd">        :param save_fp: File path of the location that the model is to be \</span>
+<span class="sd">        saved to.</span>
+<span class="sd">        :return: Nothing.</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.load"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.load">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">load_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;bella.models.base.BaseModel&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Loads the entire machine learning model from a file.</span>
+
+<span class="sd">        :param load_fp: File path of the location that the model was saved to.</span>
+<span class="sd">        :return: self</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.evaluate_parameter"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.evaluate_parameter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;BaseModel&#39;</span><span class="p">,</span>
+                           <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                           <span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span>
+                           <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                           <span class="n">parameter</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a model will set the `parameter_name` to `parameter` fit the</span>
+<span class="sd">        model and return the a Tuple of parameter changed and predictions of</span>
+<span class="sd">        the model on the test data, using the train and validation data for</span>
+<span class="sd">        fitting.</span>
+
+<span class="sd">        :param model: :py:class:`bella.models.base.BaseModel` instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Tuple of `(X_val, y_val)` or None is not required.</span>
+<span class="sd">                    This is only required if the model requires validation</span>
+<span class="sd">                    data like the :py:class:`bella.models.base.KerasModel`</span>
+<span class="sd">                    models do.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change e.g. optimiser</span>
+<span class="sd">        :param parameter: value to assign to the parameter e.g.</span>
+<span class="sd">                          :py:class:`keras.optimizers.RMSprop`</span>
+<span class="sd">        :return: A tuple of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.evaluate_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.evaluate_parameters">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameters</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.BaseModel&#39;</span><span class="p">,</span>
+                            <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                            <span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span>
+                            <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span>
+                            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs :py:func:`bella.models.base.BaseModel.evaluate_parameter` on</span>
+<span class="sd">        one `parameter_name` but with multiple parameter values.</span>
+
+<span class="sd">        This is useful if you would like to know the affect of changing the</span>
+<span class="sd">        values of a parameter. It can also perform the task in a</span>
+<span class="sd">        multiprocessing manner if `n_jobs` &gt; 1.</span>
+
+<span class="sd">        :param model: :py:class:`bella.models.base.BaseModel` instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Tuple of `(X_val, y_val)` or None is not required.</span>
+<span class="sd">                    This is only required if the model requires validation</span>
+<span class="sd">                    data like the :py:class:`bella.models.base.KerasModel`</span>
+<span class="sd">                    models do.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change e.g. optimiser</span>
+<span class="sd">        :param parameters: A list of values to assign to the parameter e.g.</span>
+<span class="sd">                           [:py:class:`keras.optimizers.RMSprop`]</span>
+<span class="sd">        :param n_jobs: Number of cpus to use for multiprocessing if 1 then</span>
+<span class="sd">                       will not multiprocess.</span>
+<span class="sd">        :return: A list of tuples of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="BaseModel.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.BaseModel.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the name of the model.</span>
+
+<span class="sd">        :return: Name of the model</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine learning model that is associated to this instance.</span>
+
+<span class="sd">        :return: The machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+
+    <span class="nd">@model</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the model attribute</span>
+
+<span class="sd">        :param value: The value to assign to the model attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        If the machine learning model has been fitted (default False)</span>
+
+<span class="sd">        :return: True or False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span>
+
+    <span class="nd">@fitted</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the fitted attribute</span>
+
+<span class="sd">        :param value: The value to assign to the fitted attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="KerasModel"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel">[docs]</a><span class="k">class</span> <span class="nc">KerasModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Concrete class that is designed to be used as the base class for all</span>
+<span class="sd">    machine learning models that are based on the</span>
+<span class="sd">    `Keras library &lt;https://keras.io&gt;`_.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. tokeniser -- Tokeniser model uses e.g. :py:meth:`str.split`.</span>
+<span class="sd">    2. embeddings -- the word embeddings the model uses. e.g.</span>
+<span class="sd">       :py:class:`bella.word_vectors.SSWE`</span>
+<span class="sd">    3. lower -- if the model lower cases the words when pre-processing the data</span>
+<span class="sd">    4. reproducible -- Whether to be reproducible. If None then it is quicker</span>
+<span class="sd">       to run. Else provide a `int` that will represent the random seed value.</span>
+<span class="sd">    5. patience -- Number of epochs with no improvement before training</span>
+<span class="sd">       is stopped.</span>
+<span class="sd">    6. batch_size -- Number of samples per gradient update.</span>
+<span class="sd">    7. epcohs -- Number of times to train over the entire training set</span>
+<span class="sd">       before stopping.</span>
+<span class="sd">    8. optimiser -- Optimiser the model uses.</span>
+<span class="sd">       e.g. :py:class:`keras.optimizers.SGD`</span>
+<span class="sd">    9. optimiser_params -- Parameters for the optimiser. If None uses default</span>
+<span class="sd">       for the optimiser being used.</span>
+
+<span class="sd">    Abstract Methods:</span>
+
+<span class="sd">    1. keras_model -- Keras machine Learning model that represents the class</span>
+<span class="sd">       e.g. single forward LSTM.</span>
+<span class="sd">    2. create_training_text -- Converts the training and validation data into</span>
+<span class="sd">       a format that the keras model can take as input.</span>
+<span class="sd">    3. create_training_y -- Converts the training and validation targets into a</span>
+<span class="sd">       format that can be used by the keras model.</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit -- Fit the model according to the given training and validation</span>
+<span class="sd">       data.</span>
+<span class="sd">    2. probabilities -- The probability of each class label for all samples</span>
+<span class="sd">       in X.</span>
+<span class="sd">    3. predict -- Predict class labels for samples in X.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. save -- Given a instance of this class will save it to a file.</span>
+<span class="sd">    2. load -- Loads an instance of this class from a file.</span>
+<span class="sd">    3. evaluate_parameter -- fit and predict given training, validation and</span>
+<span class="sd">       test data the given model when the given parameter is changed on the</span>
+<span class="sd">       model.</span>
+<span class="sd">    4. evaluate_parameters -- same as evaluate_parameter however it</span>
+<span class="sd">       evaluates over many parameter values for the same parameter.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="KerasModel.keras_model"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.keras_model">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">keras_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.models.Model&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Keras machine Learning model that represents the class e.g.</span>
+<span class="sd">        single forward LSTM.</span>
+
+<span class="sd">        :returns: Keras machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="KerasModel.create_training_text"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.create_training_text">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">create_training_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                             <span class="n">validation_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+                             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation data into a format that the keras</span>
+<span class="sd">        model can take as input.</span>
+
+<span class="sd">        :return: A tuple of length two containing the keras model training and</span>
+<span class="sd">                 validation input respectively.</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="KerasModel.create_training_y"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.create_training_y">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">create_training_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">validation_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation targets into a format that can</span>
+<span class="sd">        be used by the keras model</span>
+
+<span class="sd">        :return: A tuple of length containing two array the first for</span>
+<span class="sd">                 training and the second for validation.</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_pre_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training or validation data into a format that will be</span>
+<span class="sd">        used by the keras model.</span>
+
+<span class="sd">        This function is normally used to process the training and the</span>
+<span class="sd">        validation to be returned together by</span>
+<span class="sd">        :py:meth:`bella.models.base.KerasModel.create_training_text`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="KerasModel.process_text"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.process_text">[docs]</a>    <span class="k">def</span> <span class="nf">process_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                     <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;pre&#39;</span><span class="p">,</span> <span class="n">truncate</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;pre&#39;</span>
+                     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a list of Strings, tokenised the text and lower case if set and</span>
+<span class="sd">        then convert the tokens into a integers representing the tokens in the</span>
+<span class="sd">        embeddings. Lastly it pads the data based on the max_length param.</span>
+
+<span class="sd">        If the max_length is smaller than the sentences size it truncates the</span>
+<span class="sd">        sentence. If max_length = -1 then the max_length is that of the longest</span>
+<span class="sd">        sentence in the texts.</span>
+
+<span class="sd">        :params texts: List of texts</span>
+<span class="sd">        :params max_length: How many tokens a sentence can contain. If it is</span>
+<span class="sd">                            -1 then it uses the sentence with the most tokens</span>
+<span class="sd">                            as the max_length parameter.</span>
+<span class="sd">        :params padding: Which side of the sentence to pad: `pre` beginning,</span>
+<span class="sd">                         `post` end.</span>
+<span class="sd">        :params truncate: Which side of the sentence to truncate: `pre`</span>
+<span class="sd">                          beginning `post` end.</span>
+<span class="sd">        :returns: A tuple of length 2 containg: 1. The max_length parameter,</span>
+<span class="sd">                  2. A matrix of shape [n_samples, pad_size] where each integer</span>
+<span class="sd">                  in the matrix represents the word embedding lookup.</span>
+<span class="sd">        :raises ValueError: If the mex_length argument is equal to or less</span>
+<span class="sd">                            than 0. Or if the calculated max_length is 0.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">max_length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The max length of a sequence cannot be zero&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">max_length</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The max length has to be either -1 or above &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;zero not </span><span class="si">{max_length}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Process the text into integers based on the embeddings given</span>
+        <span class="n">all_sequence_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">max_sequence</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">:</span>
+            <span class="n">sequence_data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokeniser</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">:</span>
+                    <span class="n">token</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="c1"># If the token does not exist it should lookup the unknown</span>
+                <span class="c1"># word vector</span>
+                <span class="n">sequence_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">word2index</span><span class="p">[</span><span class="n">token</span><span class="p">])</span>
+            <span class="n">sequence_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sequence_length</span> <span class="o">&gt;</span> <span class="n">max_sequence</span><span class="p">:</span>
+                <span class="n">max_sequence</span> <span class="o">=</span> <span class="n">sequence_length</span>
+            <span class="n">all_sequence_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sequence_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">max_sequence</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The max sequence length is 0 suggesting no &#39;</span>
+                             <span class="s1">&#39;data was provided for training or testing&#39;</span><span class="p">)</span>
+        <span class="c1"># Pad the sequences</span>
+        <span class="c1"># If max pad size is set and training the model set the</span>
+        <span class="c1"># test_pad_size to max sequence length</span>
+        <span class="k">if</span> <span class="n">max_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">max_length</span> <span class="o">=</span> <span class="n">max_sequence</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">max_length</span><span class="p">,</span>
+                <span class="n">preprocessing</span><span class="o">.</span><span class="n">sequence</span><span class="o">.</span><span class="n">pad_sequences</span><span class="p">(</span><span class="n">all_sequence_data</span><span class="p">,</span>
+                                                     <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
+                                                     <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int32&#39;</span><span class="p">,</span>
+                                                     <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                                     <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+                                                     <span class="n">truncating</span><span class="o">=</span><span class="n">truncate</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="KerasModel.fit"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="n">validation_data</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+            <span class="n">verbose</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">continue_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.callbacks.History&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Fit the model according to the given training and validation data.</span>
+
+<span class="sd">        :param X: Training samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :param y: Training targets, shape = [n_samples]</span>
+<span class="sd">        :param validation_data: Tuple of `(x_val, y_val)`. Used to evaluate the</span>
+<span class="sd">                                model at each epoch. Will not be trained on</span>
+<span class="sd">                                this data.</span>
+<span class="sd">        :param verbose: 0 = silent, 1 = progress</span>
+<span class="sd">        :param continue_training: Whether the model that has already been</span>
+<span class="sd">                                  trained should be trained further.</span>
+<span class="sd">        :return: A record of training loss values and metrics values at</span>
+<span class="sd">                 successive epochs, as well as validation loss values and</span>
+<span class="sd">                 validation metrics values.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">validation_data</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">y_val</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The class labels have to be greater than 0&#39;</span><span class="p">)</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">X_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_training_text</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_val</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span>
+
+        <span class="n">y</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_training_y</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Number of classes in the data </span><span class="si">{num_classes}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">continue_training</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_to_be_reproducible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reproducible</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keras_model</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">continue_training</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The model is already fitted&#39;</span><span class="p">)</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">continue_training</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimiser</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">optimiser_params</span><span class="p">),</span>
+                          <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">],</span>
+                          <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;categorical_crossentropy&#39;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span> <span class="k">as</span> <span class="n">weight_file</span><span class="p">:</span>
+            <span class="c1"># Set up the callbacks</span>
+            <span class="n">model_checkpoint</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="n">weight_file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                               <span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_loss&#39;</span><span class="p">,</span>
+                                               <span class="n">save_best_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                               <span class="n">save_weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                               <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">)</span>
+            <span class="n">early_stopping</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_loss&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span>
+                                           <span class="n">patience</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">patience</span><span class="p">)</span>
+            <span class="n">callbacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">early_stopping</span><span class="p">,</span> <span class="n">model_checkpoint</span><span class="p">]</span>
+            <span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">),</span>
+                                <span class="n">epochs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
+                                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+            <span class="c1"># Load the best model from the saved weight file</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">load_weights</span><span class="p">(</span><span class="n">weight_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">history</span></div>
+
+<div class="viewcode-block" id="KerasModel.probabilities"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The probability of each class label for all samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]]</span>
+<span class="sd">        :return: Probability of each class label for all samples, shape = \</span>
+<span class="sd">        [n_samples, n_classes]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The model has not been fitted please run the &#39;</span>
+                             <span class="s1">&#39;`fit` method.&#39;</span><span class="p">)</span>
+        <span class="c1"># Convert from a sequence of dictionaries into texts and then integers</span>
+        <span class="c1"># that represent the tokens in the text within the embedding space.</span>
+        <span class="n">sequence_test_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_process</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">predicted_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">sequence_test_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">predicted_values</span></div>
+
+<div class="viewcode-block" id="KerasModel.predict"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Predict class labels for samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :return: Predicted class label per sample, shape = [n_samples]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probabilities</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KerasModel.save"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.save">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.KerasModel&#39;</span><span class="p">,</span> <span class="n">save_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a Keras Model, mode, path to the folder to save too, and a name</span>
+<span class="sd">        to save the files it will save the data to restore the model.</span>
+
+<span class="sd">        :param model: The machine learning model instance to be saved.</span>
+<span class="sd">        :param save_fp: File path of the location that the model is to be</span>
+<span class="sd">                        saved.</span>
+<span class="sd">        :return: Nothing.</span>
+<span class="sd">        :raises ValueError: If the model has not been fitted or if the model</span>
+<span class="sd">                            is not of type</span>
+<span class="sd">                            :py:class:`bella.models.base.KerasModel`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">KerasModel</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The model parameter has to be of type &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;KearsModel not {type(model)}&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">fitted</span><span class="p">:</span>
+            <span class="n">model_fp</span> <span class="o">=</span> <span class="n">save_fp</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s1">&#39;.h5&#39;</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_fp</span><span class="p">)</span>
+
+            <span class="n">attributes_fp</span> <span class="o">=</span> <span class="n">save_fp</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s1">&#39;.pkl&#39;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">attributes_fp</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">attributes_file</span><span class="p">:</span>
+                <span class="c1"># optimiser cannot be pickled</span>
+                <span class="n">attributes</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model_parameters</span><span class="p">()</span>
+                <span class="k">del</span> <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_params&#39;</span><span class="p">][</span><span class="s1">&#39;optimiser&#39;</span><span class="p">]</span>
+                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">attributes</span><span class="p">,</span> <span class="n">attributes_file</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The model {str(model)} has not been fitted. &#39;</span>
+                             <span class="s1">&#39;This can be done by using the `fit` method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KerasModel.load"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.load">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">load_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;bella.models.base.KerasModel&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Loads an instance of this class from a file.</span>
+
+<span class="sd">        :param load_fp: File path of the location that the model was saved to.</span>
+<span class="sd">        :return: self</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">model_fp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">load_fp</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s1">&#39;.h5&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+        <span class="n">attributes_fp</span> <span class="o">=</span> <span class="n">load_fp</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s1">&#39;.pkl&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">attributes_fp</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">attributes_file</span><span class="p">:</span>
+            <span class="n">attributes</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">attributes_file</span><span class="p">)</span>
+        <span class="c1"># optimiser has to be recovered as it could not be pickled in the</span>
+        <span class="c1"># model parameters</span>
+        <span class="n">keras_model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">model_fp</span><span class="p">)</span>
+        <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_params&#39;</span><span class="p">][</span><span class="s1">&#39;optimiser&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">keras_model</span><span class="o">.</span><span class="n">optimizer</span>
+        <span class="n">model_class</span> <span class="o">=</span> <span class="n">attributes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span><span class="o">**</span><span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_params&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">class_attr</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_attrs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">class_attr</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">keras_model</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">model</span></div>
+
+<div class="viewcode-block" id="KerasModel.evaluate_parameter"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.evaluate_parameter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.KerasModel&#39;</span><span class="p">,</span>
+                           <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                           <span class="n">val</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                           <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                           <span class="n">parameter</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a model will set the `parameter_name` to `parameter` fit the</span>
+<span class="sd">        model and return the a Tuple of parameter changed and predictions of</span>
+<span class="sd">        the model on the test data, using the train and validation data for</span>
+<span class="sd">        fitting.</span>
+
+<span class="sd">        :param model: KerasModel instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Tuple of `(X_val, y_val)`. Used to evaluate the</span>
+<span class="sd">                    model at each epoch. Will not be trained on</span>
+<span class="sd">                    this data.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change e.g. optimiser</span>
+<span class="sd">        :param parameter: value to assign to the parameter e.g.</span>
+<span class="sd">                          :py:class:`keras.optimizers.RMSprop`</span>
+<span class="sd">        :return: A tuple of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">parameter</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">train</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">val</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">parameter</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KerasModel.evaluate_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.KerasModel.evaluate_parameters">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameters</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.KerasModel&#39;</span><span class="p">,</span>
+                            <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                            <span class="n">val</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                            <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span>
+                            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs :py:func:`bella.models.base.KerasModel.evaluate_parameter` on</span>
+<span class="sd">        one `parameter_name` but with multiple parameter values.</span>
+
+<span class="sd">        This is useful if you would like to know the affect of changing the</span>
+<span class="sd">        values of a parameter. It can also perform the task in a</span>
+<span class="sd">        multiprocessing manner if `n_jobs` &gt; 1.</span>
+
+<span class="sd">        :param model: :py:class:`bella.models.base.KerasModel` instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Tuple of `(X_val, y_val)`. Used to evaluate the</span>
+<span class="sd">                    model at each epoch. Will not be trained on</span>
+<span class="sd">                    this data.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change e.g. optimiser</span>
+<span class="sd">        :param parameters: A list of values to assign to the parameter e.g.</span>
+<span class="sd">                           [:py:class:`keras.optimizers.RMSprop`]</span>
+<span class="sd">        :param n_jobs: Number of cpus to use for multiprocessing if 1 then</span>
+<span class="sd">                       will not multiprocess.</span>
+<span class="sd">        :return: A list of tuples of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">func_args</span> <span class="o">=</span> <span class="p">((</span><span class="n">model</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">test</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">parameter</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">KerasModel</span><span class="o">.</span><span class="n">evaluate_parameter</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">func_args</span><span class="p">]</span>
+        <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="n">KerasModel</span><span class="o">.</span><span class="n">evaluate_parameter</span><span class="p">,</span> <span class="n">func_args</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_to_be_reproducible</span><span class="p">(</span><span class="n">reproducible</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        To make the method reproducible or not. If it is not needed then</span>
+<span class="sd">        we can use all the python threads.</span>
+
+<span class="sd">        :param reproducible: If int is provided this int is used as the seed</span>
+<span class="sd">                             values. Else None should be given if it is not</span>
+<span class="sd">                             to be reproducible.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">reproducible</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PYTHONHASHSEED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">reproducible</span><span class="p">)</span>
+            <span class="n">rn</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">reproducible</span><span class="p">)</span>
+            <span class="c1"># Forces tensorflow to use only one thread</span>
+            <span class="n">session_conf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">(</span><span class="n">intra_op_parallelism_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                          <span class="n">inter_op_parallelism_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">reproducible</span><span class="p">)</span>
+
+            <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">(),</span>
+                              <span class="n">config</span><span class="o">=</span><span class="n">session_conf</span><span class="p">)</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">set_session</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">rn</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tokeniser</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        tokeniser attribute</span>
+
+<span class="sd">        :return: The tokeniser used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokeniser</span>
+
+    <span class="nd">@tokeniser</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">tokeniser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the tokeniser attribute</span>
+
+<span class="sd">        :param value: The value to assign to the tokeniser attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokeniser</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        embeddings attribute</span>
+
+<span class="sd">        :return: The embeddings used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embeddings</span>
+
+    <span class="nd">@embeddings</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the embeddings attribute</span>
+
+<span class="sd">        :param value: The value to assign to the embeddings attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_embeddings</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lower</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        lower attribute</span>
+
+<span class="sd">        :return: The lower used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span>
+
+    <span class="nd">@lower</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">lower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the lower attribute</span>
+
+<span class="sd">        :param value: The value to assign to the lower attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reproducible</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        reproducible attribute</span>
+
+<span class="sd">        :return: The reproducible used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reproducible</span>
+
+    <span class="nd">@reproducible</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reproducible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the reproducible attribute</span>
+
+<span class="sd">        :param value: The value to assign to the reproducible attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reproducible</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">patience</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        patience attribute</span>
+
+<span class="sd">        :return: The patience used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patience</span>
+
+    <span class="nd">@patience</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">patience</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the patience attribute</span>
+
+<span class="sd">        :param value: The value to assign to the patience attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patience</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        batch_size attribute</span>
+
+<span class="sd">        :return: The batch_size used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span>
+
+    <span class="nd">@batch_size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the batch_size attribute</span>
+
+<span class="sd">        :param value: The value to assign to the batch_size attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">epochs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        epochs attribute</span>
+
+<span class="sd">        :return: The epochs used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epochs</span>
+
+    <span class="nd">@epochs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">epochs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the epochs attribute</span>
+
+<span class="sd">        :param value: The value to assign to the epochs attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epochs</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">optimiser</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.optimizers.Optimizer&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        optimiser attribute</span>
+
+<span class="sd">        :return: The optimiser used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimiser</span>
+
+    <span class="nd">@optimiser</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">optimiser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="s1">&#39;keras.optimizers.Optimizer&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the optimiser attribute</span>
+
+<span class="sd">        :param value: The value to assign to the optimiser attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_optimiser</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">optimiser_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        optimiser_params attribute</span>
+
+<span class="sd">        :return: The optimiser_params used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimiser_params</span>
+
+    <span class="nd">@optimiser_params</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">optimiser_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the optimiser_params attribute</span>
+
+<span class="sd">        :param value: The value to assign to the optimiser_params attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_optimiser_params</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="SKLearnModel"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel">[docs]</a><span class="k">class</span> <span class="nc">SKLearnModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Concrete class that is designed to be used as the base class for all</span>
+<span class="sd">    machine learning models that are based on the</span>
+<span class="sd">    `scikit learn library &lt;http://scikit-learn.org/stable/&gt;`_.</span>
+
+<span class="sd">    At the moment expects all of the machine learning models to use a</span>
+<span class="sd">    `SVM &lt;http://scikit-learn.org/0.19/modules/cla\</span>
+<span class="sd">    sses.html#module-sklearn.svm&gt;`_ as their classifier. This is due to</span>
+<span class="sd">    assuming the model will have the method</span>
+<span class="sd">    :py:meth:`sklearn.svm.SVC.decision_function` to get `probabilities`.</span>
+
+<span class="sd">    **NOTE** each time the *model_parameters* are set it resets the model</span>
+<span class="sd">    i.e. the *fitted* attribute is :py:class:`False`</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. model -- Machine learning model. Expects it to be a</span>
+<span class="sd">       :py:class:`sklearn.pipeline.Pipeline` instance.</span>
+<span class="sd">    2. fitted -- If the machine learning model has been fitted (default False)</span>
+<span class="sd">    3. model_parameters -- The parameters that are set in the machine</span>
+<span class="sd">       learning model. E.g. Parameter could be the tokeniser used.</span>
+
+<span class="sd">    Abstract Class Methods:</span>
+
+<span class="sd">    1. get_parameters -- Transform the given parameters into a dictonary</span>
+<span class="sd">       that is accepted as model parameters.</span>
+<span class="sd">    2. get_cv_parameters -- Transform the given parameters into a list of</span>
+<span class="sd">       dictonaries that is accepted as `param_grid` parameter in</span>
+<span class="sd">       :py:class:`sklearn.model_selection.GridSearchCV`</span>
+<span class="sd">    3. normalise_parameter_names -- Converts the output of </span>
+<span class="sd">       :py:meth:`get_parameters` into a dictionary that can be used as input </span>
+<span class="sd">       into :py:meth:`get_parameters`. This is required so that the </span>
+<span class="sd">       :py:func:`evaluate_parameters` can work this class.</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit -- Fit the model according to the given training data.</span>
+<span class="sd">    2. predict -- Predict class labels for samples in X.</span>
+<span class="sd">    3. probabilities -- The probability of each class label for all samples</span>
+<span class="sd">       in X.</span>
+<span class="sd">    4. __repr__ -- Name of the machine learning model.</span>
+
+<span class="sd">    Functions:</span>
+
+<span class="sd">    1. save -- Given a instance of this class will save it to a file.</span>
+<span class="sd">    2. load -- Loads an instance of this class from a file.</span>
+<span class="sd">    3. evaluate_parameter -- fit and predict given training, validation and</span>
+<span class="sd">       test data the given model when the given parameter is changed on the</span>
+<span class="sd">       model.</span>
+<span class="sd">    4. evaluate_parameters -- same as evaluate_parameter however it</span>
+<span class="sd">       evaluates over many parameter values for the same parameter.</span>
+<span class="sd">    5. grid_search_model -- Given a model class it will perform a Grid Search</span>
+<span class="sd">       over the parameters you give to the models</span>
+<span class="sd">       :py:func:`bella.models.base.SKLearnModel.get_cv_parameters` function</span>
+<span class="sd">       via the keyword arguments. Returns a pandas dataframe representation of</span>
+<span class="sd">       the grid search results.</span>
+<span class="sd">    6. get_grid_score -- Given the return of the :py:func:`grid_search_model`</span>
+<span class="sd">       will return the grid scores as a List of the mean test accuracy result.</span>
+<span class="sd">    7. models_best_parameter -- Given a list of models and their base model</span>
+<span class="sd">       arguments, it will find the best parameter value out of the values</span>
+<span class="sd">       given for that parameter while keeping the base model arguments</span>
+<span class="sd">       constant for each model.</span>
+
+<span class="sd">    Abstract Functions:</span>
+
+<span class="sd">    1. Pipeline -- Machine Learning model that is used as the base template</span>
+<span class="sd">       for the model attribute. Expects it to be a</span>
+<span class="sd">       :py:class:`sklearn.pipeline.Pipeline` instance.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="SKLearnModel.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.fit"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Fit the model according to the given training data.</span>
+
+<span class="sd">        :param X: Training samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :param y: Training targets, shape = [n_samples]</span>
+<span class="sd">        :return: The `model` attribute will now be trained.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.predict"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Predict class labels for samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :return: Predicted class label per sample, shape = [n_samples]</span>
+<span class="sd">        :raises ValueError: If the model has not been fitted</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The model {str(self)} has not been fitted. &#39;</span>
+                         <span class="s1">&#39;This can be done by using the `fit` method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.probabilities"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The probability of each class label for all samples in X.</span>
+
+<span class="sd">        :param X: Test samples matrix, shape = [n_samples, n_features]]</span>
+<span class="sd">        :return: Probability of each class label for all samples, shape =</span>
+<span class="sd">                 [n_samples, n_classes]</span>
+<span class="sd">        :raises ValueError: If the model has not been fitted</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The model {str(self)} has not been fitted. &#39;</span>
+                         <span class="s1">&#39;This can be done by using the `fit` method&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The parameters that are set in the machine learning model. E.g.</span>
+<span class="sd">        Parameter could be the tokeniser used.</span>
+
+<span class="sd">        :return: parameters of the machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_parameters</span>
+
+    <span class="nd">@model_parameters</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Set the parameters of the machine learning model.</span>
+
+<span class="sd">        :param value: The new parameters of the machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="SKLearnModel.save"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.save">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span>
+             <span class="n">save_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">compress</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given an instance of this class will save it to a file.</span>
+
+<span class="sd">        :param model: The machine learning model instance to be saved.</span>
+<span class="sd">        :param save_fp: File path of the location that the model is to be</span>
+<span class="sd">                        saved to.</span>
+<span class="sd">        :param compress: Optional (default 0). Level of compression 0 is no</span>
+<span class="sd">                         compression and 9 is the most compressed. The more</span>
+<span class="sd">                         compressed the lower the read/write time.</span>
+<span class="sd">        :return: Nothing.</span>
+<span class="sd">        :raises ValueError: If the model has not been fitted or if the model</span>
+<span class="sd">                            is not of type</span>
+<span class="sd">                            :py:class:`bella.models.base.SKLearn`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">SKLearnModel</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The model parameter has to be of type &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;SKLearnModel not {type(model)}&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">fitted</span><span class="p">:</span>
+            <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">save_fp</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The model {str(model)} has not been fitted. &#39;</span>
+                             <span class="s1">&#39;This can be done by using the `fit` method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.load"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.load">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">load_fp</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Loads an instance of this class from a file.</span>
+
+<span class="sd">        :param load_fp: File path of the location that the model was saved to.</span>
+<span class="sd">        :return: self</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">load_fp</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.evaluate_parameter"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.evaluate_parameter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span>
+                           <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                           <span class="n">val</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                           <span class="n">parameter</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a model will set the `parameter_name` to `parameter` fit the</span>
+<span class="sd">        model and return the a Tuple of parameter changed and predictions of</span>
+<span class="sd">        the model on the test data, using the train and validation data for</span>
+<span class="sd">        fitting.</span>
+
+<span class="sd">        :param model: :py:class:`bella.models.base.SKLearn` instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Use None. This is only kept to keep the API clean.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change</span>
+<span class="sd">                               e.g. word_vectors</span>
+<span class="sd">        :param parameter: value to assign to the parameter e.g.</span>
+<span class="sd">                          :py:class:`bella.word_vectors.SSWE`</span>
+<span class="sd">        :return: A tuple of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">original_parameters</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_model_parameters</span>
+        <span class="n">original_parameters</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">normalise_parameter_names</span><span class="p">(</span><span class="n">original_parameters</span><span class="p">)</span>
+        <span class="n">original_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameter</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">model_parameters</span> <span class="o">=</span> <span class="n">original_parameters</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">train</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">parameter</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.evaluate_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.evaluate_parameters">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate_parameters</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span>
+                            <span class="n">train</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                            <span class="n">val</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">test</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span>
+                            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs :py:func:`bella.models.base.KerasModel.evaluate_parameter` on</span>
+<span class="sd">        one `parameter_name` but with multiple parameter values.</span>
+
+<span class="sd">        This is useful if you would like to know the affect of changing the</span>
+<span class="sd">        values of a parameter. It can also perform the task in a</span>
+<span class="sd">        multiprocessing manner if `n_jobs` &gt; 1.</span>
+
+<span class="sd">        :param model: :py:class:`bella.models.base.SKLearn` instance</span>
+<span class="sd">        :param train: Tuple of `(X_train, y_train)`. Used to fit the model.</span>
+<span class="sd">        :param val: Use None. This is only kept to keep the API clean.</span>
+<span class="sd">        :param test: `X_test` data to predict on.</span>
+<span class="sd">        :param parameter_name: Name of the parameter to change e.g.</span>
+<span class="sd">                               word_vectors</span>
+<span class="sd">        :param parameters: A list of values to assign to the parameter e.g.</span>
+<span class="sd">                           [:py:class:`bella.word_vectors.SSWE`]</span>
+<span class="sd">        :param n_jobs: Number of cpus to use for multiprocessing if 1 then</span>
+<span class="sd">                       will not multiprocess.</span>
+<span class="sd">        :return: A list of tuples of (parameter value, predictions)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">func_args</span> <span class="o">=</span> <span class="p">((</span><span class="n">model</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">test</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">parameter</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">SKLearnModel</span><span class="o">.</span><span class="n">evaluate_parameter</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">func_args</span><span class="p">]</span>
+        <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="n">SKLearnModel</span><span class="o">.</span><span class="n">evaluate_parameter</span><span class="p">,</span> <span class="n">func_args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.grid_search_model"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.grid_search_model">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">grid_search_model</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span>
+                          <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                          <span class="n">num_folds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a model class it will perform a Grid Search over the parameters</span>
+<span class="sd">        you give to the models :py:func:`bella.models.base.SKLearnModel\</span>
+<span class="sd">        .get_cv_parameters` function via the keyword arguments. Returns a</span>
+<span class="sd">        pandas dataframe representation of the grid search results.</span>
+
+<span class="sd">        :param model: The class of the model to use not an instance of the</span>
+<span class="sd">                      model.</span>
+<span class="sd">        :param X: Training samples matrix, shape = [n_samples, n_features]</span>
+<span class="sd">        :param y: Training targets, shape = [n_samples]</span>
+<span class="sd">        :param n_cpus: Number of estimators to fit in parallel. Default 1.</span>
+<span class="sd">        :param num_folds: Number of Stratified cross validation folds.</span>
+<span class="sd">                          Default 5.</span>
+<span class="sd">        :param kwargs: Keyword arguments to give to the models</span>
+<span class="sd">                       :py:func:`bella.models.base.SKLearnModel\</span>
+<span class="sd">                       .get_cv_parameters` function.</span>
+<span class="sd">        :return: Pandas dataframe representation of the grid search results.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">stratified_folds</span> <span class="o">=</span> <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">num_folds</span><span class="p">)</span>
+        <span class="n">grid_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_cv_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">grid_model</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">pipeline</span><span class="p">(),</span> <span class="n">grid_params</span><span class="p">,</span>
+                                  <span class="n">cv</span><span class="o">=</span><span class="n">stratified_folds</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="n">n_cpus</span><span class="p">,</span>
+                                  <span class="n">return_train_score</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">grid_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">grid_model</span><span class="o">.</span><span class="n">cv_results_</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.get_grid_score"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.get_grid_score">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_grid_score</span><span class="p">(</span><span class="n">grid_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                       <span class="n">associated_param</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                       <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given the return of the :py:func:`grid_search_model` will return</span>
+<span class="sd">        the grid scores as a List of the mean test accuracy result.</span>
+
+<span class="sd">        :param grid_scores: Return of the :py:func:`grid_search_model`</span>
+<span class="sd">        :param associated_param: Optional. The name of the parameter you want</span>
+<span class="sd">                                 to associate to the score. E.g. lexicon as you</span>
+<span class="sd">                                 have grid searched over different lexicons and</span>
+<span class="sd">                                 you want the return to be associated with the</span>
+<span class="sd">                                 lexicon name e.g. [(0.68, &#39;MPQA),</span>
+<span class="sd">                                 (0.70, &#39;NRC&#39;)]</span>
+<span class="sd">        :return: A list of test scores from the grid search and if</span>
+<span class="sd">                 associated_param is not None a list of scores and parameter</span>
+<span class="sd">                 names.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">extracted_scores</span> <span class="o">=</span> <span class="n">grid_scores</span><span class="p">[</span><span class="s1">&#39;mean_test_score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">extracted_scores</span> <span class="o">=</span> <span class="n">extracted_scores</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="n">extracted_scores</span> <span class="o">=</span> <span class="n">extracted_scores</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">associated_param</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">associated_param</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grid_scores</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">grid_scores</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">associated_param</span> <span class="ow">in</span> <span class="n">column_name</span><span class="p">:</span>
+                        <span class="n">associated_param</span> <span class="o">=</span> <span class="n">column_name</span>
+            <span class="n">associated_param</span> <span class="o">=</span> <span class="n">grid_scores</span><span class="p">[</span><span class="n">associated_param</span><span class="p">]</span>
+            <span class="n">associated_param</span> <span class="o">=</span> <span class="n">associated_param</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">extracted_scores</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">extracted_scores</span><span class="p">,</span> <span class="n">associated_param</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">extracted_scores</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.models_best_parameter"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.models_best_parameter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">models_best_parameter</span><span class="p">(</span><span class="n">models_kwargs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span>
+                                                        <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+                              <span class="n">param_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">param_values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+                              <span class="n">X</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                              <span class="n">num_folds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+                              <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="s1">&#39;bella.models.base.SKLearnModel&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a list of models and their base model arguments, it will</span>
+<span class="sd">        find the best parameter value out of the values given for that</span>
+<span class="sd">        parameter while keeping the base model arguments constant for</span>
+<span class="sd">        each model.</span>
+
+<span class="sd">        This essentially performs 5 fold cross validation grid search</span>
+<span class="sd">        for the one parameter given, across all models given.</span>
+
+<span class="sd">        :param models_kwargs: A list of tuples where each tuple contains</span>
+<span class="sd">                              a model and the models keyword arguments to</span>
+<span class="sd">                              give to its `get_cv_parameters` method. These</span>
+<span class="sd">                              arguments are the models standard arguments</span>
+<span class="sd">                              that are not to be changed.</span>
+<span class="sd">        :param param_name: Name of the parameter to be changed. This name</span>
+<span class="sd">                           has to be the name of the keyword argument in</span>
+<span class="sd">                           the models `get_cv_parameters` method.</span>
+<span class="sd">        :param param_values: The different values to assign to the param_name</span>
+<span class="sd">                             argument.</span>
+<span class="sd">        :param X: The training samples.</span>
+<span class="sd">        :param y: The training target samples.</span>
+<span class="sd">        :return: A dictionary of model and the name of the best parameter.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">model_best_param</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">model_kwargs</span> <span class="ow">in</span> <span class="n">models_kwargs</span><span class="p">:</span>
+            <span class="n">temp_model_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">model_kwargs</span><span class="p">,</span> <span class="n">param_name</span><span class="p">:</span> <span class="n">param_values</span><span class="p">}</span>
+            <span class="n">grid_results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">grid_search_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">n_cpus</span><span class="o">=</span><span class="n">n_cpus</span><span class="p">,</span>
+                                                   <span class="n">num_folds</span><span class="o">=</span><span class="n">num_folds</span><span class="p">,</span>
+                                                   <span class="o">**</span><span class="n">temp_model_kwargs</span><span class="p">)</span>
+            <span class="n">param_scores</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_grid_score</span><span class="p">(</span><span class="n">grid_results</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span>
+            <span class="n">param_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">param_scores</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                  <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">best_param</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">param_scores</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">model_best_param</span><span class="p">[</span><span class="n">model</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_param</span>
+        <span class="k">return</span> <span class="n">model_best_param</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.normalise_parameter_names"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.normalise_parameter_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">normalise_parameter_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parameter_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+                                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the output of :py:meth:`get_parameters` into a dictionary that </span>
+<span class="sd">        can be used as input into :py:meth:`get_parameters`.</span>
+
+<span class="sd">        :returns: A dictonary that can be used as keyword arguments into the </span>
+<span class="sd">                  :py:meth:`get_parameters` method</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.get_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.get_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a dictonary that is accepted as</span>
+<span class="sd">        model parameters</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SKLearnModel.get_cv_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.get_cv_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_cv_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform the given parameters into a list of dictonaries that is</span>
+<span class="sd">        accepted as `param_grid` parameter in</span>
+<span class="sd">        :py:class:`sklearn.model_selection.GridSearchCV`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">pass</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_add_to_params_dict</span><span class="p">(</span><span class="n">params_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                            <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a dictionary it adds the value to each key in the list of keys</span>
+<span class="sd">        into the dictionary. Returns the updated dictionary.</span>
+
+<span class="sd">        Normally used in subclasses :py:meth:`get_parameters`</span>
+
+<span class="sd">        :param params_dict: Dictionary to be updated</span>
+<span class="sd">        :param keys: list of keys</span>
+<span class="sd">        :param value: value to be added to each key in the list of keys.</span>
+<span class="sd">        :returns: The dictionary updated</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The keys parameter has to be of type list and &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;not {type(keys)}&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">params_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">params_dict</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_add_to_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">],</span>
+                       <span class="n">to_add</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+                       <span class="n">to_add_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Used to add parameters that are stated multiple times in the same</span>
+<span class="sd">        pipeline that must have the same value.</span>
+
+<span class="sd">        Therefore to add them you have to copy the current parameter</span>
+<span class="sd">        list N amount of times where N is the length of the to_add list.</span>
+<span class="sd">        Returns the updated parameter list. Method to add parameters that</span>
+<span class="sd">        are set in multiple parts of the pipeline but should contain the</span>
+<span class="sd">        same value.</span>
+
+<span class="sd">        Normally used in subclasses :py:meth:`get_cv_parameters`</span>
+
+<span class="sd">        :params_list: A list of dicts where each dict contains parameters and</span>
+<span class="sd">                      corresponding values that are to be searched for. Can be</span>
+<span class="sd">                      an empty List.</span>
+<span class="sd">        :param to_add: List of values that are to be added to the search space.</span>
+<span class="sd">        :param to_add_names: List of names that are associated to the values.</span>
+<span class="sd">        :returns: The updated params_list</span>
+<span class="sd">        :raises TypeError: If any of the arguments are not of type</span>
+<span class="sd">                           :py:class:`List`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Check the type of the argument</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;params_list: </span><span class="si">{params_list}</span><span class="se">\n</span><span class="s1">Should be of type &#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;list not {type(params_list)}&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_add_names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;to_add_names: </span><span class="si">{to_add_names}</span><span class="se">\n</span><span class="s1">Should be of type &#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;list not {type(to_add_names)}&#39;</span><span class="p">)</span>
+        <span class="n">param_name</span> <span class="o">=</span> <span class="n">to_add_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_add_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">param_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">param_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_add</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;If using get_cv_parameters this is due to &#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;parameter </span><span class="si">{param_name}</span><span class="s1"> not being of type list.&#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">to_add: </span><span class="si">{to_add}</span><span class="s1"> should be of &#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;type List not {type(to_add)}.&#39;</span><span class="p">)</span>
+
+        <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_list</span><span class="p">)</span>
+        <span class="n">num_to_add</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_add</span><span class="p">)</span>
+        <span class="n">new_param_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Catch the case that params_list was originally empty</span>
+        <span class="k">if</span> <span class="n">num_params</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_to_add</span><span class="p">):</span>
+                <span class="n">new_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_to_add</span><span class="p">):</span>
+                <span class="n">new_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">params_list</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">to_add</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">to_add_names</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">sub_list</span> <span class="ow">in</span> <span class="n">new_param_list</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+                    <span class="n">sub_list</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">param_dict</span> <span class="k">for</span> <span class="n">sub_list</span> <span class="ow">in</span> <span class="n">new_param_list</span>
+                       <span class="k">for</span> <span class="n">param_dict</span> <span class="ow">in</span> <span class="n">sub_list</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">params_list</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_add_to_all_params</span><span class="p">(</span><span class="n">params_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]],</span>
+                           <span class="n">param_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">param_value</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+                           <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Used to add param_name and its associated param_value to each</span>
+<span class="sd">        dictionary of parameters in the params_list.</span>
+
+<span class="sd">        Normally used in subclasses :py:meth:`get_cv_parameters`</span>
+
+<span class="sd">        :param params_list: A list of dicts where each dict contains</span>
+<span class="sd">                            parameters and corresponding values that are to be</span>
+<span class="sd">                            searched for.</span>
+<span class="sd">        :param param_name: The name associated to the parameter value to be</span>
+<span class="sd">                           added to the params_list.</span>
+<span class="sd">        :param param_value: The list of values associated to the param_name</span>
+<span class="sd">                            that are added to the params_list.</span>
+<span class="sd">        :returns: The updated params_list</span>
+<span class="sd">        :raises TypeError: If the param_value is not of type :py:class:`List`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{param_name}</span><span class="s1"> should be of type list not &#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;{type(param_value)}&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">param_dict</span> <span class="ow">in</span> <span class="n">params_list</span><span class="p">:</span>
+            <span class="n">param_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param_value</span>
+        <span class="k">return</span> <span class="n">params_list</span>
+
+<div class="viewcode-block" id="SKLearnModel.pipeline"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.base.SKLearnModel.pipeline">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pipeline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;sklearn.pipeline.Pipeline&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Machine Learning model that is used as the base template for the model</span>
+<span class="sd">        attribute.</span>
+
+<span class="sd">        :returns: The template machine learning model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

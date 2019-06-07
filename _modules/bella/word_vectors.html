@@ -1,0 +1,1162 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.word_vectors &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.word_vectors</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.word_vectors</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Contains classes that train and/or load semantic vectors. All classes are sub</span>
+<span class="sd">classes of WordVectors</span>
+
+<span class="sd">Classes:</span>
+
+<span class="sd">1. WordVectors - Base class of all classes within this module. Ensures</span>
+<span class="sd">consistent API for all word vectors classes.</span>
+<span class="sd">2. GensimVectors - Creates `Word2Vec &lt;https://arxiv.org/pdf/1301.3781.pdf&gt;`_</span>
+<span class="sd">and `FastText &lt;https://arxiv.org/abs/1607.04606&gt;`_ vectors.</span>
+<span class="sd">3. PreTrained - Creates a Wordembedding for those that are stored in TSV files</span>
+<span class="sd">where the first item in the line is the word and the rest of the tab sep values</span>
+<span class="sd">are its vector representation. Currently loads the Tang et al. vectors</span>
+<span class="sd">`from &lt;https://github.com/bluemonk482/tdparse/tree/master/resources/wordemb/sswe&gt;`_</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">gensim.models.keyedvectors</span> <span class="k">import</span> <span class="n">KeyedVectors</span>
+<span class="kn">from</span> <span class="nn">gensim.models</span> <span class="k">import</span> <span class="n">word2vec</span>
+<span class="kn">from</span> <span class="nn">gensim.models.wrappers</span> <span class="k">import</span> <span class="n">FastText</span>
+<span class="kn">from</span> <span class="nn">gensim.scripts.glove2word2vec</span> <span class="k">import</span> <span class="n">glove2word2vec</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+
+<span class="n">BELLA_VEC_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;.Bella&#39;</span><span class="p">,</span> <span class="s1">&#39;Vectors&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="WordVectors"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.WordVectors">[docs]</a><span class="k">class</span> <span class="nc">WordVectors</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Base class for all WordVector classes. Contains the following instance</span>
+<span class="sd">    attributes:</span>
+
+<span class="sd">    1. vector_size - Size of the word vectors e.g. 100</span>
+<span class="sd">    2. index2word - Mapping between index number and associated word</span>
+<span class="sd">    3. index2vector - mapping between index and vector</span>
+<span class="sd">    4. word2index - Mapping between word and associated index</span>
+<span class="sd">    5. name - This is used to identify the model when reading cross validation \</span>
+<span class="sd">    results from models, used mainly for debugging. Default is None. Used</span>
+<span class="sd">    6. unknown_vector - The vector that is returned for any unknwon words and \</span>
+<span class="sd">    for the index=0.</span>
+<span class="sd">    7. unknown_word - The word that is returned for the 0 index. Default is \</span>
+<span class="sd">    `&lt;unk&gt;`</span>
+<span class="sd">    8. unit_length - If the vectors when returned are their unit norm value \</span>
+<span class="sd">    instead of their raw values.</span>
+<span class="sd">    9. unknown_index - The index of the unknown word normally 0</span>
+<span class="sd">    10. padding_word - The word (&lt;pad&gt;) that defines padding indexs.</span>
+<span class="sd">    11. padding_index - index of the padding word</span>
+<span class="sd">    12. padding vector - padding vector for the padding word.</span>
+
+<span class="sd">    padding index, word and vector are equal to the unknown equilavents if</span>
+<span class="sd">    padding_value = None in the constructor. Else padding index = 0, word = &lt;pad&gt;</span>
+<span class="sd">    and vector is what you have defined, this then moves the unknown index to</span>
+<span class="sd">    vocab size + 1 and the everything else is the same. The idea behind the 2</span>
+<span class="sd">    are that pad is used for padding and unknown is used for words that are</span>
+<span class="sd">    truely unknown therefore allowing you to only skip the pad vectors when</span>
+<span class="sd">    training a model by using a masking function in keras.</span>
+
+<span class="sd">    The index 0 is used as a special index to map to unknown words. Therefore \</span>
+<span class="sd">    the size of the vocabularly is len(index2word) - 1.</span>
+
+<span class="sd">    Following methods:</span>
+
+<span class="sd">    1. :py:func:`bella.word_vectors.WordVectors.lookup_vector`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="WordVectors.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.WordVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word2vector</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_words</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">filter_words</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">filter_words</span>
+        <span class="n">size_vector_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_vector_size</span><span class="p">(</span><span class="n">word2vector</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word2vector</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word_list</span> <span class="o">=</span> <span class="n">size_vector_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_length</span> <span class="o">=</span> <span class="n">unit_length</span>
+        <span class="c1"># Method attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unknown_word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unknown_word</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unknown_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unknown_vector</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding_word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_word</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">padding_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_word_list</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">padding_value</span><span class="p">]</span> <span class="o">*</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">padding_word</span> <span class="o">=</span> <span class="s1">&#39;&lt;pad&gt;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_vector</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Padding Vector is None&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index2word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index2word</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">word2index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word2index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index2vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index2vector</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_matrix</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_keyed_vec_2_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_vector</span><span class="p">):</span>
+        <span class="n">word_2_vec_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">key_vector</span><span class="o">.</span><span class="n">vocab</span><span class="p">:</span>
+            <span class="n">word_2_vec_dict</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">=</span> <span class="n">key_vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">word_2_vec_dict</span>
+
+    <span class="k">def</span> <span class="nf">_check_vector_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word2vector</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This finds the most common vector size in the word 2 vectors dictionary</span>
+<span class="sd">        mapping. Normally they should all have the same mapping but it has been</span>
+<span class="sd">        found that their could be some mistakes in pre-compiled word vectors</span>
+<span class="sd">        therefore this function removes all words and vectors that do not conform</span>
+<span class="sd">        to the majority vector size. An example of this would be if all the</span>
+<span class="sd">        word to vector mappings are on dimension 50 but one word that one word</span>
+<span class="sd">        would be removed from the dictionary mapping and not included in the</span>
+<span class="sd">        word list returned.</span>
+
+<span class="sd">        :param word2vector: A dictionary containing words as keys and their \</span>
+<span class="sd">        associated vector representation as values.</span>
+<span class="sd">        :type word2vector: dict or gensim.models.keyedvectors.KeyedVectors</span>
+<span class="sd">        :returns: A tuple of length 3 containg 1. The dimension of the vectors, \</span>
+<span class="sd">        2. The dictionary of word to vectors, 3. The list of words in the dictionary</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Gensim does not used a dictionary but a special class</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word2vector</span><span class="p">,</span> <span class="n">KeyedVectors</span><span class="p">):</span>
+            <span class="n">word2vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyed_vec_2_dict</span><span class="p">(</span><span class="n">word2vector</span><span class="p">)</span>
+            <span class="c1">#accepted_words = word2vector.index2word</span>
+            <span class="c1">#most_likely_size = word2vector[accepted_words[0]].shape[0]</span>
+            <span class="c1">#return most_likely_size, word2vector, accepted_words</span>
+        <span class="n">vector_sizes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">vector</span> <span class="ow">in</span> <span class="n">word2vector</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">vector_size</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">vector_sizes</span><span class="p">[</span><span class="n">vector_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_sizes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vector_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">most_likely_size</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">vector_sizes</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">size_freq</span><span class="p">:</span> <span class="n">size_freq</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">words_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">unk_word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unknown_word</span><span class="p">()</span>
+        <span class="n">accepted_words</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">vector</span> <span class="ow">in</span> <span class="n">word2vector</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">vector</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">most_likely_size</span><span class="p">:</span>
+                <span class="n">words_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_words</span> <span class="o">!=</span> <span class="p">[]:</span>
+                <span class="k">if</span> <span class="n">word</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_words</span> <span class="ow">and</span> <span class="n">word</span> <span class="o">!=</span> <span class="n">unk_word</span><span class="p">:</span>
+                    <span class="n">words_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">accepted_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">accepted_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">words_to_remove</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">most_likely_size</span><span class="p">,</span> <span class="n">word2vector</span><span class="p">,</span> <span class="n">accepted_words</span>
+
+<div class="viewcode-block" id="WordVectors.glove_txt_binary"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.WordVectors.glove_txt_binary">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">glove_txt_binary</span><span class="p">(</span><span class="n">glove_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the Glove word embedding file which is a text file to a</span>
+<span class="sd">        binary file that can be loaded through gensims</span>
+<span class="sd">        KeyedVectors.load_word2vec_format method and deletes the text file</span>
+<span class="sd">        version and returns the file path to the new binary file.</span>
+
+<span class="sd">        :param glove_file_path: File path to the downloaded glove vector text \</span>
+<span class="sd">        file.</span>
+<span class="sd">        :type glove_file_path: String</span>
+<span class="sd">        :returns: The file path to the binary file version of the glove vector</span>
+<span class="sd">        :rtype: String</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># File path to the binary file</span>
+        <span class="n">binary_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">glove_file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">binary_file_path</span> <span class="o">=</span> <span class="n">binary_file_path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">binary_file_path</span> <span class="o">+=</span> <span class="s1">&#39;.binary&#39;</span>
+        <span class="n">binary_file_path</span> <span class="o">=</span> <span class="n">glove_file_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">binary_file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">binary_file_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">binary_file_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">temp_file</span><span class="p">:</span>
+            <span class="c1"># Converts to word2vec file format</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Converting word vectors file from text to binary for &#39;</span>
+                  <span class="s1">&#39;quicker load time&#39;</span><span class="p">)</span>
+            <span class="n">glove2word2vec</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">glove_file_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()),</span> <span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">word_vectors</span> <span class="o">=</span> <span class="n">KeyedVectors</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span><span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                             <span class="n">binary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># Creates the binary file version of the word vectors</span>
+            <span class="n">binary_file_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">binary_file_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+            <span class="n">word_vectors</span><span class="o">.</span><span class="n">save_word2vec_format</span><span class="p">(</span><span class="n">binary_file_path</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Delete the text version of the glove vectors</span>
+        <span class="n">glove_file_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">binary_file_path</span></div>
+
+<div class="viewcode-block" id="WordVectors.lookup_vector"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.WordVectors.lookup_vector">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a word returns the vector representation of that word. If the model</span>
+<span class="sd">        does not have a representation for that word it returns word vectors</span>
+<span class="sd">        unknown word vector (most models this is zeors)</span>
+
+<span class="sd">        :param word: A word</span>
+<span class="sd">        :type word: String</span>
+<span class="sd">        :returns: The word vector for that word. If no word vector can be found</span>
+<span class="sd">        returns a vector of zeros.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">word_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">word2index</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">index2vector</span><span class="p">[</span><span class="n">word_index</span><span class="p">]</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The word parameter must be of type str not &#39;</span>
+                         <span class="n">f</span><span class="s1">&#39;{type(word)}&#39;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_index2word</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The index starts at one as zero is a special value assigned to words that</span>
+<span class="sd">        are padded. The word return for zero is defined by `padded_word` attribute.</span>
+<span class="sd">        If the padded value is different to the unknown word value then the index</span>
+<span class="sd">        will contain an extra index for the unknown word index which is the</span>
+<span class="sd">        vocab size + 1 index.</span>
+
+<span class="sd">        :returns: A dictionary matching word indexs to there corresponding words.</span>
+<span class="sd">        Inverse of :py:func:`bella.word_vectors.GensimVectors.word2index`</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">index_word</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">index_word</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_word</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">word</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_word</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">index_word</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">word</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Required as the unknown word might have been learned and in</span>
+        <span class="c1"># self._word_list</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index_word</span><span class="p">)</span>
+        <span class="n">index_word</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_word</span>
+        <span class="k">return</span> <span class="n">index_word</span>
+
+    <span class="k">def</span> <span class="nf">_return_unknown_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: zero. Used as lambda is not pickleable</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span>
+
+    <span class="k">def</span> <span class="nf">_word2index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        If you have specified a special padded index vector then the &lt;pad&gt; word</span>
+<span class="sd">        would match to index 0 and the vocab + 1 index will be &lt;unk&gt; else if</span>
+<span class="sd">        no special pad index vector then vocab + 1 won&#39;t exist and &lt;unk&gt; will be</span>
+<span class="sd">        0</span>
+
+<span class="sd">        :returns: A dictionary matching words to there corresponding index.</span>
+<span class="sd">        Inverse of :py:func:`bella.word_vectors.GensimVectors.index2word`</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Cannot use lambda function as it cannot be pickled</span>
+        <span class="n">word2index_dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_return_unknown_index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index2word</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">word2index_dict</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="k">return</span> <span class="n">word2index_dict</span>
+
+    <span class="k">def</span> <span class="nf">_index2vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        NOTE: the zero index is mapped to the unknown index unless padded vector</span>
+<span class="sd">        is specified then zero index is padded index and vocab + 1 index is</span>
+<span class="sd">        unknown index</span>
+
+<span class="sd">        :returns: A dictionary of word index to corresponding word vector. Same</span>
+<span class="sd">        as :py:func:`bella.word_vectors.GensimVectors.lookup_vector` but</span>
+<span class="sd">        instead of words that are looked up it is the words index.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">def</span> <span class="nf">unit_norm</span><span class="p">(</span><span class="n">vector</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            :param vector: A 1-dimension vector</span>
+<span class="sd">            :type vector: numpy.ndarray</span>
+<span class="sd">            :returns: The vector normalised to it&#39;s unit vector.</span>
+<span class="sd">            :rtype: numpy.ndarray</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+
+            <span class="c1"># Check it is not a zero vector</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">),</span> <span class="n">vector</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">vector</span>
+            <span class="n">l2_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">vector</span> <span class="o">/</span> <span class="n">l2_norm</span>
+
+        <span class="n">index_vector</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_length</span><span class="p">:</span>
+            <span class="n">index_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span><span class="p">)</span>
+            <span class="n">index_vector</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unknown_vector</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">index_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_vector</span>
+            <span class="n">index_vector</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_vector</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index2word</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">index</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">unknown_index</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_length</span><span class="p">:</span>
+                <span class="n">index_vector</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index_vector</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">index_vector</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_unknown_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is to be Overridden by sub classes if they want to return a custom</span>
+<span class="sd">        unknown vector.</span>
+
+<span class="sd">        :returns: A vector for all unknown words. In this case it is a zero</span>
+<span class="sd">        vector.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unknown_word</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: The word that is returned for the 0 index.</span>
+<span class="sd">        :rtype: String</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;&lt;unk&gt;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_embedding_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The embedding matrix that can be used in Keras embedding layer as the</span>
+<span class="sd">        weights. It is very much a simple lookup where the key is the word index.</span>
+
+<span class="sd">        :retunrs: The embedding matrix of dimension (vocab_size + 1, vector_size) \</span>
+<span class="sd">        where the vocab size is + 1 due to the unknown vector.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index2vector</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">),</span>
+                          <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">vector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index2vector</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">matrix</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">word</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index2word</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{word}</span><span class="s1"> </span><span class="si">{index}</span><span class="s1"> </span><span class="si">{vector}</span><span class="s1"> </span><span class="si">{e}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span></div>
+
+
+<div class="viewcode-block" id="GensimVectors"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GensimVectors">[docs]</a><span class="k">class</span> <span class="nc">GensimVectors</span><span class="p">(</span><span class="n">WordVectors</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class that can create one of the following word vector models:</span>
+
+<span class="sd">    1. `Word2Vec &lt;https://radimrehurek.com/gensim/models/word2vec.html&gt;`_.</span>
+<span class="sd">    2. `Fasttext &lt;https://radimrehurek.com/gensim/models/wrappers/fasttext.html&gt;`_</span>
+
+<span class="sd">    private attributes:</span>
+
+<span class="sd">    1. self._model = Gensim instance of the chosen model e.g. if word2vec</span>
+<span class="sd">    was chosen then it would be `gensim.models.word2vec.Word2Vec`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="GensimVectors.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GensimVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Trains or loads the model specified.</span>
+
+<span class="sd">        :param file_path: Path to the saved model or Path to save the model</span>
+<span class="sd">        once trained. Can be None if you only want to train.</span>
+<span class="sd">        :param train_data: An object like a list that can be iterated that contains</span>
+<span class="sd">        tokenised text, to train the model e.g. [[&#39;hello&#39;, &#39;how&#39;], [&#39;another&#39;]].</span>
+<span class="sd">        Not required if `file_path` contains a trained model.</span>
+<span class="sd">        :param model: The name of the model</span>
+<span class="sd">        :param name: The name of given to the instance.</span>
+<span class="sd">        :param unit_length: If the word vectors should be normalised to unit \</span>
+<span class="sd">        vectors</span>
+<span class="sd">        :param kwargs: The keyword arguments to give to the Gensim Model that is \</span>
+<span class="sd">        being used i.e. keyword argument to `Word2Vec &lt;https://radimrehurek.com/\</span>
+<span class="sd">        gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec&gt;`_</span>
+<span class="sd">        :type file_path: String</span>
+<span class="sd">        :type train_data: iterable object e.g. list</span>
+<span class="sd">        :type model: String</span>
+<span class="sd">        :type name: String Default None</span>
+<span class="sd">        :type unit_length: bool. Default False.</span>
+<span class="sd">        :type kwargs: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">allowed_models</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;word2vec&#39;</span><span class="p">:</span> <span class="n">word2vec</span><span class="o">.</span><span class="n">Word2Vec</span><span class="p">,</span>
+                          <span class="s1">&#39;fasttext&#39;</span><span class="p">:</span> <span class="n">FastText</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;model parameter has to be one of the following &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;{allowed_models.keys()} not </span><span class="si">{model}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">allowed_models</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+        <span class="n">failed_to_load</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                    <span class="n">failed_to_load</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
+                    <span class="n">failed_to_load</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">failed_to_load</span><span class="p">:</span>
+            <span class="c1"># Generators throws an error in Gensim</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">GeneratorType</span><span class="p">):</span>
+                <span class="n">train_data</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">train_data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> model has been saved to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                                                             <span class="n">file_path</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">failed_to_load</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Cannot create model as there is no path to extract &#39;</span>\
+                            <span class="s1">&#39;a model from </span><span class="si">{}</span><span class="s1"> or any data to train on which has &#39;</span>\
+                            <span class="s1">&#39;to have the __iter__ function </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">train_data</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">wv</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="VoVectors"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.VoVectors">[docs]</a><span class="k">class</span> <span class="nc">VoVectors</span><span class="p">(</span><span class="n">GensimVectors</span><span class="p">):</span>
+
+<div class="viewcode-block" id="VoVectors.download"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.VoVectors.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_conf</span><span class="p">):</span>
+        <span class="n">vo_folder</span> <span class="o">=</span> <span class="n">BELLA_VEC_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;Vo Word Vectors&#39;</span><span class="p">)</span>
+        <span class="n">vo_folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">current_vector_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">vo_file</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">vo_file</span>
+                                    <span class="ow">in</span> <span class="n">vo_folder</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()])</span>
+        <span class="n">all_vector_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;c10_w3_s100&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;c10_w3_s100.syn0.npy&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;c10_w3_s100.syn1.npy&#39;</span><span class="p">])</span>
+        <span class="n">interset</span> <span class="o">=</span> <span class="n">all_vector_files</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">current_vector_files</span><span class="p">)</span>
+        <span class="c1"># If the files in the folder aren&#39;t all the glove files that would be</span>
+        <span class="c1"># downloaded re-download the zip and unzip the files.</span>
+        <span class="k">if</span> <span class="n">interset</span> <span class="o">!=</span> <span class="n">all_vector_files</span><span class="p">:</span>
+            <span class="n">can_download</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_conf</span><span class="p">:</span>
+                <span class="n">download_msg</span> <span class="o">=</span> <span class="s1">&#39;We are going to download the Vo Word vectors &#39;</span>\
+                               <span class="s1">&#39;this is a download of 120MB &#39;</span>\
+                               <span class="s1">&#39;Would you like to continue? If so type &#39;</span>\
+                               <span class="s1">&#39;`yes`</span><span class="se">\n</span><span class="s1">&gt;&gt; &#39;</span>
+                <span class="n">can_download</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">download_msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">can_download</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+                <span class="n">base_url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/bluemonk482/tdparse/raw/&#39;</span>\
+                           <span class="s1">&#39;master/resources/wordemb/w2v/&#39;</span>
+                <span class="n">link_locations</span> <span class="o">=</span> <span class="p">[(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{base_url}</span><span class="s1">c10_w3_s100&#39;</span><span class="p">,</span>
+                                   <span class="n">vo_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;c10_w3_s100&#39;</span><span class="p">)),</span>
+                                  <span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{base_url}</span><span class="s1">c10_w3_s100.syn0.npy&#39;</span><span class="p">,</span>
+                                   <span class="n">Path</span><span class="p">(</span><span class="n">vo_folder</span><span class="p">,</span> <span class="s1">&#39;c10_w3_s100.syn0.npy&#39;</span><span class="p">)),</span>
+                                  <span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{base_url}</span><span class="s1">c10_w3_s100.syn1.npy&#39;</span><span class="p">,</span>
+                                   <span class="n">Path</span><span class="p">(</span><span class="n">vo_folder</span><span class="p">,</span> <span class="s1">&#39;c10_w3_s100.syn1.npy&#39;</span><span class="p">))]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading Vo vectors&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">download_link</span><span class="p">,</span> <span class="n">file_location</span> <span class="ow">in</span> <span class="n">link_locations</span><span class="p">:</span>
+                    <span class="c1"># Reference:</span>
+                    <span class="c1"># http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content</span>
+                    <span class="k">with</span> <span class="n">file_location</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vo_file</span><span class="p">:</span>
+                        <span class="n">request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">download_link</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">total_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span>
+                                                             <span class="mi">0</span><span class="p">))</span>
+                        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+                                          <span class="n">total</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_size</span><span class="o">//</span><span class="mi">128</span><span class="p">)):</span>
+                            <span class="n">vo_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Vo vectors not downloaded therefore &#39;</span>
+                                <span class="s1">&#39;cannot load them&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">vo_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;c10_w3_s100&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="VoVectors.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.VoVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_conf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">vector_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">skip_conf</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;w2v&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                         <span class="n">model</span><span class="o">=</span><span class="s1">&#39;word2vec&#39;</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="PreTrained"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.PreTrained">[docs]</a><span class="k">class</span> <span class="nc">PreTrained</span><span class="p">(</span><span class="n">WordVectors</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class that loads word vectors that have been pre-trained.</span>
+
+<span class="sd">    All pre-trained word vectors have to follow the following conditions:</span>
+
+<span class="sd">    1. New word vector on each line</span>
+<span class="sd">    2. Each line is tab seperated (by default but a tab is just delimenter \</span>
+<span class="sd">    which can be changed by setting delimenter argument in the constructor)</span>
+<span class="sd">    3. The first tab sperated value on the line is the word</span>
+<span class="sd">    4. The rest of the tab seperated values on that line represent the values</span>
+<span class="sd">    for the associtaed word.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="PreTrained.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.PreTrained.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">delimenter</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param file_path: The file path to load the word vectors from</span>
+<span class="sd">        :param name: The name given to the instance.</span>
+<span class="sd">        :param unit_length: If the word vectors should be normalised to unit \</span>
+<span class="sd">        vectors</span>
+<span class="sd">        :param delimenter: The value to be used to split the values in each line \</span>
+<span class="sd">        of the word vectors.</span>
+<span class="sd">        :type file_path: String</span>
+<span class="sd">        :type name: String Default None</span>
+<span class="sd">        :type unit_length: bool. Default False</span>
+<span class="sd">        :type delimenter: String. Default `\t`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The type of the file path should be str not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">file_path</span><span class="p">)))</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;There is no file at file path </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+
+        <span class="n">word2vector</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_file</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">org_line</span> <span class="ow">in</span> <span class="n">data_file</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">org_line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">word_values</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">delimenter</span><span class="p">)</span>
+                <span class="n">word</span> <span class="o">=</span> <span class="n">word_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="c1"># This attempts to remove words that have whitespaces in them</span>
+                <span class="c1"># a sample of this problem can be found within the Glove</span>
+                <span class="c1"># Common Crawl 840B vectors where \xa0name@domain.com ==</span>
+                <span class="c1"># name@domain.com after strip is applied and they have different</span>
+                <span class="c1"># vectors</span>
+                <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">word2vector</span><span class="p">:</span>
+                    <span class="n">org_word</span> <span class="o">=</span> <span class="n">org_line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">delimenter</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">word</span> <span class="o">!=</span> <span class="n">org_word</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">del</span> <span class="n">word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+                <span class="n">word_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">word_values</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">word2vector</span><span class="p">:</span>
+                    <span class="n">dict_vector</span> <span class="o">=</span> <span class="n">word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> already has a vector in the word vector &#39;</span>\
+                                   <span class="s1">&#39;dict. Vector in dict </span><span class="si">{}</span><span class="s1"> and alternative vector </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                                   <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">dict_vector</span><span class="p">,</span> <span class="n">word_vector</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">word2vector</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">=</span> <span class="n">word_vector</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">word2vector</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_unknown_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Overrides. Instead of returnning zero vector it return the vector for</span>
+<span class="sd">        the word `&lt;unk&gt;`.</span>
+
+<span class="sd">        :returns: The vector for the word `&lt;unk&gt;`</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word2vector</span><span class="p">[</span><span class="s1">&#39;&lt;unk&gt;&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SSWE"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.SSWE">[docs]</a><span class="k">class</span> <span class="nc">SSWE</span><span class="p">(</span><span class="n">PreTrained</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SSWE.download"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.SSWE.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_conf</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">sswe_folder</span> <span class="o">=</span> <span class="n">BELLA_VEC_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;SSWE&#39;</span><span class="p">)</span>
+        <span class="n">sswe_folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sswe_fp</span> <span class="o">=</span> <span class="n">sswe_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;sswe&#39;</span><span class="p">)</span>
+        <span class="c1"># If the files in the folder aren&#39;t all the SSWE files that would be</span>
+        <span class="c1"># downloaded re-download the zip and unzip the files.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sswe_fp</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">can_download</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_conf</span><span class="p">:</span>
+                <span class="n">download_msg</span> <span class="o">=</span> <span class="s1">&#39;We are going to download the SSWE vectors &#39;</span>\
+                               <span class="s1">&#39;this is a download of 74MB &#39;</span>\
+                               <span class="s1">&#39;Would you like to continue? If so type &#39;</span>\
+                               <span class="s1">&#39;`yes`</span><span class="se">\n</span><span class="s1">&gt;&gt; &#39;</span>
+                <span class="n">can_download</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">download_msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">can_download</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+                <span class="n">download_link</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/bluemonk482/tdparse/raw/&#39;</span>\
+                                <span class="s1">&#39;master/resources/wordemb/sswe/sswe-u.txt&#39;</span>
+                <span class="c1"># Reference:</span>
+                <span class="c1"># http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content</span>
+                <span class="k">with</span> <span class="n">sswe_fp</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sswe_file</span><span class="p">:</span>
+                    <span class="n">request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">download_link</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">total_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading SSWE vectors&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+                                      <span class="n">total</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_size</span><span class="o">//</span><span class="mi">128</span><span class="p">)):</span>
+                        <span class="n">sswe_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;SSWE vectors not downloaded therefore &#39;</span>
+                                <span class="s1">&#39;cannot load them&#39;</span><span class="p">)</span>
+            <span class="n">sswe_folder_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sswe_folder</span><span class="o">.</span><span class="n">iterdir</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">sswe_fp</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Error in either downloading the SSWE vectors&#39;</span>
+                                <span class="s1">&#39; or file path names. Files in the SSWE &#39;</span>
+                                <span class="n">f</span><span class="s1">&#39;folder </span><span class="si">{sswe_folder_files}</span><span class="s1"> and where the &#39;</span>
+                                <span class="n">f</span><span class="s1">&#39;SSWE file should be {str(sswe_fp)}&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">sswe_fp</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="SSWE.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.SSWE.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">skip_conf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">vector_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">skip_conf</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sswe&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="GloveTwitterVectors"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveTwitterVectors">[docs]</a><span class="k">class</span> <span class="nc">GloveTwitterVectors</span><span class="p">(</span><span class="n">WordVectors</span><span class="p">):</span>
+
+<div class="viewcode-block" id="GloveTwitterVectors.download"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveTwitterVectors.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_conf</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This method checks if the</span>
+<span class="sd">        `Glove Twitter word vectors \</span>
+<span class="sd">        &lt;https://nlp.stanford.edu/projects/glove/&gt;`_</span>
+<span class="sd">        are already in the repoistory if not it downloads and unzips the word</span>
+<span class="sd">        vectors if permission is granted and converts them into a gensim</span>
+<span class="sd">        KeyedVectors binary representation.</span>
+
+<span class="sd">        :param skip_conf: Whether to skip the permission step as it requires \</span>
+<span class="sd">        user input. True to skip permission.</span>
+<span class="sd">        :type skip_conf: bool</span>
+<span class="sd">        :returns: A dict containing word vector dimension as keys and the \</span>
+<span class="sd">        absolute path to the vector file.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">glove_folder</span> <span class="o">=</span> <span class="n">BELLA_VEC_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;glove_twitter&#39;</span><span class="p">)</span>
+        <span class="n">glove_folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">current_glove_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">glove_file</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">glove_file</span>
+                                   <span class="ow">in</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()])</span>
+        <span class="n">all_glove_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;glove.twitter.27B.25d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.twitter.27B.50d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.twitter.27B.100d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.twitter.27B.200d.binary&#39;</span><span class="p">])</span>
+        <span class="n">interset</span> <span class="o">=</span> <span class="n">all_glove_files</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">current_glove_files</span><span class="p">)</span>
+        <span class="c1"># If the files in the folder aren&#39;t all the glove files that would be</span>
+        <span class="c1"># downloaded re-download the zip and unzip the files.</span>
+        <span class="k">if</span> <span class="n">interset</span> <span class="o">!=</span> <span class="n">all_glove_files</span><span class="p">:</span>
+            <span class="n">can_download</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_conf</span><span class="p">:</span>
+                <span class="n">download_msg</span> <span class="o">=</span> <span class="s1">&#39;We are going to download the glove vectors &#39;</span>\
+                               <span class="s1">&#39;this is a large download of 1.4GB and takes &#39;</span>\
+                               <span class="s1">&#39;5.4GB of disk space after being unzipped. &#39;</span>\
+                               <span class="s1">&#39;Would you like to continue? If so type &#39;</span>\
+                               <span class="s1">&#39;`yes`</span><span class="se">\n</span><span class="s1">&gt;&gt; &#39;</span>
+                <span class="n">can_download</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">download_msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">can_download</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+                <span class="n">download_link</span> <span class="o">=</span> <span class="s1">&#39;http://nlp.stanford.edu/data/glove.twitter.&#39;</span>\
+                                <span class="s1">&#39;27B.zip&#39;</span>
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;glove_zip.zip&#39;</span><span class="p">)</span>
+                <span class="c1"># Reference:</span>
+                <span class="c1"># http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content</span>
+                <span class="k">with</span> <span class="n">glove_zip_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">download_link</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">total_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading Glove Twitter vectors&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+                                      <span class="n">total</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_size</span><span class="o">//</span><span class="mi">128</span><span class="p">)):</span>
+                        <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unzipping word vector download&#39;</span><span class="p">)</span>
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+                <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">glove_folder</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Glove Twitter vectors not downloaded &#39;</span>
+                                <span class="s1">&#39;therefore cannot load them&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_full_path</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">glove_txt_binary</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="mi">25</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.twitter.27B.25d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">50</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.twitter.27B.50d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">100</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.twitter.27B.100d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">200</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.twitter.27B.200d.txt&#39;</span><span class="p">)}</span></div>
+
+<div class="viewcode-block" id="GloveTwitterVectors.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveTwitterVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">skip_conf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param dimension: Dimension size of the word vectors you would like to \</span>
+<span class="sd">        use. Choice: 25, 50, 100, 200</span>
+<span class="sd">        :param skip_conf: Whether to skip the permission step for downloading \</span>
+<span class="sd">        the word vectors as it requires user input. True to skip permission.</span>
+<span class="sd">        :type dimension: int</span>
+<span class="sd">        :type skip_conf: bool. Default False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">dimension_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">skip_conf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Type of dimension has to be int not </span><span class="si">{}</span><span class="s1">&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dimension</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">dimension</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dimension_file</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Dimension avliable are the following </span><span class="si">{}</span><span class="s1">&#39;</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dimension_file</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;glove twitter </span><span class="si">{dimension}</span><span class="s1">d&#39;</span>
+        <span class="n">vector_file</span> <span class="o">=</span> <span class="n">dimension_file</span><span class="p">[</span><span class="n">dimension</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Loading </span><span class="si">{name}</span><span class="s1"> from file&#39;</span><span class="p">)</span>
+        <span class="n">glove_key_vectors</span> <span class="o">=</span> <span class="n">KeyedVectors</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span>
+                                                              <span class="n">binary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">glove_key_vectors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_unknown_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is to be Overridden by sub classes if they want to return a custom</span>
+<span class="sd">        unknown vector.</span>
+
+<span class="sd">        :returns: A vector for all unknown words. In this case it is a zero</span>
+<span class="sd">        vector.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GloveCommonCrawl"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveCommonCrawl">[docs]</a><span class="k">class</span> <span class="nc">GloveCommonCrawl</span><span class="p">(</span><span class="n">WordVectors</span><span class="p">):</span>
+
+<div class="viewcode-block" id="GloveCommonCrawl.download"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveCommonCrawl.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_conf</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This method checks if either the `Glove Common Crawl \</span>
+<span class="sd">        &lt;https://nlp.stanford.edu/projects/glove/&gt;`_ 840 or 42 Billion token</span>
+<span class="sd">        word vectors were downloaded already into the repoistory if not it</span>
+<span class="sd">        downloads and unzips the 300 Dimension word vector if permission is</span>
+<span class="sd">        granted.</span>
+
+<span class="sd">        :param skip_conf: Whether to skip the permission step as it requires \</span>
+<span class="sd">        user input. True to skip permission.</span>
+<span class="sd">        :param version: Choice of either the 42 or 840 Billion token 300 \</span>
+<span class="sd">        dimension common crawl glove vectors. The values can be only 42 or \</span>
+<span class="sd">        840 and default is 42.</span>
+<span class="sd">        :type skip_conf: bool</span>
+<span class="sd">        :type version: int</span>
+<span class="sd">        :returns: The filepath to the 300 dimension word vector</span>
+<span class="sd">        :rtype: String</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">glove_folder</span> <span class="o">=</span> <span class="n">BELLA_VEC_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;glove_common_crawl_</span><span class="si">{version}</span><span class="s1">b&#39;</span><span class="p">)</span>
+        <span class="n">glove_folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">glove_file_name</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;glove.</span><span class="si">{version}</span><span class="s1">B.300d&#39;</span>
+        <span class="n">glove_txt_fp</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">glove_file_name</span> <span class="o">+</span> <span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+        <span class="n">glove_binary_fp</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">glove_file_name</span> <span class="o">+</span> <span class="s1">&#39;.binary&#39;</span><span class="p">)</span>
+        <span class="c1"># If the files in the folder aren&#39;t all the glove files that would be</span>
+        <span class="c1"># downloaded re-download the zip and unzip the files.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">glove_binary_fp</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">glove_txt_fp</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">can_download</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_conf</span><span class="p">:</span>
+                <span class="n">download_msg</span> <span class="o">=</span> <span class="s1">&#39;We are going to download the glove vectors &#39;</span>\
+                               <span class="s1">&#39;this is a large download of ~2GB and takes &#39;</span>\
+                               <span class="s1">&#39;~5.6GB of diskspace after being unzipped. &#39;</span>\
+                               <span class="s1">&#39;Would you like to continue? If so type &#39;</span>\
+                               <span class="s1">&#39;`yes`</span><span class="se">\n</span><span class="s1">&gt;&gt; &#39;</span>
+                <span class="n">can_download</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">download_msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">can_download</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+                <span class="n">zip_file_name</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;glove.</span><span class="si">{version}</span><span class="s1">B.300d.zip&#39;</span>
+                <span class="n">download_link</span> <span class="o">=</span> <span class="s1">&#39;http://nlp.stanford.edu/data/&#39;</span> <span class="o">+</span> <span class="n">zip_file_name</span>
+
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">zip_file_name</span><span class="p">)</span>
+
+                <span class="c1"># Reference:</span>
+                <span class="c1"># http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content</span>
+                <span class="k">with</span> <span class="n">glove_zip_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">download_link</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">total_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Downloading Glove </span><span class="si">{version}</span><span class="s1">B vectors&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+                                      <span class="n">total</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_size</span><span class="o">//</span><span class="mi">128</span><span class="p">)):</span>
+                        <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unzipping word vector download&#39;</span><span class="p">)</span>
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+                <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">glove_folder</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Glove Common Crawl </span><span class="si">{version}</span><span class="s1">b vectors &#39;</span>
+                                <span class="s1">&#39;not downloaded therefore cannot load them&#39;</span><span class="p">)</span>
+            <span class="n">glove_folder_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">glove_folder</span><span class="o">.</span><span class="n">iterdir</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">glove_txt_fp</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Error in either downloading the glove vectors&#39;</span>
+                                <span class="s1">&#39; or file path names. Files in the glove &#39;</span>
+                                <span class="n">f</span><span class="s1">&#39;folder </span><span class="si">{glove_folder_files}</span><span class="s1"> and where the &#39;</span>
+                                <span class="n">f</span><span class="s1">&#39;golve file should be {str(glove_txt_fp)}&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">glove_txt_binary</span><span class="p">(</span><span class="n">glove_txt_fp</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GloveCommonCrawl.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveCommonCrawl.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">skip_conf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param version: Choice of either the 42 or 840 Billion token 300 \</span>
+<span class="sd">        dimension common crawl glove vectors. The values can be only 42 or \</span>
+<span class="sd">        840 and default is 42.</span>
+<span class="sd">        :param skip_conf: Whether to skip the permission step for downloading \</span>
+<span class="sd">        the word vectors as it requires user input. True to skip permission.</span>
+<span class="sd">        :type version: int. Default 42.</span>
+<span class="sd">        :type skip_conf: bool. Default False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">42</span><span class="p">,</span> <span class="mi">840</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Common Crawl only come in two version the 840 &#39;</span>
+                             <span class="s1">&#39;or 42 Billion tokens. Require to choose between &#39;</span>
+                             <span class="n">f</span><span class="s1">&#39;42 and 840 and not </span><span class="si">{version}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;glove 300d </span><span class="si">{}</span><span class="s1">b common crawl&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">vector_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">skip_conf</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Loading </span><span class="si">{name}</span><span class="s1"> from file&#39;</span><span class="p">)</span>
+        <span class="n">glove_key_vectors</span> <span class="o">=</span> <span class="n">KeyedVectors</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span>
+                                                              <span class="n">binary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">glove_key_vectors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_unknown_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is to be Overridden by sub classes if they want to return a custom</span>
+<span class="sd">        unknown vector.</span>
+
+<span class="sd">        :returns: A vector for all unknown words. In this case it is a zero</span>
+<span class="sd">        vector.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GloveWikiGiga"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveWikiGiga">[docs]</a><span class="k">class</span> <span class="nc">GloveWikiGiga</span><span class="p">(</span><span class="n">WordVectors</span><span class="p">):</span>
+
+<div class="viewcode-block" id="GloveWikiGiga.download"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveWikiGiga.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_conf</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This method checks if the</span>
+<span class="sd">        `Glove Wikipedia Gigaword word vectors</span>
+<span class="sd">        &lt;https://nlp.stanford.edu/projects/glove/&gt;`_</span>
+<span class="sd">        are already in the repoistory if not it downloads and unzips the word</span>
+<span class="sd">        vectors if permission is granted and converts them into a gensim</span>
+<span class="sd">        KeyedVectors binary representation.</span>
+
+<span class="sd">        :param skip_conf: Whether to skip the permission step as it requires \</span>
+<span class="sd">        user input. True to skip permission.</span>
+<span class="sd">        :type skip_conf: bool</span>
+<span class="sd">        :returns: A dict containing word vector dimension as keys and the \</span>
+<span class="sd">        absolute path to the vector file.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">glove_folder</span> <span class="o">=</span> <span class="n">BELLA_VEC_DIR</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;glove_wiki_giga&#39;</span><span class="p">)</span>
+        <span class="n">glove_folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">current_glove_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">glove_file</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">glove_file</span>
+                                   <span class="ow">in</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()])</span>
+        <span class="n">all_glove_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;glove.6B.50d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.6B.100d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.6B.200d.binary&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;glove.6B.300d.binary&#39;</span><span class="p">])</span>
+        <span class="n">interset</span> <span class="o">=</span> <span class="n">all_glove_files</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">current_glove_files</span><span class="p">)</span>
+        <span class="c1"># If the files in the folder aren&#39;t all the glove files that would be</span>
+        <span class="c1"># downloaded re-download the zip and unzip the files.</span>
+        <span class="k">if</span> <span class="n">interset</span> <span class="o">!=</span> <span class="n">all_glove_files</span><span class="p">:</span>
+            <span class="n">can_download</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_conf</span><span class="p">:</span>
+                <span class="n">download_msg</span> <span class="o">=</span> <span class="s1">&#39;We are going to download the glove vectors &#39;</span>\
+                               <span class="s1">&#39;this is a large download of ~900MB and takes &#39;</span>\
+                               <span class="s1">&#39;~2.1GB of disk space after being unzipped. &#39;</span>\
+                               <span class="s1">&#39;Would you like to continue? If so type &#39;</span>\
+                               <span class="s1">&#39;`yes`</span><span class="se">\n</span><span class="s1">&gt;&gt; &#39;</span>
+                <span class="n">can_download</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">download_msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">can_download</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+                <span class="n">download_link</span> <span class="o">=</span> <span class="s1">&#39;http://nlp.stanford.edu/data/glove.6B.zip&#39;</span>
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;glove_zip.zip&#39;</span><span class="p">)</span>
+                <span class="c1"># Reference:</span>
+                <span class="c1"># http://docs.python-requests.org/en/master/user/quickstart/#raw-response-content</span>
+                <span class="k">with</span> <span class="n">glove_zip_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">download_link</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">total_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading Glove Wikipedia Gigaword vectors&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+                                      <span class="n">total</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_size</span><span class="o">//</span><span class="mi">128</span><span class="p">)):</span>
+                        <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unzipping word vector download&#39;</span><span class="p">)</span>
+                <span class="n">glove_zip_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+                <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">glove_zip_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">glove_zip_file</span><span class="p">:</span>
+                    <span class="n">glove_zip_file</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">glove_folder</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Glove Twitter vectors not downloaded &#39;</span>
+                                <span class="s1">&#39;therefore cannot load them&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_full_path</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">glove_folder</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">glove_txt_binary</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="mi">50</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.6B.50d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">100</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.6B.100d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">200</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.6B.200d.txt&#39;</span><span class="p">),</span>
+                <span class="mi">300</span><span class="p">:</span> <span class="n">add_full_path</span><span class="p">(</span><span class="s1">&#39;glove.6B.300d.txt&#39;</span><span class="p">)}</span></div>
+
+<div class="viewcode-block" id="GloveWikiGiga.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.word_vectors.GloveWikiGiga.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">skip_conf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">padding_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filter_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param dimension: Dimension size of the word vectors you would like to \</span>
+<span class="sd">        use. Choice: 50, 100, 200, 300</span>
+<span class="sd">        :param skip_conf: Whether to skip the permission step for downloading \</span>
+<span class="sd">        the word vectors as it requires user input. True to skip permission.</span>
+<span class="sd">        :type dimension: int</span>
+<span class="sd">        :type skip_conf: bool. Default False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">dimension_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">skip_conf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Type of dimension has to be int not </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dimension</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">dimension</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dimension_file</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Dimension avliable are the following </span><span class="si">{}</span><span class="s1">&#39;</span>\
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dimension_file</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;glove wiki giga </span><span class="si">{}</span><span class="s1">d&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="n">vector_file</span> <span class="o">=</span> <span class="n">dimension_file</span><span class="p">[</span><span class="n">dimension</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Loading </span><span class="si">{name}</span><span class="s1"> from file&#39;</span><span class="p">)</span>
+        <span class="n">glove_key_vectors</span> <span class="o">=</span> <span class="n">KeyedVectors</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span>
+                                                              <span class="n">binary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">glove_key_vectors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit_length</span><span class="o">=</span><span class="n">unit_length</span><span class="p">,</span>
+                         <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+                         <span class="n">filter_words</span><span class="o">=</span><span class="n">filter_words</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_unknown_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This is to be Overridden by sub classes if they want to return a custom</span>
+<span class="sd">        unknown vector.</span>
+
+<span class="sd">        :returns: A vector for all unknown words. In this case it is a zero</span>
+<span class="sd">        vector.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

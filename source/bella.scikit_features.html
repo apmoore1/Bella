@@ -1,0 +1,792 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.scikit_features package &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">bella.scikit_features package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.context">bella.scikit_features.context module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.debug">bella.scikit_features.debug module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.join_context_vectors">bella.scikit_features.join_context_vectors module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.lexicon_filter">bella.scikit_features.lexicon_filter module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.neural_pooling">bella.scikit_features.neural_pooling module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.syntactic_context">bella.scikit_features.syntactic_context module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.tokeniser">bella.scikit_features.tokeniser module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features.word_vector">bella.scikit_features.word_vector module</a></li>
+<li><a class="reference internal" href="#module-bella.scikit_features">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>bella.scikit_features package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/source/bella.scikit_features.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="bella-scikit-features-package">
+<h1>bella.scikit_features package<a class="headerlink" href="#bella-scikit-features-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-bella.scikit_features.context">
+<span id="bella-scikit-features-context-module"></span><h2>bella.scikit_features.context module<a class="headerlink" href="#module-bella.scikit_features.context" title="Permalink to this headline">¶</a></h2>
+<p>Module contains a Class that is a scikit learn Transformer.</p>
+<dl class="class">
+<dt id="bella.scikit_features.context.Context">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.context.</code><code class="descname">Context</code><span class="sig-paren">(</span><em>context='left'</em>, <em>inc_target=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/context.html#Context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.context.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<dl class="method">
+<dt id="bella.scikit_features.context.Context.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>context='left'</em>, <em>inc_target=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/context.html#Context.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.context.Context.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.context.Context.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/context.html#Context.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.context.Context.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.context.Context.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/context.html#Context.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.context.Context.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.context.Context.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>target_dicts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/context.html#Context.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.context.Context.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of target dictionaries containing the spans of the targets
+and the texts that are about the targets it returns the relevant left,
+right and target contexts with respect to the target word(s). Returns a
+list of contexts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_dicts</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – list of dictionaries containing at least <cite>spans</cite> and         <cite>text</cite> keys.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a list of left, right and target contexts with respect to the         target word and the values in the self.context if self.context = ‘lt’ will         only return the left and target contexts and not right.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.debug">
+<span id="bella-scikit-features-debug-module"></span><h2>bella.scikit_features.debug module<a class="headerlink" href="#module-bella.scikit_features.debug" title="Permalink to this headline">¶</a></h2>
+<p>SKLearn Transformer</p>
+<p>Classes:</p>
+<ol class="arabic simple">
+<li>Debug – Allows you to debug previous transformers</li>
+</ol>
+<dl class="class">
+<dt id="bella.scikit_features.debug.Debug">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.debug.</code><code class="descname">Debug</code><a class="reference internal" href="../_modules/bella/scikit_features/debug.html#Debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.debug.Debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<p>SKLearn transformer that is to be used a debugger between different
+SKLearn transformers.</p>
+<p>Methods:</p>
+<ol class="arabic simple">
+<li>fit - Does nothing as nothing is done at fit time.</li>
+<li>fit_transform - Performs the transform method.</li>
+<li>transform - Creates a REPL terminal to inspect the input transformed data</li>
+</ol>
+<dl class="method">
+<dt id="bella.scikit_features.debug.Debug.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/debug.html#Debug.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.debug.Debug.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.debug.Debug.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>data</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/debug.html#Debug.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.debug.Debug.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.debug.Debug.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>data</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/debug.html#Debug.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.debug.Debug.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.debug.Debug.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/debug.html#Debug.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.debug.Debug.transform" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/array.html#module-array" title="(in Python v3.6)"><em>array</em></a>) – Data from the previous transformer in the pipeline</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing. Creates a Python interactive shell to inspect the         data from the previous transformation.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/constants.html#None" title="(in Python v3.6)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.join_context_vectors">
+<span id="bella-scikit-features-join-context-vectors-module"></span><h2>bella.scikit_features.join_context_vectors module<a class="headerlink" href="#module-bella.scikit_features.join_context_vectors" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bella.scikit_features.join_context_vectors.JoinContextVectors">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.join_context_vectors.</code><code class="descname">JoinContextVectors</code><span class="sig-paren">(</span><em>pool_func=&lt;function matrix_median&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/join_context_vectors.html#JoinContextVectors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.join_context_vectors.JoinContextVectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<dl class="method">
+<dt id="bella.scikit_features.join_context_vectors.JoinContextVectors.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>pool_func=&lt;function matrix_median&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/join_context_vectors.html#JoinContextVectors.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.join_context_vectors.JoinContextVectors.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.join_context_vectors.JoinContextVectors.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>context_pool_vectors</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/join_context_vectors.html#JoinContextVectors.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.join_context_vectors.JoinContextVectors.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.join_context_vectors.JoinContextVectors.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>context_pool_vectors</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/join_context_vectors.html#JoinContextVectors.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.join_context_vectors.JoinContextVectors.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.join_context_vectors.JoinContextVectors.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>context_pool_vectors</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/join_context_vectors.html#JoinContextVectors.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.join_context_vectors.JoinContextVectors.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of train data which contain a list of numpy.ndarray one for
+each context. Return a list of train data of numpy.ndarray which are the
+contexts joined together using one of the pool functions.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.lexicon_filter">
+<span id="bella-scikit-features-lexicon-filter-module"></span><h2>bella.scikit_features.lexicon_filter module<a class="headerlink" href="#module-bella.scikit_features.lexicon_filter" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bella.scikit_features.lexicon_filter.LexiconFilter">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.lexicon_filter.</code><code class="descname">LexiconFilter</code><span class="sig-paren">(</span><em>lexicon=None</em>, <em>zero_token='$$$ZERO_TOKEN$$$'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/lexicon_filter.html#LexiconFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.lexicon_filter.LexiconFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<dl class="method">
+<dt id="bella.scikit_features.lexicon_filter.LexiconFilter.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>lexicon=None</em>, <em>zero_token='$$$ZERO_TOKEN$$$'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/lexicon_filter.html#LexiconFilter.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.lexicon_filter.LexiconFilter.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.lexicon_filter.LexiconFilter.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>context_tokens</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/lexicon_filter.html#LexiconFilter.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.lexicon_filter.LexiconFilter.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.lexicon_filter.LexiconFilter.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>context_tokens</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/lexicon_filter.html#LexiconFilter.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.lexicon_filter.LexiconFilter.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.lexicon_filter.LexiconFilter.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>contexts_tokens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/lexicon_filter.html#LexiconFilter.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.lexicon_filter.LexiconFilter.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.neural_pooling">
+<span id="bella-scikit-features-neural-pooling-module"></span><h2>bella.scikit_features.neural_pooling module<a class="headerlink" href="#module-bella.scikit_features.neural_pooling" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bella.scikit_features.neural_pooling.NeuralPooling">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.neural_pooling.</code><code class="descname">NeuralPooling</code><span class="sig-paren">(</span><em>pool_func=&lt;function matrix_max&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/neural_pooling.html#NeuralPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.neural_pooling.NeuralPooling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<dl class="method">
+<dt id="bella.scikit_features.neural_pooling.NeuralPooling.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>pool_func=&lt;function matrix_max&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/neural_pooling.html#NeuralPooling.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.neural_pooling.NeuralPooling.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.neural_pooling.NeuralPooling.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>context_word_matrixs</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/neural_pooling.html#NeuralPooling.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.neural_pooling.NeuralPooling.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.neural_pooling.NeuralPooling.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>context_word_matrixs</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/neural_pooling.html#NeuralPooling.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.neural_pooling.NeuralPooling.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.neural_pooling.NeuralPooling.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>context_word_matrixs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/neural_pooling.html#NeuralPooling.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.neural_pooling.NeuralPooling.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.syntactic_context">
+<span id="bella-scikit-features-syntactic-context-module"></span><h2>bella.scikit_features.syntactic_context module<a class="headerlink" href="#module-bella.scikit_features.syntactic_context" title="Permalink to this headline">¶</a></h2>
+<p>Module contains a Class that is a scikit learn Transformer.</p>
+<p>Classes:</p>
+<ol class="arabic simple">
+<li>SyntacticContext - Converts a list of dictionaries containg text, targets, and target spans into text contexts defined the targets dependency tree. Returns a list of a list of dictionaries containing text and span.</li>
+<li>DependencyChildContext - Simialr to SyntacticContext but returns a list of a list of Strings instead of dicts. Each String represents a targets children dependency relations.</li>
+</ol>
+<p>3. Context - Given the output from SyntacticContext returns the left, right,
+target or full text contexts. Where left and right is with respect to the
+target word the text is about.</p>
+<dl class="class">
+<dt id="bella.scikit_features.syntactic_context.Context">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.syntactic_context.</code><code class="descname">Context</code><span class="sig-paren">(</span><em>context='left'</em>, <em>inc_target=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#Context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<p>Given the output from SyntacticContext returns the left, right, target or
+full text contexts. Where left and right is with respect to the
+target word the text is about.</p>
+<p>Attributes:</p>
+<ol class="arabic simple">
+<li>context - Defines the text context that is returned</li>
+<li>inc_target - Whether to include the target word in the context</li>
+</ol>
+<p>Methods:</p>
+<ol class="arabic simple">
+<li>fit - Does nothing as nothing is done at fit time.</li>
+<li>fit_transform - Performs the transform method.</li>
+<li>transform - Converts a list of a list of dictionaries into a list of a     list of Strings where each String represents a the targets context.</li>
+</ol>
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.Context.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>context='left'</em>, <em>inc_target=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#Context.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.Context.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> (String. Can only be <cite>left</cite>, <cite>right</cite>, <cite>target</cite>, or <cite>full</cite>        . Default <cite>left</cite>) – left, right, target or full context will be returned         with respect to the target word in the target sentence.</li>
+<li><strong>inc_target</strong> (<em>bool. Default False</em>) – Whether to include the target word in the text         context.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.Context.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>target_contexts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#Context.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.Context.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.Context.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>target_contexts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#Context.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.Context.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.Context.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>target_contexts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#Context.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.Context.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of of a list of dicts where each dict contains</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_dicts</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – list of a list of dictionaries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of a list of Strings where each String represents a         different context as each target can have many targets within a text         thus multiple contexts. The context it returns depends on self.context</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bella.scikit_features.syntactic_context.DependencyChildContext">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.syntactic_context.</code><code class="descname">DependencyChildContext</code><span class="sig-paren">(</span><em>parser=&lt;function tweebo&gt;</em>, <em>lower=False</em>, <em>rel_depth=(1</em>, <em>1)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#DependencyChildContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.DependencyChildContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<p>Simialr to SyntacticContext but returns a list of a list of Strings
+instead of dicts. Each String represents a targets children dependency
+relations.</p>
+<p>Attributes:</p>
+<ol class="arabic simple">
+<li>parser - dependency parser to use.</li>
+<li>lower - whether or not the parser should process the text in lower or     case or not</li>
+<li>rel_depth - The depth of the child relations (1, 1) = 1st relations</li>
+</ol>
+<p>Methods:</p>
+<ol class="arabic simple">
+<li>fit - Does nothing as nothing is done at fit time.</li>
+<li>fit_transform - Performs the transform method.</li>
+<li>transform - Converts the list of dicts into a list of a list of     Strings which are the target words child relations within the targets     dependency tree.</li>
+</ol>
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.DependencyChildContext.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>parser=&lt;function tweebo&gt;</em>, <em>lower=False</em>, <em>rel_depth=(1</em>, <em>1)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#DependencyChildContext.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.DependencyChildContext.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>For more information on what the function does see the following
+functions documentation: dependency_relation_context</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parser</strong> (<em>function. Default tweebo</em>) – Dependency parser to use.</li>
+<li><strong>lower</strong> (<em>bool. Default False</em>) – Whether to lower case the words before going through         the dependency parser.</li>
+<li><strong>rel_depth</strong> (<em>tuple. Default</em><em> (</em><em>1</em><em>, </em><em>1</em><em>)</em>) – Depth of the dependency relations to use as context         words</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.DependencyChildContext.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#DependencyChildContext.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.DependencyChildContext.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.DependencyChildContext.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#DependencyChildContext.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.DependencyChildContext.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.DependencyChildContext.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>target_dicts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#DependencyChildContext.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.DependencyChildContext.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of target dictionaries it returns a list of a list of Strings
+where each String is the concatenation of the targets rel_depth child
+related words where rel_depth determines the number of child dependency
+related words to include.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_dicts</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – list of dictionaries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of a list of Strings</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bella.scikit_features.syntactic_context.SyntacticContext">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.syntactic_context.</code><code class="descname">SyntacticContext</code><span class="sig-paren">(</span><em>parser=&lt;function tweebo&gt;</em>, <em>lower=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#SyntacticContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.SyntacticContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<p>Converts a list of dictionaries containg text, targets, and target spans
+into text contexts defined the targets dependency tree. Returns a list of a
+list of dictionaries containing text and span.</p>
+<p>Attributes:</p>
+<ol class="arabic simple">
+<li>parser - dependency parser to use.</li>
+<li>lower - whether or not the parser should process the text in lower or     case or not</li>
+</ol>
+<p>Methods:</p>
+<ol class="arabic simple">
+<li>fit - Does nothing as nothing is done at fit time.</li>
+<li>fit_transform - Performs the transform method.</li>
+<li>transform - Converts the list of dicts into a list of a list of     dicts where each each dict contains the target text and span where the text     is the targets full dependency tree word context.</li>
+</ol>
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.SyntacticContext.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>parser=&lt;function tweebo&gt;</em>, <em>lower=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#SyntacticContext.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.SyntacticContext.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>For more information on what the function does see the following
+functions documentation: dependency_context</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parser</strong> (<em>function. Default tweebo</em>) – Dependency parser to use.</li>
+<li><strong>lower</strong> (<em>bool. Default False</em>) – Whether to lower case the words before going through         the dependency parser.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.SyntacticContext.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#SyntacticContext.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.SyntacticContext.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.SyntacticContext.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>target_dicts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#SyntacticContext.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.SyntacticContext.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.syntactic_context.SyntacticContext.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>target_dicts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/syntactic_context.html#SyntacticContext.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.syntactic_context.SyntacticContext.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of target dictionaries it returns the syntactic context of
+each target therefore returns a list of a list of dicts where each
+dict represents a targets syntactic context within the associated text.
+The syntactic context depends on the self.parser function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_dicts</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – list of dictionaries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of a list of dicts</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.tokeniser">
+<span id="bella-scikit-features-tokeniser-module"></span><h2>bella.scikit_features.tokeniser module<a class="headerlink" href="#module-bella.scikit_features.tokeniser" title="Permalink to this headline">¶</a></h2>
+<p>Module contains a Class that is a scikit learn Transformer.</p>
+<p>Classes:</p>
+<p>1. ContextTokeniser - Converts a list of String lists into token lists. See the
+transformer method of the class for more details.</p>
+<dl class="class">
+<dt id="bella.scikit_features.tokeniser.ContextTokeniser">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.tokeniser.</code><code class="descname">ContextTokeniser</code><span class="sig-paren">(</span><em>tokeniser=&lt;function whitespace&gt;</em>, <em>lower=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/tokeniser.html#ContextTokeniser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.tokeniser.ContextTokeniser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<p>Scikit learn transformer class. Converts list of String lists into tokens.</p>
+<p>Attributes:</p>
+<p>1. self.tokeniser - tokeniser function. Given a String returns a list of Strings.
+Default whitespace tokeniser.
+2. self.lower - whether to lower case the tokens. Default False.</p>
+<p>See <a class="reference internal" href="bella.html#module-bella.tokenisers" title="bella.tokenisers"><code class="xref py py-func docutils literal"><span class="pre">bella.tokenisers()</span></code></a> for more tokeniser functions that can be
+used here or create your own function.</p>
+<dl class="method">
+<dt id="bella.scikit_features.tokeniser.ContextTokeniser.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>tokeniser=&lt;function whitespace&gt;</em>, <em>lower=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/tokeniser.html#ContextTokeniser.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.tokeniser.ContextTokeniser.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.tokeniser.ContextTokeniser.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>target_contexts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/tokeniser.html#ContextTokeniser.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.tokeniser.ContextTokeniser.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.tokeniser.ContextTokeniser.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>target_contexts</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/tokeniser.html#ContextTokeniser.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.tokeniser.ContextTokeniser.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.tokeniser.ContextTokeniser.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>target_contexts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/tokeniser.html#ContextTokeniser.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.tokeniser.ContextTokeniser.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of String lists where each String represents a context per
+target span it returns those Strings as a list of Strings (tokens).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_contexts</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – A list of String lists e.g.         [[‘It was nice this morning’, ‘It was nice this morning but not         yesterday morning’], [‘another day’]] where each String is a span context         for a target.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of Strings (tokens) per span context. e.g.</td>
+</tr>
+</tbody>
+</table>
+<p>[[[‘It’, ‘was’, ‘nice’, ‘this’, ‘morning’], [‘It’, ‘was’, ‘nice’, ‘this’,        ‘morning’, ‘but’, ‘not’, ‘yesterday’, ‘morning’]], [[‘another’, ‘day’]]]
+:rtype: list</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features.word_vector">
+<span id="bella-scikit-features-word-vector-module"></span><h2>bella.scikit_features.word_vector module<a class="headerlink" href="#module-bella.scikit_features.word_vector" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors">
+<em class="property">class </em><code class="descclassname">bella.scikit_features.word_vector.</code><code class="descname">ContextWordVectors</code><span class="sig-paren">(</span><em>vectors=None</em>, <em>zero_token='$$$ZERO_TOKEN$$$'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.BaseEstimator.html#sklearn.base.BaseEstimator" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.BaseEstimator</span></code></a>, <a class="reference external" href="https://scikit-learn.org/0.19/modules/generated/sklearn.base.TransformerMixin.html#sklearn.base.TransformerMixin" title="(in scikit-learn v0.19.2)"><code class="xref py py-class docutils literal"><span class="pre">sklearn.base.TransformerMixin</span></code></a></p>
+<dl class="method">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>vectors=None</em>, <em>zero_token='$$$ZERO_TOKEN$$$'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>context_tokens</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kept for consistnecy with the TransformerMixin</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors.fit_transform">
+<code class="descname">fit_transform</code><span class="sig-paren">(</span><em>context_tokens</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors.fit_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>see self.transform</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors.list_to_matrix">
+<em class="property">static </em><code class="descname">list_to_matrix</code><span class="sig-paren">(</span><em>word_vector_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors.list_to_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors.list_to_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a list of numpy.ndarrays (vectors) into a numpy.ndarray (matrix).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>word_vector_list</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – list of numpy.ndarray</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a matrix of the numpy.ndarray</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)">numpy.ndarray</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="bella.scikit_features.word_vector.ContextWordVectors.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>contexts_tokens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/scikit_features/word_vector.html#ContextWordVectors.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.scikit_features.word_vector.ContextWordVectors.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of contexts (either right, left or target) which are made
+up of lists of tokens return the tokens as a word vector matrix.</p>
+<p>The word vector matrix is a word vector for each token but instead of
+storing in a list it is stored in a numpy.ndarray of shape:
+(length of word vector, number of tokens).</p>
+<p>Example of the input
+[[[‘context’, ‘one’], [‘context’, ‘two’]], [[‘another context’]]]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>contexts_tokens</strong> – A list of data of which each data contains a list         of contexts which contains a list of tokens.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The same list but with word vectors as numpy.ndarray instead         of tokens which are Strings</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bella.scikit_features">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-bella.scikit_features" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

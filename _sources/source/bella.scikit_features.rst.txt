@@ -1,0 +1,78 @@
+bella\.scikit\_features package
+===============================
+
+Submodules
+----------
+
+bella\.scikit\_features\.context module
+---------------------------------------
+
+.. automodule:: bella.scikit_features.context
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.debug module
+-------------------------------------
+
+.. automodule:: bella.scikit_features.debug
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.join\_context\_vectors module
+------------------------------------------------------
+
+.. automodule:: bella.scikit_features.join_context_vectors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.lexicon\_filter module
+-----------------------------------------------
+
+.. automodule:: bella.scikit_features.lexicon_filter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.neural\_pooling module
+-----------------------------------------------
+
+.. automodule:: bella.scikit_features.neural_pooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.syntactic\_context module
+--------------------------------------------------
+
+.. automodule:: bella.scikit_features.syntactic_context
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.tokeniser module
+-----------------------------------------
+
+.. automodule:: bella.scikit_features.tokeniser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bella\.scikit\_features\.word\_vector module
+--------------------------------------------
+
+.. automodule:: bella.scikit_features.word_vector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: bella.scikit_features
+    :members:
+    :undoc-members:
+    :show-inheritance:

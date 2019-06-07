@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.scikit_features.syntactic_context &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.scikit_features.syntactic_context</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.scikit_features.syntactic_context</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module contains a Class that is a scikit learn Transformer.</span>
+
+<span class="sd">Classes:</span>
+
+<span class="sd">1. SyntacticContext - Converts a list of dictionaries containg text, targets, \</span>
+<span class="sd">and target spans into text contexts defined the targets dependency tree. \</span>
+<span class="sd">Returns a list of a list of dictionaries containing text and span.</span>
+<span class="sd">2. DependencyChildContext - Simialr to SyntacticContext but returns a list of \</span>
+<span class="sd">a list of Strings instead of dicts. Each String represents a targets children \</span>
+<span class="sd">dependency relations.</span>
+<span class="sd">3. Context - Given the output from SyntacticContext returns the left, right,</span>
+<span class="sd">target or full text contexts. Where left and right is with respect to the</span>
+<span class="sd">target word the text is about.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+
+<span class="kn">from</span> <span class="nn">bella</span> <span class="k">import</span> <span class="n">syntactic_contexts</span>
+<span class="kn">from</span> <span class="nn">bella.dependency_parsers</span> <span class="k">import</span> <span class="n">tweebo</span>
+
+
+<div class="viewcode-block" id="SyntacticContext"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext">[docs]</a><span class="k">class</span> <span class="nc">SyntacticContext</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Converts a list of dictionaries containg text, targets, and target spans</span>
+<span class="sd">    into text contexts defined the targets dependency tree. Returns a list of a</span>
+<span class="sd">    list of dictionaries containing text and span.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. parser - dependency parser to use.</span>
+<span class="sd">    2. lower - whether or not the parser should process the text in lower or \</span>
+<span class="sd">    case or not</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit - Does nothing as nothing is done at fit time.</span>
+<span class="sd">    2. fit_transform - Performs the transform method.</span>
+<span class="sd">    3. transform - Converts the list of dicts into a list of a list of \</span>
+<span class="sd">    dicts where each each dict contains the target text and span where the text \</span>
+<span class="sd">    is the targets full dependency tree word context.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="SyntacticContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        For more information on what the function does see the following</span>
+<span class="sd">        functions documentation: dependency_context</span>
+
+<span class="sd">        :param parser: Dependency parser to use.</span>
+<span class="sd">        :param lower: Whether to lower case the words before going through \</span>
+<span class="sd">        the dependency parser.</span>
+<span class="sd">        :type parser: function. Default tweebo</span>
+<span class="sd">        :type lower: bool. Default False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span></div>
+
+<div class="viewcode-block" id="SyntacticContext.fit"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Kept for consistnecy with the TransformerMixin&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="SyntacticContext.fit_transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.fit_transform">[docs]</a>    <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;see self.transform&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SyntacticContext.transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a list of target dictionaries it returns the syntactic context of</span>
+<span class="sd">        each target therefore returns a list of a list of dicts where each</span>
+<span class="sd">        dict represents a targets syntactic context within the associated text.</span>
+<span class="sd">        The syntactic context depends on the self.parser function.</span>
+
+<span class="sd">        :param target_dicts: list of dictionaries</span>
+<span class="sd">        :type target_dicts: list</span>
+<span class="sd">        :returns: A list of a list of dicts</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">syntactic_contexts</span><span class="o">.</span><span class="n">dependency_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span>
+                                                     <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="DependencyChildContext"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext">[docs]</a><span class="k">class</span> <span class="nc">DependencyChildContext</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Simialr to SyntacticContext but returns a list of a list of Strings</span>
+<span class="sd">    instead of dicts. Each String represents a targets children dependency</span>
+<span class="sd">    relations.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. parser - dependency parser to use.</span>
+<span class="sd">    2. lower - whether or not the parser should process the text in lower or \</span>
+<span class="sd">    case or not</span>
+<span class="sd">    3. rel_depth - The depth of the child relations (1, 1) = 1st relations</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit - Does nothing as nothing is done at fit time.</span>
+<span class="sd">    2. fit_transform - Performs the transform method.</span>
+<span class="sd">    3. transform - Converts the list of dicts into a list of a list of \</span>
+<span class="sd">    Strings which are the target words child relations within the targets \</span>
+<span class="sd">    dependency tree.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="DependencyChildContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rel_depth</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        For more information on what the function does see the following</span>
+<span class="sd">        functions documentation: dependency_relation_context</span>
+
+<span class="sd">        :param parser: Dependency parser to use.</span>
+<span class="sd">        :param lower: Whether to lower case the words before going through \</span>
+<span class="sd">        the dependency parser.</span>
+<span class="sd">        :param rel_depth: Depth of the dependency relations to use as context \</span>
+<span class="sd">        words</span>
+<span class="sd">        :type parser: function. Default tweebo</span>
+<span class="sd">        :type lower: bool. Default False</span>
+<span class="sd">        :type rel_depth: tuple. Default (1, 1)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rel_depth</span> <span class="o">=</span> <span class="n">rel_depth</span></div>
+
+<div class="viewcode-block" id="DependencyChildContext.fit"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Kept for consistnecy with the TransformerMixin&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="DependencyChildContext.fit_transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.fit_transform">[docs]</a>    <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;see self.transform&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DependencyChildContext.transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_dicts</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a list of target dictionaries it returns a list of a list of Strings</span>
+<span class="sd">        where each String is the concatenation of the targets rel_depth child</span>
+<span class="sd">        related words where rel_depth determines the number of child dependency</span>
+<span class="sd">        related words to include.</span>
+
+<span class="sd">        :param target_dicts: list of dictionaries</span>
+<span class="sd">        :type target_dicts: list</span>
+<span class="sd">        :returns: A list of a list of Strings</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">syntactic_contexts</span><span class="o">.</span><span class="n">dependency_relation_context</span><span class="p">(</span><span class="n">target_dicts</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">rel_depth</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="Context"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context">[docs]</a><span class="k">class</span> <span class="nc">Context</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given the output from SyntacticContext returns the left, right, target or</span>
+<span class="sd">    full text contexts. Where left and right is with respect to the</span>
+<span class="sd">    target word the text is about.</span>
+
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. context - Defines the text context that is returned</span>
+<span class="sd">    2. inc_target - Whether to include the target word in the context</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. fit - Does nothing as nothing is done at fit time.</span>
+<span class="sd">    2. fit_transform - Performs the transform method.</span>
+<span class="sd">    3. transform - Converts a list of a list of dictionaries into a list of a \</span>
+<span class="sd">    list of Strings where each String represents a the targets context.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="Context.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">inc_target</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param context: left, right, target or full context will be returned \</span>
+<span class="sd">        with respect to the target word in the target sentence.</span>
+<span class="sd">        :param inc_target: Whether to include the target word in the text \</span>
+<span class="sd">        context.</span>
+<span class="sd">        :type context: String. Can only be `left`, `right`, `target`, or `full`\</span>
+<span class="sd">        . Default `left`</span>
+<span class="sd">        :type inc_target: bool. Default False</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc_target</span> <span class="o">=</span> <span class="n">inc_target</span></div>
+
+<div class="viewcode-block" id="Context.fit"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_contexts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Kept for consistnecy with the TransformerMixin&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Context.fit_transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.fit_transform">[docs]</a>    <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_contexts</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;see self.transform&#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">target_contexts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Context.transform"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_contexts</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a list of of a list of dicts where each dict contains</span>
+
+<span class="sd">        :param target_dicts: list of a list of dictionaries</span>
+<span class="sd">        :type target_dicts: list</span>
+<span class="sd">        :returns: A list of a list of Strings where each String represents a \</span>
+<span class="sd">        different context as each target can have many targets within a text \</span>
+<span class="sd">        thus multiple contexts. The context it returns depends on self.context</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">syntactic_contexts</span><span class="o">.</span><span class="n">context</span><span class="p">(</span><span class="n">target_contexts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                                          <span class="bp">self</span><span class="o">.</span><span class="n">inc_target</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,1064 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bella.models.tdlstm &mdash; Bella 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Bella 0.2.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Bella
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Bella</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>bella.models.tdlstm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for bella.models.tdlstm</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module contains all of the classes that represent Machine Learning models</span>
+<span class="sd">that are within `Tang et al. 2016 paper \</span>
+<span class="sd">&lt;https://aclanthology.info/papers/C16-1311/c16-1311&gt;`_:</span>
+
+<span class="sd">1. :py:class:`bella.models.tdlstm.LSTM` -- LSTM model.</span>
+<span class="sd">2. :py:class:`bella.models.tdlstm.TDLSTM` -- TDLSTM model.</span>
+<span class="sd">3. :py:class:`bella.models.tdlstm.TCLSTM` -- TCLSTM model.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">keras</span>
+<span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">keras.utils</span> <span class="k">import</span> <span class="n">to_categorical</span>
+
+<span class="kn">import</span> <span class="nn">bella</span>
+<span class="kn">from</span> <span class="nn">bella.models.base</span> <span class="k">import</span> <span class="n">KerasModel</span>
+<span class="kn">from</span> <span class="nn">bella.contexts</span> <span class="k">import</span> <span class="n">context</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_median</span>
+
+
+<div class="viewcode-block" id="LSTM"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM">[docs]</a><span class="k">class</span> <span class="nc">LSTM</span><span class="p">(</span><span class="n">KerasModel</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. pad_size -- The max number of tokens to use per sequence. If -1</span>
+<span class="sd">       use the text sequence in the training data that has the most tokens as</span>
+<span class="sd">       the pad size.</span>
+<span class="sd">    2. embedding_layer_kwargs -- Keyword arguments to pass to the embedding</span>
+<span class="sd">       layer which is a :py:class:`keras.layers.Embedding` object. Can be</span>
+<span class="sd">       None if no parameters to pass.</span>
+<span class="sd">    3. lstm_layer_kwargs -- Keyword arguments to pass to the lstm layer(s)</span>
+<span class="sd">       which is a :py:class:`keras.layers.LSTM` object. Can be</span>
+<span class="sd">       None if no parameters to pass.</span>
+<span class="sd">    4. dense_layer_kwargs -- Keyword arguments to pass to the dense (final</span>
+<span class="sd">       layer) which is a :py:class:`keras.layers.Dense` object. Can be</span>
+<span class="sd">       None if no parameters to pass.</span>
+
+<span class="sd">    Methods:</span>
+
+<span class="sd">    1. model_parameters -- Returns a dictionary containing the attributes of</span>
+<span class="sd">       the class instance, the parameters to give to the class constructior to</span>
+<span class="sd">       re-create this instance, and the class itself.</span>
+<span class="sd">    2. create_training_text -- Converts the training and validation data into a</span>
+<span class="sd">       format that the keras model can take as input.</span>
+<span class="sd">    3. create_training_y -- Converts the training and validation target values</span>
+<span class="sd">       from a vector of class lables into a matrix of binary values. of shape</span>
+<span class="sd">       [n_samples, n_classes].</span>
+<span class="sd">    4. keras_model -- The model that represents this class. This is a single</span>
+<span class="sd">       forward LSTM.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="LSTM.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;LSTM&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LSTM.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+                 <span class="n">embeddings</span><span class="p">:</span> <span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">,</span>
+                 <span class="n">reproducible</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pad_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+                 <span class="n">embedding_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">lstm_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dense_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">optimiser</span><span class="p">:</span> <span class="s1">&#39;keras.optimizers.Optimizer&#39;</span> <span class="o">=</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">,</span>
+                 <span class="n">optimiser_params</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`.</span>
+<span class="sd">        :param embeddings: Embedding (Word vectors) to be used e.g.</span>
+<span class="sd">                           :py:class:`bella.word_vectors.SSWE`</span>
+<span class="sd">        :param reproducible: Whether to be reproducible. If None then it is</span>
+<span class="sd">                             quicker to run. Else provide a `int` that</span>
+<span class="sd">                             will represent the random seed value.</span>
+<span class="sd">        :param pad_size: The max number of tokens to use per sequence. If -1</span>
+<span class="sd">                         use the text sequence in the training data that has</span>
+<span class="sd">                         the most tokens as the pad size.</span>
+<span class="sd">        :param lower: Whether to lower case the words being processed.</span>
+<span class="sd">        :param patience: Number of epochs with no improvement before training</span>
+<span class="sd">                         is stopped.</span>
+<span class="sd">        :param batch_size: Number of samples per gradient update.</span>
+<span class="sd">        :param epochs: Number of times to train over the entire training set</span>
+<span class="sd">                       before stopping. If patience is set, then it may</span>
+<span class="sd">                       stop before reaching the number of epochs specified</span>
+<span class="sd">                       here.</span>
+<span class="sd">        :param embedding_layer_kwargs: Keyword arguments to pass to the</span>
+<span class="sd">                                       embedding layer which is a</span>
+<span class="sd">                                       :py:class:`keras.layers.Embedding`</span>
+<span class="sd">                                       object. If no parameters to pass leave</span>
+<span class="sd">                                       as None.</span>
+<span class="sd">        :param lstm_layer_kwargs: Keyword arguments to pass to the lstm</span>
+<span class="sd">                                  layer(s) which is a</span>
+<span class="sd">                                  :py:class:`keras.layers.LSTM` object. If no</span>
+<span class="sd">                                  parameters to pass leave as None.</span>
+<span class="sd">        :param dense_layer_kwargs: Keyword arguments to pass to the dense</span>
+<span class="sd">                                   (final layer) which is a</span>
+<span class="sd">                                   :py:class:`keras.layers.Dense` object. If no</span>
+<span class="sd">                                   parameters to pass leave as None.</span>
+<span class="sd">        :param optimiser: Optimiser to be used accepts any</span>
+<span class="sd">                          `keras optimiser &lt;https://keras.io/optimizers/&gt;`_.</span>
+<span class="sd">                          Default is :py:class:`keras.optimizers.SGD`</span>
+<span class="sd">        :param optimiser_params: Parameters for the optimiser. If None uses</span>
+<span class="sd">                                 default optimiser parameters.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tokeniser</span> <span class="o">=</span> <span class="n">tokeniser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">embeddings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reproducible</span> <span class="o">=</span> <span class="n">reproducible</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="o">=</span> <span class="n">pad_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patience</span> <span class="o">=</span> <span class="n">patience</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimiser_params</span> <span class="o">=</span> <span class="n">optimiser_params</span>
+        <span class="k">if</span> <span class="n">optimiser_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimiser_params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span> <span class="o">=</span> <span class="n">embedding_layer_kwargs</span>
+        <span class="k">if</span> <span class="n">embedding_layer_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span> <span class="o">=</span> <span class="n">lstm_layer_kwargs</span>
+        <span class="k">if</span> <span class="n">lstm_layer_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span> <span class="o">=</span> <span class="n">dense_layer_kwargs</span>
+        <span class="k">if</span> <span class="n">dense_layer_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimiser</span> <span class="o">=</span> <span class="n">optimiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="LSTM.model_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.model_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a dictionary containing the attributes of the class instance,</span>
+<span class="sd">        the parameters to give to the class constructior to re-create this</span>
+<span class="sd">        instance, and the class itself.</span>
+
+<span class="sd">        This is used by the :py:meth:`save` method so that the instance can</span>
+<span class="sd">        be re-created when loaded by the :py:meth:`load` method.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">class_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tokeniser&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokeniser</span><span class="p">,</span>
+                        <span class="s1">&#39;embeddings&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span>
+                        <span class="s1">&#39;reproducible&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reproducible</span><span class="p">,</span>
+                        <span class="s1">&#39;pad_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span><span class="p">,</span>
+                        <span class="s1">&#39;lower&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span>
+                        <span class="s1">&#39;patience&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">patience</span><span class="p">,</span>
+                        <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
+                        <span class="s1">&#39;embedding_layer_kwargs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span><span class="p">,</span>
+                        <span class="s1">&#39;lstm_layer_kwargs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span><span class="p">,</span>
+                        <span class="s1">&#39;dense_layer_kwargs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span><span class="p">,</span>
+                        <span class="s1">&#39;optimiser&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimiser</span><span class="p">,</span>
+                        <span class="s1">&#39;optimiser_params&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimiser_params</span><span class="p">}</span>
+        <span class="n">class_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;test_pad_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="s1">&#39;class_attrs&#39;</span><span class="p">:</span> <span class="n">class_attrs</span><span class="p">,</span>
+                <span class="s1">&#39;class_params&#39;</span><span class="p">:</span> <span class="n">class_params</span><span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_pre_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+                     <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the text in the data_dicts into a matrix of shape</span>
+<span class="sd">        [n_samples, pad_size] where each integer in the matrix represents</span>
+<span class="sd">        the word embedding lookup. This is then used as input into the</span>
+<span class="sd">        keras model.</span>
+
+<span class="sd">        The text from the data_dicts are converted by the</span>
+<span class="sd">        :py:meth:`process_text` method.</span>
+
+<span class="sd">        :param data_dicts: A list of dictonaries that contains a `text` field.</span>
+<span class="sd">        :param training: Whether the text should be processed for training or</span>
+<span class="sd">                         for prediction. prediction = False, training = True</span>
+<span class="sd">        :return: The output of :py:meth:`process_text` method.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">text_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">data_dicts</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+            <span class="n">pad_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">text_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span><span class="p">,</span> <span class="n">sequence_data</span> <span class="o">=</span> <span class="n">pad_data</span>
+            <span class="k">return</span> <span class="n">sequence_data</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">sequence_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">text_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sequence_data</span>
+
+<div class="viewcode-block" id="LSTM.create_training_y"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.create_training_y">[docs]</a>    <span class="k">def</span> <span class="nf">create_training_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">validation_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation target values from a vector of</span>
+<span class="sd">        class lables into a matrix of binary values of shape [n_samples,</span>
+<span class="sd">        n_classes].</span>
+
+<span class="sd">        To convert the vector of classes to a matrix we the</span>
+<span class="sd">        :py:func:`keras.utils.to_categorical` function.</span>
+
+<span class="sd">        :param train_y: Vector of class labels, shape = [n_samples]</span>
+<span class="sd">        :param validation_y: Vector of class labels, shape = [n_samples]</span>
+<span class="sd">        :return: A tuple of length two containing the train and validation</span>
+<span class="sd">                 matrices respectively. The shape of each matrix is:</span>
+<span class="sd">                 [n_samples, n_classes]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">train_y</span> <span class="o">=</span> <span class="n">to_categorical</span><span class="p">(</span><span class="n">train_y</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">validation_y</span> <span class="o">=</span> <span class="n">to_categorical</span><span class="p">(</span><span class="n">validation_y</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">validation_y</span></div>
+
+<div class="viewcode-block" id="LSTM.create_training_text"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.create_training_text">[docs]</a>    <span class="k">def</span> <span class="nf">create_training_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+                             <span class="n">validation_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+                             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation data into a format that the keras</span>
+<span class="sd">        model can take as input.</span>
+
+<span class="sd">        :param train_data: Data to be trained on. Which is a list of</span>
+<span class="sd">                           dictionaries where each dictionary has a `text`</span>
+<span class="sd">                           field containing text.</span>
+<span class="sd">        :param validation_data: Data to evaluate the model at training time.</span>
+<span class="sd">                                Which is a list of dictionaries where each</span>
+<span class="sd">                                dictionary has a `text` field containing text.</span>
+<span class="sd">        :return: A tuple of length two containing the train and validation</span>
+<span class="sd">                 input that are both the output of :py:meth:`_pre_process`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">train_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_process</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">val_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_process</span><span class="p">(</span><span class="n">validation_data</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">train_sequence</span><span class="p">,</span> <span class="n">val_sequence</span></div>
+
+<div class="viewcode-block" id="LSTM.keras_model"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.LSTM.keras_model">[docs]</a>    <span class="k">def</span> <span class="nf">keras_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.models.Model&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The model that represents this class. This is a single forward LSTM.</span>
+
+<span class="sd">        :param num_classes: Number of classes to predict.</span>
+<span class="sd">        :return: Forward LSTM keras model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Embeddings</span>
+        <span class="n">embedding_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embedding_matrix</span>
+        <span class="n">vocab_size</span><span class="p">,</span> <span class="n">vector_size</span> <span class="o">=</span> <span class="n">embedding_matrix</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">embedding_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span>
+        <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="s1">&#39;trainable&#39;</span> <span class="ow">in</span> <span class="n">embedding_layer_kwargs</span><span class="p">:</span>
+            <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="n">embedding_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;trainable&#39;</span><span class="p">)</span>
+
+        <span class="n">lstm_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span>
+        <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">vector_size</span>
+        <span class="k">if</span> <span class="s1">&#39;cell&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span><span class="p">:</span>
+            <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">lstm_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">)</span>
+
+        <span class="n">dense_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span>
+        <span class="c1"># output_activation = &#39;softmax&#39; if num_classes &gt; 2 else &#39;&#39;</span>
+        <span class="c1"># Model layers</span>
+        <span class="n">input_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span><span class="p">,),</span>
+                                   <span class="n">name</span><span class="o">=</span><span class="s1">&#39;text_input&#39;</span><span class="p">)</span>
+        <span class="n">embedding_layer</span> <span class="o">=</span> <span class="n">layers</span>\
+                          <span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                                     <span class="n">output_dim</span><span class="o">=</span><span class="n">vector_size</span><span class="p">,</span>
+                                     <span class="n">input_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_pad_size</span><span class="p">,</span>
+                                     <span class="n">trainable</span><span class="o">=</span><span class="n">embedding_layer_trainable</span><span class="p">,</span>
+                                     <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_matrix</span><span class="p">],</span>
+                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;embedding_layer&#39;</span><span class="p">,</span>
+                                     <span class="o">**</span><span class="n">embedding_layer_kwargs</span>
+                                     <span class="p">)(</span><span class="n">input_layer</span><span class="p">)</span>
+        <span class="n">lstm_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">lstm_dimension</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lstm_layer&#39;</span><span class="p">,</span>
+                                 <span class="o">**</span><span class="n">lstm_layer_kwargs</span><span class="p">)(</span><span class="n">embedding_layer</span><span class="p">)</span>
+        <span class="n">prediction_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+                                        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;output&#39;</span><span class="p">,</span>
+                                        <span class="o">**</span><span class="n">dense_layer_kwargs</span><span class="p">)(</span><span class="n">lstm_layer</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_layer</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">prediction_layer</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pad_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        pad_size attribute</span>
+
+<span class="sd">        :return: The pad_size used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pad_size</span>
+
+    <span class="nd">@pad_size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">pad_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the pad_size attribute</span>
+
+<span class="sd">        :param value: The value to assign to the pad_size attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pad_size</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">embedding_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        embedding_layer_kwargs attribute</span>
+
+<span class="sd">        :return: The embedding_layer_kwargs used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_layer_kwargs</span>
+
+    <span class="nd">@embedding_layer_kwargs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">embedding_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the embedding_layer_kwargs attribute</span>
+
+<span class="sd">        :param value: The value to assign to the embedding_layer_kwargs</span>
+<span class="sd">                      attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_layer_kwargs</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lstm_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        lstm_layer_kwargs attribute</span>
+
+<span class="sd">        :return: The lstm_layer_kwargs used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lstm_layer_kwargs</span>
+
+    <span class="nd">@lstm_layer_kwargs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">lstm_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the lstm_layer_kwargs attribute</span>
+
+<span class="sd">        :param value: The value to assign to the lstm_layer_kwargs</span>
+<span class="sd">                      attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lstm_layer_kwargs</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dense_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        dense_layer_kwargs attribute</span>
+
+<span class="sd">        :return: The dense_layer_kwargs used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dense_layer_kwargs</span>
+
+    <span class="nd">@dense_layer_kwargs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">dense_layer_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the dense_layer_kwargs attribute</span>
+
+<span class="sd">        :param value: The value to assign to the dense_layer_kwargs</span>
+<span class="sd">                      attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_layer_kwargs</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="TDLSTM"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM">[docs]</a><span class="k">class</span> <span class="nc">TDLSTM</span><span class="p">(</span><span class="n">LSTM</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Attributes:</span>
+
+<span class="sd">    1. include_target -- Wheather to include the target in the LSTM</span>
+<span class="sd">       representations.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="TDLSTM.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;TDLSTM&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TDLSTM.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+                 <span class="n">embeddings</span><span class="p">:</span> <span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">,</span>
+                 <span class="n">reproducible</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pad_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+                 <span class="n">embedding_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">lstm_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dense_layer_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">optimiser</span><span class="p">:</span> <span class="s1">&#39;keras.optimizers.Optimizer&#39;</span> <span class="o">=</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">,</span>
+                 <span class="n">optimiser_params</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">include_target</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :param tokeniser: Tokeniser to be used e.g. :py:meth:`str.split`.</span>
+<span class="sd">        :param embeddings: Embedding (Word vectors) to be used e.g.</span>
+<span class="sd">                           :py:class:`bella.word_vectors.SSWE`</span>
+<span class="sd">        :param reproducible: Whether to be reproducible. If None then it is</span>
+<span class="sd">                             but quicker to run. Else provide a `int` that</span>
+<span class="sd">                             will represent the random seed value.</span>
+<span class="sd">        :param pad_size: The max number of tokens to use per sequence. If -1</span>
+<span class="sd">                         use the text sequence in the training data that has</span>
+<span class="sd">                         the most tokens as the pad size.</span>
+<span class="sd">        :param lower: Whether to lower case the words being processed.</span>
+<span class="sd">        :param patience: Number of epochs with no improvement before training</span>
+<span class="sd">                         is stopped.</span>
+<span class="sd">        :param batch_size: Number of samples per gradient update.</span>
+<span class="sd">        :param epochs: Number of times to train over the entire training set</span>
+<span class="sd">                       before stopping. If patience is set, then it may</span>
+<span class="sd">                       stop before reaching the number of epochs specified</span>
+<span class="sd">                       here.</span>
+<span class="sd">        :param embedding_layer_kwargs: Keyword arguments to pass to the</span>
+<span class="sd">                                       embedding layer which is a</span>
+<span class="sd">                                       :py:class:`keras.layers.Embedding`</span>
+<span class="sd">                                       object. If no parameters to pass leave</span>
+<span class="sd">                                       as None.</span>
+<span class="sd">        :param lstm_layer_kwargs: Keyword arguments to pass to the lstm</span>
+<span class="sd">                                  layer(s) which is a</span>
+<span class="sd">                                  :py:class:`keras.layers.LSTM` object. If no</span>
+<span class="sd">                                  parameters to pass leave as None.</span>
+<span class="sd">        :param dense_layer_kwargs: Keyword arguments to pass to the dense</span>
+<span class="sd">                                   (final layer) which is a</span>
+<span class="sd">                                   :py:class:`keras.layers.Dense` object. If no</span>
+<span class="sd">                                   parameters to pass leave as None.</span>
+<span class="sd">        :param optimiser: Optimiser to be used accepts any</span>
+<span class="sd">                          `keras optimiser &lt;https://keras.io/optimizers/&gt;`_.</span>
+<span class="sd">                          Default is :py:class:`keras.optimizers.SGD`</span>
+<span class="sd">        :param optimiser_params: Parameters for the optimiser. If None uses</span>
+<span class="sd">                                 default optimiser parameters.</span>
+<span class="sd">        :param include_target: Wheather to include the target in the LSTM</span>
+<span class="sd">                               representations.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">tokeniser</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">,</span> <span class="n">reproducible</span><span class="p">,</span> <span class="n">pad_size</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span>
+                         <span class="n">patience</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">embedding_layer_kwargs</span><span class="p">,</span>
+                         <span class="n">lstm_layer_kwargs</span><span class="p">,</span> <span class="n">dense_layer_kwargs</span><span class="p">,</span> <span class="n">optimiser</span><span class="p">,</span>
+                         <span class="n">optimiser_params</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_pad_size</span> <span class="o">=</span> <span class="n">pad_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">right_pad_size</span> <span class="o">=</span> <span class="n">pad_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_target</span> <span class="o">=</span> <span class="n">include_target</span></div>
+
+<div class="viewcode-block" id="TDLSTM.model_parameters"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM.model_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a dictionary containing the attributes of the class instance,</span>
+<span class="sd">        the parameters to give to the class constructior to re-create this</span>
+<span class="sd">        instance, and the class itself.</span>
+
+<span class="sd">        This is used by the :py:meth:`save` method so that the instance can</span>
+<span class="sd">        be re-created when loaded by the :py:meth:`load` method.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">attributes</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">model_parameters</span><span class="p">()</span>
+        <span class="n">class_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;left_test_pad_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,</span>
+                       <span class="s1">&#39;right_test_pad_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">}</span>
+        <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_attrs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">class_attrs</span>
+
+        <span class="n">class_params</span> <span class="o">=</span> <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_params&#39;</span><span class="p">]</span>
+        <span class="n">class_params</span><span class="p">[</span><span class="s1">&#39;include_target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_target</span>
+        <span class="n">attributes</span><span class="p">[</span><span class="s1">&#39;class_params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">class_params</span>
+        <span class="k">return</span> <span class="n">attributes</span></div>
+
+    <span class="k">def</span> <span class="nf">_pre_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                     <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the text in the data_dicts into a List of size two</span>
+<span class="sd">        representing the left and right context of the target word</span>
+<span class="sd">        respectively. Each List is made up of a matrix of of integers</span>
+<span class="sd">        representing the text as their embedding lookups. These two Lists</span>
+<span class="sd">        are the inputs into the keras model.</span>
+
+<span class="sd">        Two find the left and right contexts it uses the `spans` field of</span>
+<span class="sd">        the dictionaries in the `data_dicts`. The `spans` field is a list of</span>
+<span class="sd">        Tuples where each Tuple represents a occurence of the Target, each</span>
+<span class="sd">        Tuple contains the index of the starting and ending character index</span>
+<span class="sd">        (Expects the List to be of size 1 as there should be only one target</span>
+<span class="sd">        per target sample. This case is not True for the</span>
+<span class="sd">        `Dong et al. &lt;https://aclanthology.info/papers/P14-2009/p14-2009&gt;`_</span>
+<span class="sd">        dataset therefore it only takes the first target instance in the</span>
+<span class="sd">        sentence as the target).</span>
+
+<span class="sd">        The texts are converted into integers using the</span>
+<span class="sd">        :py:meth:`process_text` method.</span>
+
+<span class="sd">        :param data_dicts: A list of dictonaries that contains a `text` and</span>
+<span class="sd">                           `spans` field.</span>
+<span class="sd">        :param training: Whether the text should be processed for training or</span>
+<span class="sd">                         for prediction. prediction = False, training = True</span>
+<span class="sd">        :return: A list of two contaning the left and right context of</span>
+<span class="sd">                 the target both represented by the output of</span>
+<span class="sd">                 :py:meth:`process_text` method.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">def</span> <span class="nf">context_texts</span><span class="p">(</span><span class="n">context_data_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            :param context_data_dicts: A list of dictonaries that contains a</span>
+<span class="sd">                                       `text` and `spans` field.</span>
+<span class="sd">            :return: A list of the left and right text contexts for all the</span>
+<span class="sd">                     dictionaries.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="c1"># Context returns all of the left and right context occurrences</span>
+            <span class="c1"># therefore if a target is mentioned Twice and are associated then</span>
+            <span class="c1"># for a single text two left and right occurrences are returned.</span>
+            <span class="c1"># Thus these are a list of lists we therefore chose only the</span>
+            <span class="c1"># first mentioned target as the paper linked to this method does</span>
+            <span class="c1"># not specify which they used.</span>
+            <span class="n">left_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">context</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">inc_target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">include_target</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">context_data_dicts</span><span class="p">]</span>
+            <span class="n">right_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">context</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span>
+                                   <span class="n">inc_target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">include_target</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">context_data_dicts</span><span class="p">]</span>
+            <span class="n">left_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">texts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">texts</span> <span class="ow">in</span> <span class="n">left_texts</span><span class="p">]</span>
+            <span class="n">right_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">texts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">texts</span> <span class="ow">in</span> <span class="n">right_texts</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">left_texts</span><span class="p">,</span> <span class="n">right_texts</span>
+
+        <span class="c1"># Convert from a sequence of dictionaries into texts and then integers</span>
+        <span class="c1"># that represent the tokens in the text within the embedding space.</span>
+
+        <span class="c1"># Get left and right contexts</span>
+        <span class="n">left_text</span><span class="p">,</span> <span class="n">right_text</span> <span class="o">=</span> <span class="n">context_texts</span><span class="p">(</span><span class="n">data_dicts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+            <span class="n">left_pad_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">left_text</span><span class="p">,</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">left_pad_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,</span> <span class="n">left_sequence</span> <span class="o">=</span> <span class="n">left_pad_sequence</span>
+
+            <span class="n">right_pad_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">right_text</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">right_pad_size</span><span class="p">,</span>
+                                                   <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span>
+                                                   <span class="n">truncate</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,</span> <span class="n">right_sequence</span> <span class="o">=</span> <span class="n">right_pad_sequence</span>
+            <span class="k">return</span> <span class="n">left_sequence</span><span class="p">,</span> <span class="n">right_sequence</span>
+
+        <span class="n">left_pad_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">left_text</span><span class="p">,</span>
+                                              <span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">left_sequence</span> <span class="o">=</span> <span class="n">left_pad_sequence</span>
+
+        <span class="n">right_pad_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_text</span><span class="p">(</span><span class="n">right_text</span><span class="p">,</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,</span>
+                                               <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span>
+                                               <span class="n">truncate</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">right_sequence</span> <span class="o">=</span> <span class="n">right_pad_sequence</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">left_sequence</span><span class="p">,</span> <span class="n">right_sequence</span><span class="p">]</span>
+
+<div class="viewcode-block" id="TDLSTM.create_training_text"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM.create_training_text">[docs]</a>    <span class="k">def</span> <span class="nf">create_training_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                             <span class="n">validation_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+                             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                                        <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation data into a format that the keras</span>
+<span class="sd">        model can take as input.</span>
+
+<span class="sd">        :param train_data: Data to be trained on. Which is a list of</span>
+<span class="sd">                           dictionaries where each dictionary has a `text`</span>
+<span class="sd">                           field containing text and a field `spans` containing</span>
+<span class="sd">                           a list of Tuples where each Tuple represents a</span>
+<span class="sd">                           occurence of the Target, each Tuple contains the</span>
+<span class="sd">                           index of the starting and ending character index</span>
+<span class="sd">                           (Expects the List to be of size 1 as there should</span>
+<span class="sd">                           be only one target per target sample. This case is</span>
+<span class="sd">                           not True for the</span>
+<span class="sd">                           `Dong et al. &lt;https://aclanthology.info/papers/P14-\</span>
+<span class="sd">                           2009/p14-2009&gt;`_ dataset therefore it only takes</span>
+<span class="sd">                           the first target instance in the sentence as the</span>
+<span class="sd">                           target).</span>
+<span class="sd">        :param validation_data: Data to evaluate the model at training time.</span>
+<span class="sd">                                Expects the same data as the `train_data`</span>
+<span class="sd">                                parameter.</span>
+<span class="sd">        :return: A tuple of length two containing the train and validation</span>
+<span class="sd">                 input that are both the output of :py:meth:`_pre_process`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create_training_text</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">validation_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TDLSTM.keras_model"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TDLSTM.keras_model">[docs]</a>    <span class="k">def</span> <span class="nf">keras_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.models.Model&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The model that represents this class. This is a custom combination</span>
+<span class="sd">        of two LSTMs.</span>
+
+<span class="sd">        :param num_classes: Number of classes to predict.</span>
+<span class="sd">        :return: Two LSTMs, one forward from the left context and the other</span>
+<span class="sd">                 backward from the right context. The output of the two are</span>
+<span class="sd">                 concatenated and are input to the output layer.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Embeddings</span>
+        <span class="n">embedding_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embedding_matrix</span>
+        <span class="n">vocab_size</span><span class="p">,</span> <span class="n">vector_size</span> <span class="o">=</span> <span class="n">embedding_matrix</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">embedding_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span>
+        <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="s1">&#39;trainable&#39;</span> <span class="ow">in</span> <span class="n">embedding_layer_kwargs</span><span class="p">:</span>
+            <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="n">embedding_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;trainable&#39;</span><span class="p">)</span>
+
+        <span class="n">lstm_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span>
+        <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">vector_size</span>
+        <span class="k">if</span> <span class="s1">&#39;cell&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span><span class="p">:</span>
+            <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">lstm_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">)</span>
+
+        <span class="n">dense_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span>
+        <span class="c1"># Model layers</span>
+        <span class="c1"># Left LSTM</span>
+        <span class="n">left_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,),</span>
+                                  <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_text_input&#39;</span><span class="p">)</span>
+        <span class="n">left_embedding_layer</span> <span class="o">=</span> <span class="n">layers</span>\
+                               <span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                                          <span class="n">output_dim</span><span class="o">=</span><span class="n">vector_size</span><span class="p">,</span>
+                                          <span class="n">input_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,</span>
+                                          <span class="n">trainable</span><span class="o">=</span><span class="n">embedding_layer_trainable</span><span class="p">,</span>
+                                          <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_matrix</span><span class="p">],</span>
+                                          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_embedding_layer&#39;</span><span class="p">,</span>
+                                          <span class="o">**</span><span class="n">embedding_layer_kwargs</span>
+                                          <span class="p">)(</span><span class="n">left_input</span><span class="p">)</span>
+        <span class="n">left_lstm_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">lstm_dimension</span><span class="p">,</span>
+                                      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_lstm_layer&#39;</span><span class="p">,</span>
+                                      <span class="o">**</span><span class="n">lstm_layer_kwargs</span>
+                                      <span class="p">)(</span><span class="n">left_embedding_layer</span><span class="p">)</span>
+        <span class="c1"># Right LSTM</span>
+        <span class="n">right_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,),</span>
+                                   <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_text_input&#39;</span><span class="p">)</span>
+        <span class="n">right_embedding_layer</span> <span class="o">=</span> <span class="n">layers</span>\
+                                <span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                                           <span class="n">output_dim</span><span class="o">=</span><span class="n">vector_size</span><span class="p">,</span>
+                                           <span class="n">input_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,</span>
+                                           <span class="n">trainable</span><span class="o">=</span><span class="n">embedding_layer_trainable</span><span class="p">,</span>
+                                           <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_matrix</span><span class="p">],</span>
+                                           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_embedding_layer&#39;</span><span class="p">,</span>
+                                           <span class="o">**</span><span class="n">embedding_layer_kwargs</span>
+                                           <span class="p">)(</span><span class="n">right_input</span><span class="p">)</span>
+        <span class="n">right_lstm_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">lstm_dimension</span><span class="p">,</span>
+                                       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_lstm_layer&#39;</span><span class="p">,</span>
+                                       <span class="n">go_backwards</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                       <span class="o">**</span><span class="n">lstm_layer_kwargs</span>
+                                       <span class="p">)(</span><span class="n">right_embedding_layer</span><span class="p">)</span>
+        <span class="c1"># Merge the outputs of the left and right LSTMs</span>
+        <span class="n">merge_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">left_lstm_layer</span><span class="p">,</span> <span class="n">right_lstm_layer</span><span class="p">],</span>
+                                         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_right_lstm_merge&#39;</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+                                   <span class="n">name</span><span class="o">=</span><span class="s1">&#39;output&#39;</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">dense_layer_kwargs</span><span class="p">)(</span><span class="n">merge_layer</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">left_input</span><span class="p">,</span> <span class="n">right_input</span><span class="p">],</span>
+                            <span class="n">outputs</span><span class="o">=</span><span class="n">predictions</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">include_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        include_target attribute</span>
+
+<span class="sd">        :return: The include_target used in the model</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_target</span>
+
+    <span class="nd">@include_target</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">include_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Sets the include_target attribute</span>
+
+<span class="sd">        :param value: The value to assign to the include_target attribute</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_include_target</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="TCLSTM"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TCLSTM">[docs]</a><span class="k">class</span> <span class="nc">TCLSTM</span><span class="p">(</span><span class="n">TDLSTM</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TCLSTM.name"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TCLSTM.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;TCLSTM&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Name of the machine learning model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_pre_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                     <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the text in the data_dicts into a list of size four</span>
+<span class="sd">        representing the left context, left targets, right context and</span>
+<span class="sd">        right targets. Where the contexts come are the same as those from</span>
+<span class="sd">        TDLSTM :py:meth:`bella.models.tdlstm.TDLSTM._pre_process` method.</span>
+
+<span class="sd">        The targets are a matrix of size [word_embedding_dimension, pad_size]</span>
+<span class="sd">        and each vector in the matrix is the word embedding representation</span>
+<span class="sd">        of the target word. If the target word is made up of multiple words</span>
+<span class="sd">        it is then the average of the words vector representation (we use the</span>
+<span class="sd">        median as the average). Both the contexts and the target matrix are</span>
+<span class="sd">        used as input into the keras model.</span>
+
+<span class="sd">        The texts are converted into integers using the</span>
+<span class="sd">        :py:meth:`process_text` method.</span>
+
+<span class="sd">        :param data_dicts: A list of dictonaries that contains a `text` and</span>
+<span class="sd">                           `spans` field.</span>
+<span class="sd">        :param training: Whether the text should be processed for training or</span>
+<span class="sd">                         for prediction. prediction = False, training = True</span>
+<span class="sd">        :return: A list of four contaning the left context, left vectors,</span>
+<span class="sd">                 right context, and right vectors.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">def</span> <span class="nf">context_median_targets</span><span class="p">(</span><span class="n">pad_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            :param pad_size: The number of timesteps within the LSTM</span>
+<span class="sd">            :return: Matrix of size [word_embedding_dimension, pad_size] where</span>
+<span class="sd">                     each word embedding represents the target word or if</span>
+<span class="sd">                     multiple words make up the target the word embedding is</span>
+<span class="sd">                     the median of the words embeddings.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="n">vector_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">vector_size</span>
+            <span class="n">target_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">data_dicts</span><span class="p">),</span>
+                                      <span class="n">pad_size</span><span class="p">,</span> <span class="n">vector_size</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_dicts</span><span class="p">):</span>
+                <span class="n">target_vectors</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">target_words</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">target_word</span> <span class="ow">in</span> <span class="n">target_words</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">:</span>
+                        <span class="n">target_word</span> <span class="o">=</span> <span class="n">target_word</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="n">target_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span>\
+                                           <span class="o">.</span><span class="n">lookup_vector</span><span class="p">(</span><span class="n">target_word</span><span class="p">)</span>
+                    <span class="n">target_vectors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_embedding</span><span class="p">)</span>
+                <span class="n">target_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">target_vectors</span><span class="p">)</span>
+                <span class="n">median_target_vector</span> <span class="o">=</span> <span class="n">matrix_median</span><span class="p">(</span><span class="n">target_vectors</span><span class="p">)</span>
+                <span class="n">median_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">median_target_vector</span><span class="p">,</span> <span class="n">pad_size</span><span class="p">,</span>
+                                           <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">target_matrix</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">median_vectors</span>
+            <span class="k">return</span> <span class="n">target_matrix</span>
+
+        <span class="n">sequences</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_pre_process</span><span class="p">(</span><span class="n">data_dicts</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">)</span>
+        <span class="n">left_sequence</span><span class="p">,</span> <span class="n">right_sequence</span> <span class="o">=</span> <span class="n">sequences</span>
+        <span class="n">left_target_vectors</span> <span class="o">=</span> <span class="n">context_median_targets</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">)</span>
+        <span class="n">right_target_vectors</span> <span class="o">=</span> <span class="n">context_median_targets</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">left_sequence</span><span class="p">,</span> <span class="n">left_target_vectors</span><span class="p">,</span>
+                <span class="n">right_sequence</span><span class="p">,</span> <span class="n">right_target_vectors</span><span class="p">]</span>
+
+<div class="viewcode-block" id="TCLSTM.create_training_text"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TCLSTM.create_training_text">[docs]</a>    <span class="k">def</span> <span class="nf">create_training_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                             <span class="n">validation_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+                             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+                                        <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Converts the training and validation data into a format that the keras</span>
+<span class="sd">        model can take as input.</span>
+
+<span class="sd">        :param train_data: See :py:meth:`bella.models.tdlstm.\</span>
+<span class="sd">                           TDLSTM.create_training_text` `train_data`</span>
+<span class="sd">                           parameter.</span>
+<span class="sd">        :param validation_data: See :py:meth:`bella.models.tdlstm.\</span>
+<span class="sd">                                TDLSTM.create_training_text` `validation_data`</span>
+<span class="sd">                                parameter.</span>
+<span class="sd">        :return: A tuple of length two containing the train and validation</span>
+<span class="sd">                 input that are both the output of :py:meth:`_pre_process`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create_training_text</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">validation_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TCLSTM.keras_model"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdlstm.TCLSTM.keras_model">[docs]</a>    <span class="k">def</span> <span class="nf">keras_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;keras.models.Model&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The model that represents this class. This is the same as the</span>
+<span class="sd">        :py:meth:`bella.models.tdlstm.TDLSTM.keras_model` model, however</span>
+<span class="sd">        the words in before inputting into the LSTM are concatenated with</span>
+<span class="sd">        the word embedding of the target. If the target is more than one word</span>
+<span class="sd">        then the word embedding of the target is the average (median in our</span>
+<span class="sd">        case) embeddings of the target words.</span>
+
+<span class="sd">        :param num_classes: Number of classes to predict.</span>
+<span class="sd">        :return: Two LSTMs one forward from the left context and the other</span>
+<span class="sd">                 backward from the right context taking into account the</span>
+<span class="sd">                 target vector embedding.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Embeddings</span>
+        <span class="n">embedding_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embedding_matrix</span>
+        <span class="n">vocab_size</span><span class="p">,</span> <span class="n">vector_size</span> <span class="o">=</span> <span class="n">embedding_matrix</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">embedding_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer_kwargs</span>
+        <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="s1">&#39;trainable&#39;</span> <span class="ow">in</span> <span class="n">embedding_layer_kwargs</span><span class="p">:</span>
+            <span class="n">embedding_layer_trainable</span> <span class="o">=</span> <span class="n">embedding_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;trainable&#39;</span><span class="p">)</span>
+
+        <span class="n">lstm_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span>
+        <span class="c1"># Double the vector size as we have to take into consideration the</span>
+        <span class="c1"># concatenated target vector</span>
+        <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">vector_size</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="s1">&#39;cell&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm_layer_kwargs</span><span class="p">:</span>
+            <span class="n">lstm_dimension</span> <span class="o">=</span> <span class="n">lstm_layer_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">)</span>
+
+        <span class="n">dense_layer_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_layer_kwargs</span>
+        <span class="c1"># Model layers</span>
+        <span class="c1"># Left LSTM</span>
+        <span class="n">left_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,),</span>
+                                  <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_text_input&#39;</span><span class="p">)</span>
+        <span class="n">left_embedding_layer</span> <span class="o">=</span> <span class="n">layers</span>\
+                               <span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                                          <span class="n">output_dim</span><span class="o">=</span><span class="n">vector_size</span><span class="p">,</span>
+                                          <span class="n">input_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,</span>
+                                          <span class="n">trainable</span><span class="o">=</span><span class="n">embedding_layer_trainable</span><span class="p">,</span>
+                                          <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_matrix</span><span class="p">],</span>
+                                          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_embedding_layer&#39;</span><span class="p">,</span>
+                                          <span class="o">**</span><span class="n">embedding_layer_kwargs</span>
+                                          <span class="p">)(</span><span class="n">left_input</span><span class="p">)</span>
+        <span class="n">left_target_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_test_pad_size</span><span class="p">,</span>
+                                                <span class="n">vector_size</span><span class="p">),</span>
+                                         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_target&#39;</span><span class="p">)</span>
+        <span class="n">left_text_target</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">left_embedding_layer</span><span class="p">,</span>
+                                               <span class="n">left_target_input</span><span class="p">],</span>
+                                              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_text_target&#39;</span><span class="p">)</span>
+        <span class="n">left_lstm_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">lstm_dimension</span><span class="p">,</span>
+                                      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_lstm_layer&#39;</span><span class="p">,</span>
+                                      <span class="o">**</span><span class="n">lstm_layer_kwargs</span>
+                                      <span class="p">)(</span><span class="n">left_text_target</span><span class="p">)</span>
+        <span class="c1"># Right LSTM</span>
+        <span class="n">right_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,),</span>
+                                   <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_text_input&#39;</span><span class="p">)</span>
+        <span class="n">right_embedding_layer</span> <span class="o">=</span> <span class="n">layers</span>\
+                                <span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                                           <span class="n">output_dim</span><span class="o">=</span><span class="n">vector_size</span><span class="p">,</span>
+                                           <span class="n">input_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,</span>
+                                           <span class="n">trainable</span><span class="o">=</span><span class="n">embedding_layer_trainable</span><span class="p">,</span>
+                                           <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_matrix</span><span class="p">],</span>
+                                           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_embedding_layer&#39;</span><span class="p">,</span>
+                                           <span class="o">**</span><span class="n">embedding_layer_kwargs</span>
+                                           <span class="p">)(</span><span class="n">right_input</span><span class="p">)</span>
+        <span class="n">right_target_input</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">right_test_pad_size</span><span class="p">,</span>
+                                                 <span class="n">vector_size</span><span class="p">),</span>
+                                          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_target&#39;</span><span class="p">)</span>
+        <span class="n">right_text_target</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">right_embedding_layer</span><span class="p">,</span>
+                                                <span class="n">right_target_input</span><span class="p">],</span>
+                                               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_text_target&#39;</span><span class="p">)</span>
+        <span class="n">right_lstm_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">lstm_dimension</span><span class="p">,</span>
+                                       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;right_lstm_layer&#39;</span><span class="p">,</span>
+                                       <span class="n">go_backwards</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                       <span class="o">**</span><span class="n">lstm_layer_kwargs</span>
+                                       <span class="p">)(</span><span class="n">right_text_target</span><span class="p">)</span>
+        <span class="c1"># Merge the outputs of the left and right LSTMs</span>
+        <span class="n">merge_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">left_lstm_layer</span><span class="p">,</span> <span class="n">right_lstm_layer</span><span class="p">],</span>
+                                         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;left_right_lstm_merge&#39;</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+                                   <span class="n">name</span><span class="o">=</span><span class="s1">&#39;output&#39;</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">dense_layer_kwargs</span><span class="p">)(</span><span class="n">merge_layer</span><span class="p">)</span>
+
+        <span class="n">input_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">left_input</span><span class="p">,</span> <span class="n">left_target_input</span><span class="p">,</span>
+                        <span class="n">right_input</span><span class="p">,</span> <span class="n">right_target_input</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_layers</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">predictions</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Andrew Moore.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
