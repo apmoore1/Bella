@@ -173,11 +173,11 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
-<span class="kn">from</span> <span class="nn">six</span> <span class="k">import</span> <span class="n">text_type</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">text_type</span>
 
-<span class="kn">from</span> <span class="nn">nltk.tokenize.api</span> <span class="k">import</span> <span class="n">TokenizerI</span>
-<span class="kn">from</span> <span class="nn">nltk.tokenize.util</span> <span class="k">import</span> <span class="n">is_cjk</span>
-<span class="kn">from</span> <span class="nn">nltk.corpus</span> <span class="k">import</span> <span class="n">perluniprops</span><span class="p">,</span> <span class="n">nonbreaking_prefixes</span>
+<span class="kn">from</span> <span class="nn">nltk.tokenize.api</span> <span class="kn">import</span> <span class="n">TokenizerI</span>
+<span class="kn">from</span> <span class="nn">nltk.tokenize.util</span> <span class="kn">import</span> <span class="n">is_cjk</span>
+<span class="kn">from</span> <span class="nn">nltk.corpus</span> <span class="kn">import</span> <span class="n">perluniprops</span><span class="p">,</span> <span class="n">nonbreaking_prefixes</span>
 
 
 <div class="viewcode-block" id="MosesTokenizer"><a class="viewcode-back" href="../../source/bella.html#bella.moses_tools.MosesTokenizer">[docs]</a><span class="k">class</span> <span class="nc">MosesTokenizer</span><span class="p">(</span><span class="n">TokenizerI</span><span class="p">):</span>
@@ -400,7 +400,7 @@
                                 <span class="n">ESCAPE_LEFT_SQUARE_BRACKET</span><span class="p">,</span>
                                 <span class="n">ESCAPE_RIGHT_SQUARE_BRACKET</span><span class="p">]</span>
 
-<div class="viewcode-block" id="MosesTokenizer.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.moses_tools.MosesTokenizer.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="s1">&#39;en&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="MosesTokenizer.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.moses_tools.MosesTokenizer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="s1">&#39;en&#39;</span><span class="p">):</span>
         <span class="c1"># Initialize the object.</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">MosesTokenizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lang</span> <span class="o">=</span> <span class="n">lang</span>

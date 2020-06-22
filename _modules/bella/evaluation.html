@@ -173,10 +173,10 @@
 <span class="sd">   `metric_func` on a subset of the test data where the samples have to come</span>
 <span class="sd">   from sentences that contain a certain number of distinct_sentiments.</span>
 <span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">product</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -184,7 +184,7 @@
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 
 <span class="kn">import</span> <span class="nn">bella</span>
-<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">TargetCollection</span>
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="kn">import</span> <span class="n">TargetCollection</span>
 
 
 <div class="viewcode-block" id="score"><a class="viewcode-back" href="../../source/bella.html#bella.evaluation.score">[docs]</a><span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="n">metric</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
@@ -415,7 +415,7 @@
     <span class="n">dataset_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataset_names</span><span class="p">))</span> <span class="o">!=</span> <span class="n">num_datasets</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;datasets given must have unique name these datasets&#39;</span>
-                         <span class="n">f</span><span class="s1">&#39; do not: </span><span class="si">{dataset_names}</span><span class="s1">&#39;</span><span class="p">)</span>
+                         <span class="sa">f</span><span class="s1">&#39; do not: </span><span class="si">{</span><span class="n">dataset_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">df_data</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
         <span class="n">dataset_name</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">name</span>
@@ -424,7 +424,7 @@
             <span class="n">scores</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_metric_scores</span><span class="p">(</span><span class="n">metric_func</span><span class="p">,</span> <span class="o">**</span><span class="n">metric_kwargs</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">scores</span><span class="p">:</span>
                 <span class="n">df_data</span><span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
-                <span class="n">df_data</span><span class="p">[</span><span class="s1">&#39;Metric&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{metric_name}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">df_data</span><span class="p">[</span><span class="s1">&#39;Metric&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">metric_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="n">df_data</span><span class="p">[</span><span class="s1">&#39;Score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">additional_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">continue</span>    
@@ -449,7 +449,7 @@
     <span class="n">dataset_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataset_names</span><span class="p">))</span> <span class="o">!=</span> <span class="n">num_datasets</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;datasets given must have unique name these datasets&#39;</span>
-                         <span class="n">f</span><span class="s1">&#39; do not: </span><span class="si">{dataset_names}</span><span class="s1">&#39;</span><span class="p">)</span>
+                         <span class="sa">f</span><span class="s1">&#39; do not: </span><span class="si">{</span><span class="n">dataset_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="n">error_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">error_func_name</span> <span class="k">for</span> <span class="n">error_func_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">error_funcs</span><span class="p">]</span>
     <span class="n">metric_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">metric_name</span> <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">]</span>
@@ -474,10 +474,10 @@
                                                           <span class="o">**</span><span class="n">metric_kwargs</span><span class="p">)</span>
                 <span class="n">mean_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
                 <span class="n">score</span> <span class="o">=</span> <span class="n">mean_score</span> <span class="o">*</span> <span class="mi">100</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{score:.2f}</span><span class="s1">&#39;</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span>
                 <span class="k">if</span> <span class="n">std_err</span><span class="p">:</span>
                     <span class="n">std_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-                    <span class="n">score</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{score}</span><span class="s1"> (</span><span class="si">{std_score:.2f}</span><span class="s1">)&#39;</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">score</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">std_score</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">)&#39;</span>
                 <span class="n">summary_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">dataset_name</span><span class="p">),</span> 
                                  <span class="p">(</span><span class="n">error_name</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">score</span>
     <span class="k">return</span> <span class="n">summary_data</span></div>

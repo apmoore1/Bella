@@ -154,14 +154,14 @@
             
   <h1>Source code for bella.scikit_features.word_vector</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span>
 
-<span class="kn">from</span> <span class="nn">bella.word_vectors</span> <span class="k">import</span> <span class="n">WordVectors</span>
+<span class="kn">from</span> <span class="nn">bella.word_vectors</span> <span class="kn">import</span> <span class="n">WordVectors</span>
 
 <div class="viewcode-block" id="ContextWordVectors"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.word_vector.ContextWordVectors">[docs]</a><span class="k">class</span> <span class="nc">ContextWordVectors</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
 
-<div class="viewcode-block" id="ContextWordVectors.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.word_vector.ContextWordVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_token</span><span class="o">=</span><span class="s1">&#39;$$$ZERO_TOKEN$$$&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="ContextWordVectors.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.word_vector.ContextWordVectors.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_token</span><span class="o">=</span><span class="s1">&#39;$$$ZERO_TOKEN$$$&#39;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="n">vectors</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_token</span> <span class="o">=</span> <span class="n">zero_token</span></div>
 

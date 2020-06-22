@@ -164,12 +164,12 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span> <span class="nn">ftfy</span>
 
-<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">Target</span><span class="p">,</span> <span class="n">TargetCollection</span>
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="kn">import</span> <span class="n">Target</span><span class="p">,</span> <span class="n">TargetCollection</span>
 
 <div class="viewcode-block" id="dong"><a class="viewcode-back" href="../../source/bella.html#bella.parsers.dong">[docs]</a><span class="k">def</span> <span class="nf">dong</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">**</span><span class="n">target_collection_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TargetCollection</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -283,7 +283,7 @@
                 <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span>
             <span class="k">elif</span> <span class="n">raise_error_no_category</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;These is no `category` attribute in the &#39;</span>
-                               <span class="n">f</span><span class="s1">&#39;opinions element </span><span class="si">{aspect_term}</span><span class="s1">&#39;</span><span class="p">)</span> 
+                               <span class="sa">f</span><span class="s1">&#39;opinions element </span><span class="si">{</span><span class="n">aspect_term</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span> 
             <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;sentiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentiment</span>
             <span class="n">aspect_term_data</span><span class="p">[</span><span class="s1">&#39;spans&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">]),</span>
                                           <span class="nb">int</span><span class="p">(</span><span class="n">aspect_term</span><span class="p">[</span><span class="s1">&#39;to&#39;</span><span class="p">]))]</span>
@@ -371,7 +371,7 @@
                        <span class="s1">&#39;397331:1&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">reviews</span><span class="o">.</span><span class="n">tag</span> <span class="o">!=</span> <span class="s1">&#39;Reviews&#39;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The root of all semeval 15/16 xml files should &#39;</span>
-                         <span class="n">f</span><span class="s1">&#39;be reviews and not </span><span class="si">{reviews.tag}</span><span class="s1">&#39;</span><span class="p">)</span>
+                         <span class="sa">f</span><span class="s1">&#39;be reviews and not </span><span class="si">{</span><span class="n">reviews</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">review</span> <span class="ow">in</span> <span class="n">reviews</span><span class="p">:</span>
         <span class="n">review_id</span> <span class="o">=</span> <span class="n">review</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;rid&#39;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">sentences</span> <span class="ow">in</span> <span class="n">review</span><span class="p">:</span>

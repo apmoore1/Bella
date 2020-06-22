@@ -162,25 +162,25 @@
 <span class="sd">2. :py:class:`bella.models.target.TDParse` -- TDParse model</span>
 <span class="sd">3. :py:class:`bella.models.tdparse.TDParsePlus` -- TDParse Plus model</span>
 <span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span>
 
 <span class="kn">import</span> <span class="nn">sklearn</span>
-<span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="k">import</span> <span class="n">FeatureUnion</span><span class="p">,</span> <span class="n">Pipeline</span>
-<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="k">import</span> <span class="n">MinMaxScaler</span>
-<span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="k">import</span> <span class="n">LinearSVC</span>
+<span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="kn">import</span> <span class="n">FeatureUnion</span><span class="p">,</span> <span class="n">Pipeline</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">MinMaxScaler</span>
+<span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">LinearSVC</span>
 
 <span class="kn">import</span> <span class="nn">bella</span>
-<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="k">import</span> <span class="n">ark_twokenize</span>
-<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_max</span><span class="p">,</span> <span class="n">matrix_min</span><span class="p">,</span> <span class="n">matrix_avg</span>
-<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_median</span><span class="p">,</span> <span class="n">matrix_prod</span><span class="p">,</span> <span class="n">matrix_std</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.context</span> <span class="k">import</span> <span class="n">Context</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features</span> <span class="k">import</span> <span class="n">syntactic_context</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.lexicon_filter</span> <span class="k">import</span> <span class="n">LexiconFilter</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.join_context_vectors</span> <span class="k">import</span> <span class="n">JoinContextVectors</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.neural_pooling</span> <span class="k">import</span> <span class="n">NeuralPooling</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.tokeniser</span> <span class="k">import</span> <span class="n">ContextTokeniser</span>
-<span class="kn">from</span> <span class="nn">bella.scikit_features.word_vector</span> <span class="k">import</span> <span class="n">ContextWordVectors</span>
-<span class="kn">from</span> <span class="nn">bella.models.target</span> <span class="k">import</span> <span class="n">TargetInd</span>
+<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="kn">import</span> <span class="n">ark_twokenize</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="kn">import</span> <span class="n">matrix_max</span><span class="p">,</span> <span class="n">matrix_min</span><span class="p">,</span> <span class="n">matrix_avg</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="kn">import</span> <span class="n">matrix_median</span><span class="p">,</span> <span class="n">matrix_prod</span><span class="p">,</span> <span class="n">matrix_std</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.context</span> <span class="kn">import</span> <span class="n">Context</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features</span> <span class="kn">import</span> <span class="n">syntactic_context</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.lexicon_filter</span> <span class="kn">import</span> <span class="n">LexiconFilter</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.join_context_vectors</span> <span class="kn">import</span> <span class="n">JoinContextVectors</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.neural_pooling</span> <span class="kn">import</span> <span class="n">NeuralPooling</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.tokeniser</span> <span class="kn">import</span> <span class="n">ContextTokeniser</span>
+<span class="kn">from</span> <span class="nn">bella.scikit_features.word_vector</span> <span class="kn">import</span> <span class="n">ContextWordVectors</span>
+<span class="kn">from</span> <span class="nn">bella.models.target</span> <span class="kn">import</span> <span class="n">TargetInd</span>
 
 
 <div class="viewcode-block" id="TDParseMinus"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParseMinus">[docs]</a><span class="k">class</span> <span class="nc">TDParseMinus</span><span class="p">(</span><span class="n">TargetInd</span><span class="p">):</span>
@@ -189,13 +189,13 @@
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s1">&#39;TDParse Minus&#39;</span></div>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Name of the machine learning model.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TDParseMinus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParseMinus.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+<div class="viewcode-block" id="TDParseMinus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParseMinus.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
                  <span class="n">parser</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
                  <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
                  <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
@@ -376,13 +376,13 @@
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s1">&#39;TDParse&#39;</span></div>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Name of the machine learning model.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TDParse.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParse.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+<div class="viewcode-block" id="TDParse.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParse.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
                  <span class="n">parser</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
                  <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
                  <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
@@ -573,13 +573,13 @@
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s1">&#39;TDParsePlus&#39;</span></div>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Name of the machine learning model.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TDParsePlus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParsePlus.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
+<div class="viewcode-block" id="TDParsePlus.__init__"><a class="viewcode-back" href="../../../source/bella.models.html#bella.models.tdparse.TDParsePlus.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_vectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;bella.word_vectors.WordVectors&#39;</span><span class="p">],</span>
                  <span class="n">parser</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">senti_lexicon</span><span class="p">:</span> <span class="s1">&#39;bella.lexicons.Lexicon&#39;</span><span class="p">,</span>
                  <span class="n">tokeniser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ark_twokenize</span><span class="p">,</span>
                  <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>

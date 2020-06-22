@@ -169,11 +169,11 @@
 <span class="sd">target word the text is about.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span>
 
-<span class="kn">from</span> <span class="nn">bella</span> <span class="k">import</span> <span class="n">syntactic_contexts</span>
-<span class="kn">from</span> <span class="nn">bella.dependency_parsers</span> <span class="k">import</span> <span class="n">tweebo</span>
+<span class="kn">from</span> <span class="nn">bella</span> <span class="kn">import</span> <span class="n">syntactic_contexts</span>
+<span class="kn">from</span> <span class="nn">bella.dependency_parsers</span> <span class="kn">import</span> <span class="n">tweebo</span>
 
 
 <div class="viewcode-block" id="SyntacticContext"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext">[docs]</a><span class="k">class</span> <span class="nc">SyntacticContext</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
@@ -197,7 +197,7 @@
 <span class="sd">    is the targets full dependency tree word context.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="SyntacticContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SyntacticContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.SyntacticContext.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        For more information on what the function does see the following</span>
 <span class="sd">        functions documentation: dependency_context</span>
@@ -261,7 +261,7 @@
 <span class="sd">    dependency tree.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="DependencyChildContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rel_depth</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+<div class="viewcode-block" id="DependencyChildContext.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.DependencyChildContext.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">tweebo</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rel_depth</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        For more information on what the function does see the following</span>
 <span class="sd">        functions documentation: dependency_relation_context</span>
@@ -326,7 +326,7 @@
 <span class="sd">    3. transform - Converts a list of a list of dictionaries into a list of a \</span>
 <span class="sd">    list of Strings where each String represents a the targets context.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-<div class="viewcode-block" id="Context.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">inc_target</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Context.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.syntactic_context.Context.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">inc_target</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        :param context: left, right, target or full context will be returned \</span>
 <span class="sd">        with respect to the target word in the target sentence.</span>

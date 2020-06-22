@@ -161,10 +161,10 @@
 <span class="sd">subset metrics e.g. Accuracy score for samples within the TargetCollection </span>
 <span class="sd">that have only one sentiment within the sentence that sample came from</span>
 <span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="k">import</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">Target</span>
+<span class="kn">from</span> <span class="nn">bella.data_types</span> <span class="kn">import</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">Target</span>
 
 <div class="viewcode-block" id="targets_to_samples"><a class="viewcode-back" href="../../source/bella.html#bella.error_analysis.targets_to_samples">[docs]</a><span class="k">def</span> <span class="nf">targets_to_samples</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">TargetCollection</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
                        <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Target</span><span class="p">]:</span>

@@ -744,7 +744,7 @@ single forward LSTM.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code></td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-class docutils literal"><span class="pre">OptimizerV2</span></code></td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The optimiser used in the model</td>
 </tr>
@@ -2074,7 +2074,7 @@ that are within <a class="reference external" href="https://aclanthology.info/pa
 </ol>
 <dl class="class">
 <dt id="bella.models.tdlstm.LSTM">
-<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">LSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'keras.optimizers.SGD'&gt;</em>, <em>optimiser_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#LSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.LSTM" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">LSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'&gt;</em>, <em>optimiser_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#LSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.LSTM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#bella.models.base.KerasModel" title="bella.models.base.KerasModel"><code class="xref py py-class docutils literal"><span class="pre">bella.models.base.KerasModel</span></code></a></p>
 <p>Attributes:</p>
 <ol class="arabic simple">
@@ -2106,7 +2106,7 @@ forward LSTM.</li>
 </ol>
 <dl class="method">
 <dt id="bella.models.tdlstm.LSTM.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'keras.optimizers.SGD'&gt;</em>, <em>optimiser_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#LSTM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.LSTM.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'&gt;</em>, <em>optimiser_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#LSTM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.LSTM.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2142,7 +2142,7 @@ parameters to pass leave as None.</li>
 (final layer) which is a
 <code class="xref py py-class docutils literal"><span class="pre">keras.layers.Dense</span></code> object. If no
 parameters to pass leave as None.</li>
-<li><strong>optimiser</strong> (<code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code>) – Optimiser to be used accepts any
+<li><strong>optimiser</strong> (<code class="xref py py-class docutils literal"><span class="pre">OptimizerV2</span></code>) – Optimiser to be used accepts any
 <a class="reference external" href="https://keras.io/optimizers/">keras optimiser</a>.
 Default is <code class="xref py py-class docutils literal"><span class="pre">keras.optimizers.SGD</span></code></li>
 <li><strong>optimiser_params</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/typing.html#typing.Optional" title="(in Python v3.6)"><code class="xref py py-data docutils literal"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.6/library/typing.html#typing.Dict" title="(in Python v3.6)"><code class="xref py py-class docutils literal"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><code class="xref py py-class docutils literal"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.6/library/typing.html#typing.Any" title="(in Python v3.6)"><code class="xref py py-data docutils literal"><span class="pre">Any</span></code></a>]]) – Parameters for the optimiser. If None uses
@@ -2334,7 +2334,7 @@ be re-created when loaded by the <code class="xref py py-meth docutils literal">
 
 <dl class="class">
 <dt id="bella.models.tdlstm.TCLSTM">
-<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">TCLSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'keras.optimizers.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TCLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TCLSTM" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">TCLSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TCLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TCLSTM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#bella.models.tdlstm.TDLSTM" title="bella.models.tdlstm.TDLSTM"><code class="xref py py-class docutils literal"><span class="pre">bella.models.tdlstm.TDLSTM</span></code></a></p>
 <dl class="method">
 <dt id="bella.models.tdlstm.TCLSTM.create_training_text">
@@ -2406,7 +2406,7 @@ target vector embedding.</td>
 
 <dl class="class">
 <dt id="bella.models.tdlstm.TDLSTM">
-<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">TDLSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'keras.optimizers.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TDLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TDLSTM" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">bella.models.tdlstm.</code><code class="descname">TDLSTM</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TDLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TDLSTM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#bella.models.tdlstm.LSTM" title="bella.models.tdlstm.LSTM"><code class="xref py py-class docutils literal"><span class="pre">bella.models.tdlstm.LSTM</span></code></a></p>
 <p>Attributes:</p>
 <ol class="arabic simple">
@@ -2415,7 +2415,7 @@ representations.</li>
 </ol>
 <dl class="method">
 <dt id="bella.models.tdlstm.TDLSTM.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'keras.optimizers.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TDLSTM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TDLSTM.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>tokeniser</em>, <em>embeddings</em>, <em>reproducible=None</em>, <em>pad_size=-1</em>, <em>lower=True</em>, <em>patience=10</em>, <em>batch_size=32</em>, <em>epochs=300</em>, <em>embedding_layer_kwargs=None</em>, <em>lstm_layer_kwargs=None</em>, <em>dense_layer_kwargs=None</em>, <em>optimiser=&lt;class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'&gt;</em>, <em>optimiser_params=None</em>, <em>include_target=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/bella/models/tdlstm.html#TDLSTM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#bella.models.tdlstm.TDLSTM.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2451,7 +2451,7 @@ parameters to pass leave as None.</li>
 (final layer) which is a
 <code class="xref py py-class docutils literal"><span class="pre">keras.layers.Dense</span></code> object. If no
 parameters to pass leave as None.</li>
-<li><strong>optimiser</strong> (<code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code>) – <p>Optimiser to be used accepts any
+<li><strong>optimiser</strong> (<code class="xref py py-class docutils literal"><span class="pre">OptimizerV2</span></code>) – <p>Optimiser to be used accepts any
 <a class="reference external" href="https://keras.io/optimizers/">keras optimiser</a>.
 Default is <code class="xref py py-class docutils literal"><span class="pre">keras.optimizers.SGD</span></code></p>
 </li>

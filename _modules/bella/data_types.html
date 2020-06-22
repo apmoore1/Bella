@@ -162,23 +162,23 @@
 <span class="sd">   data store that contains multiple Target instances.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="k">import</span> <span class="n">MutableMapping</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">rand</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">metrics</span>
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 
-<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="k">import</span> <span class="n">whitespace</span>
-<span class="kn">from</span> <span class="nn">bella.stanford_tools</span> <span class="k">import</span> <span class="n">constituency_parse</span>
+<span class="kn">from</span> <span class="nn">bella.tokenisers</span> <span class="kn">import</span> <span class="n">whitespace</span>
+<span class="kn">from</span> <span class="nn">bella.stanford_tools</span> <span class="kn">import</span> <span class="n">constituency_parse</span>
 
 <span class="n">BELLA_DATASET_DIR</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;.Bella&#39;</span><span class="p">,</span> <span class="s1">&#39;Datasets&#39;</span><span class="p">)</span>
 
@@ -204,7 +204,7 @@
 <span class="sd">    represents the predicted sentiment for the Target instance.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="Target.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.Target.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spans</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">sentiment</span><span class="p">,</span> <span class="n">predicted</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Target.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.Target.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spans</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">sentiment</span><span class="p">,</span> <span class="n">predicted</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">sentence_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">augmented</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                  <span class="n">transfer_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">original_target_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                  <span class="n">original_sentence_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch_number</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
@@ -333,16 +333,16 @@
             <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;predicted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted</span></div>
 
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        To ensure that the Target class maintains the minimum Keys and Values</span>
 <span class="sd">        to allow an instance to be used in Target based machine learning. The</span>
@@ -362,7 +362,7 @@
                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accepted_keys</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        :param key: key (Only store values for `predicted` key)</span>
 <span class="sd">        :param value: Predicted sentiment value which has to be the same data \</span>
@@ -391,7 +391,7 @@
         <span class="c1">#                    .format(sent_value, type(value)))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        :returns: String returned is what user see when the instance is \</span>
 <span class="sd">        printed or printed within a interpreter.</span>
@@ -400,7 +400,7 @@
 
         <span class="k">return</span> <span class="s1">&#39;Target(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Two Target instances are equal if they are both Target instances and</span>
 <span class="sd">        one of the following conditions</span>
@@ -498,7 +498,7 @@
 <span class="sd">       values of this dictionary are stored as a list of Target</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="TargetCollection.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="TargetCollection.__init__"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        :param list_of_target: An interator of Target instances e.g. a List of </span>
 <span class="sd">                               Target instances.</span>
@@ -518,10 +518,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_sentiments</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_grouped_distinct_sentiments</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        If key already exists will raise KeyError.</span>
 
@@ -557,13 +557,13 @@
             <span class="k">del</span> <span class="n">temp_value</span><span class="p">[</span><span class="s1">&#39;target_id&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_value</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TargetCollection.add"><a class="viewcode-back" href="../../source/bella.html#bella.data_types.TargetCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -923,7 +923,7 @@
                                          <span class="s1">&#39;targets&#39;</span><span class="p">:</span> <span class="n">targets</span><span class="p">,</span> <span class="s1">&#39;spans&#39;</span><span class="p">:</span> <span class="n">spans</span><span class="p">}</span>
                         <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">sentence_data</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{json_encoded_data}</span><span class="s1">&#39;</span>
+                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{</span><span class="n">json_encoded_data</span><span class="si">}</span><span class="s1">&#39;</span>
                         <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_encoded_data</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">target_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
@@ -931,7 +931,7 @@
                             <span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">target_data</span><span class="p">[</span><span class="s1">&#39;epoch_number&#39;</span><span class="p">])</span>
                         <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">target_data</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{json_encoded_data}</span><span class="s1">&#39;</span>
+                            <span class="n">json_encoded_data</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{</span><span class="n">json_encoded_data</span><span class="si">}</span><span class="s1">&#39;</span>
                         <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_encoded_data</span><span class="p">)</span>
             
         <span class="c1"># If splitting the data there has to be two dataset names else one name</span>
@@ -955,7 +955,7 @@
             <span class="n">dataset_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
         <span class="c1"># Caching</span>
         <span class="k">if</span> <span class="n">cache</span> <span class="ow">and</span> <span class="n">all_paths_exist</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Using cache for the follwoing datasets: </span><span class="si">{dataset_names}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Using cache for the follwoing datasets: </span><span class="si">{</span><span class="n">dataset_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">dataset_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">return</span> <span class="n">dataset_paths</span>
@@ -1001,7 +1001,7 @@
             <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
                 <span class="n">target_categories</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
         <span class="c1"># Which categories are filtered</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Filtered {len(categories_filtered)} categories which are:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Filtered </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">categories_filtered</span><span class="p">)</span><span class="si">}</span><span class="s1"> categories which are:&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories_filtered</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
 
@@ -1181,7 +1181,7 @@
             <span class="n">sentence_targets</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
                 <span class="k">if</span> <span class="s1">&#39;sentence_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;A Target id instance </span><span class="si">{target}</span><span class="s1"> does not &#39;</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;A Target id instance </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s1"> does not &#39;</span>
                                      <span class="s1">&#39;have a sentence_id which is required.&#39;</span><span class="p">)</span>
                 <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s1">&#39;sentence_id&#39;</span><span class="p">]</span>
                 <span class="n">sentence_targets</span><span class="p">[</span><span class="n">sentence_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
@@ -1317,7 +1317,7 @@
             <span class="n">all_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">data</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">TargetCollection</span><span class="p">(</span><span class="n">all_targets</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
@@ -1326,7 +1326,7 @@
                 <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        :returns: String returned is what user see when the instance is \</span>
 <span class="sd">        printed or printed within a interpreter.</span>

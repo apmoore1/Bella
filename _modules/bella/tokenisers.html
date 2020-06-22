@@ -169,14 +169,14 @@
 <span class="sd">5. :py:func:`bella.tokenisers.spacy_tokeniser` -- </span>
 <span class="sd">   `SpaCy tokeniser &lt;https://spacy.io/&gt;`_</span>
 <span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
 
 <span class="kn">import</span> <span class="nn">twokenize</span>
 <span class="kn">import</span> <span class="nn">spacy</span>
-<span class="kn">from</span> <span class="nn">spacy.language</span> <span class="k">import</span> <span class="n">Language</span> <span class="k">as</span> <span class="n">SpacyModelType</span>
+<span class="kn">from</span> <span class="nn">spacy.language</span> <span class="kn">import</span> <span class="n">Language</span> <span class="k">as</span> <span class="n">SpacyModelType</span>
 
-<span class="kn">from</span> <span class="nn">bella</span> <span class="k">import</span> <span class="n">stanford_tools</span>
-<span class="kn">from</span> <span class="nn">bella.moses_tools</span> <span class="k">import</span> <span class="n">MosesTokenizer</span>
+<span class="kn">from</span> <span class="nn">bella</span> <span class="kn">import</span> <span class="n">stanford_tools</span>
+<span class="kn">from</span> <span class="nn">bella.moses_tools</span> <span class="kn">import</span> <span class="n">MosesTokenizer</span>
 
 
 <div class="viewcode-block" id="whitespace"><a class="viewcode-back" href="../../source/bella.html#bella.tokenisers.whitespace">[docs]</a><span class="k">def</span> <span class="nf">whitespace</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -189,7 +189,7 @@
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The paramter must be of type str not {type(text)}&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The paramter must be of type str not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ark_twokenize"><a class="viewcode-back" href="../../source/bella.html#bella.tokenisers.ark_twokenize">[docs]</a><span class="k">def</span> <span class="nf">ark_twokenize</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -206,7 +206,7 @@
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">twokenize</span><span class="o">.</span><span class="n">tokenizeRawTweetText</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The paramter must be of type str not {type(text)}&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The paramter must be of type str not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="stanford"><a class="viewcode-back" href="../../source/bella.html#bella.tokenisers.stanford">[docs]</a><span class="k">def</span> <span class="nf">stanford</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -221,7 +221,7 @@
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">stanford_tools</span><span class="o">.</span><span class="n">tokenise</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The paramter must be of type str not {type(text)}&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The paramter must be of type str not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="moses"><a class="viewcode-back" href="../../source/bella.html#bella.tokenisers.moses">[docs]</a><span class="k">def</span> <span class="nf">moses</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">aggressive_dash_splits</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
@@ -241,7 +241,7 @@
         <span class="k">return</span> <span class="n">moses</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> 
                               <span class="n">aggressive_dash_splits</span><span class="o">=</span><span class="n">aggressive_dash_splits</span><span class="p">,</span>
                               <span class="n">escape</span><span class="o">=</span><span class="n">escape</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The paramter must be of type str not {type(text)}&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The paramter must be of type str not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 <span class="n">LOADED_SPACY_MODELS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SpacyModelType</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -285,7 +285,7 @@
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The parameter passed has to be of type&#39;</span> 
-                         <span class="n">f</span><span class="s1">&#39;String not {type(text)}&#39;</span><span class="p">)</span>
+                         <span class="sa">f</span><span class="s1">&#39;String not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">spacy_model</span> <span class="o">=</span> <span class="n">_get_spacy_model</span><span class="p">(</span><span class="s1">&#39;en&#39;</span><span class="p">)</span>
 
     <span class="n">spacy_document</span> <span class="o">=</span> <span class="n">spacy_model</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>

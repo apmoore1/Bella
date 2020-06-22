@@ -154,14 +154,14 @@
             
   <h1>Source code for bella.scikit_features.neural_pooling</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span>
 
-<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="k">import</span> <span class="n">matrix_max</span>
+<span class="kn">from</span> <span class="nn">bella.neural_pooling</span> <span class="kn">import</span> <span class="n">matrix_max</span>
 
 <div class="viewcode-block" id="NeuralPooling"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.neural_pooling.NeuralPooling">[docs]</a><span class="k">class</span> <span class="nc">NeuralPooling</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
 
-<div class="viewcode-block" id="NeuralPooling.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.neural_pooling.NeuralPooling.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pool_func</span><span class="o">=</span><span class="n">matrix_max</span><span class="p">):</span>
+<div class="viewcode-block" id="NeuralPooling.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.neural_pooling.NeuralPooling.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pool_func</span><span class="o">=</span><span class="n">matrix_max</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pool_func</span> <span class="o">=</span> <span class="n">pool_func</span></div>
 
 <div class="viewcode-block" id="NeuralPooling.fit"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.neural_pooling.NeuralPooling.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_word_matrixs</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

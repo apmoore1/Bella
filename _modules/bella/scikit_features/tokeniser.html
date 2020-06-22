@@ -161,10 +161,10 @@
 <span class="sd">1. ContextTokeniser - Converts a list of String lists into token lists. See the</span>
 <span class="sd">transformer method of the class for more details.</span>
 <span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
-<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span>
 
-<span class="kn">from</span> <span class="nn">bella</span> <span class="k">import</span> <span class="n">tokenisers</span>
+<span class="kn">from</span> <span class="nn">bella</span> <span class="kn">import</span> <span class="n">tokenisers</span>
 
 
 <div class="viewcode-block" id="ContextTokeniser"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.tokeniser.ContextTokeniser">[docs]</a><span class="k">class</span> <span class="nc">ContextTokeniser</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
@@ -181,7 +181,7 @@
 <span class="sd">    used here or create your own function.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="ContextTokeniser.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.tokeniser.ContextTokeniser.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="n">tokenisers</span><span class="o">.</span><span class="n">whitespace</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="ContextTokeniser.__init__"><a class="viewcode-back" href="../../../source/bella.scikit_features.html#bella.scikit_features.tokeniser.ContextTokeniser.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokeniser</span><span class="o">=</span><span class="n">tokenisers</span><span class="o">.</span><span class="n">whitespace</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokeniser</span> <span class="o">=</span> <span class="n">tokeniser</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span></div>
 
