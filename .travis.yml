@@ -1,7 +1,7 @@
 
 os: linux
 sudo: required
-dist: trusty
+dist: xenial
 services:
   - docker
 language: python
@@ -24,6 +24,9 @@ script:
   - cd -
 deploy:
   provider: pages
-  skip_cleanup: true
+  cleanup: false
+  keep_history: true
+  strategy: git
   local_dir: docs/_build/html
-  github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+  token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+  edge: true
